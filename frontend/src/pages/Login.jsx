@@ -10,29 +10,35 @@ const Login = () => {
   const navigate = useNavigate();
 
   const handleLogin = async () => {
-    if (!username || !password) {
-      alert("Please fill in all the fields");
-      return;
+  if (!username || !password) {
+    alert("Please fill in all the fields");
+    return;
+  }
+
+  try {
+    const response = await axios.post(
+      "http://localhost:5000/api/auth/login", // updated route
+      { username, password },
+      { headers: { "Content-Type": "application/json" } }
+    );
+
+    // save token and info from backend
+    localStorage.setItem("token", response.data.token);
+    localStorage.setItem("username", response.data.username);
+    localStorage.setItem("role", response.data.role);
+
+    // navigate based on backend role
+    if (response.data.role === "Admin") {
+      navigate("/Dashboard");
+    } else if (response.data.role === "Staff") {
+      navigate("/StaffPage"); // replace with your staff dashboard route
     }
 
-    try {
-      const response = await axios.post(
-        "http://localhost:5000/login",
-        { username, password },
-        { headers: { "Content-Type": "application/json" } }
-      );
+  } catch (error) {
+    alert(error.response?.data?.message || "Login failed");
+  }
+};
 
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("username", response.data.username);
-      localStorage.setItem("role", response.data.role); // will store the role in local storage
-      
-     if(role === "Admin"){
-        navigate("/Dashboard");
-     }
-    } catch (error) {
-      alert("Login failed");
-    }
-  };
 
   return (
     <Container maxWidth="xs">
@@ -87,15 +93,6 @@ const Login = () => {
         >
           Login
         </Button>
-        <Typography 
-        variant="body2" 
-        sx={{ mt: 2, color: "primary.main", textAlign: "center" }}
-      >
-        Don't have an account?{" "}
-        <Link to="/" style={{ textDecoration: "none", color: "blue" }}>
-          Register
-        </Link>
-      </Typography>
       </Box>
     </Container>
   );
