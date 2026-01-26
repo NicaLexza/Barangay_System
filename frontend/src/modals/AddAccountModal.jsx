@@ -40,7 +40,13 @@ const AddAccountModal = ({ open, onClose }) => {
         password,
         confirmPassword,
         role,
-      });
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`
+        }
+      }
+    );
 
       setSuccess(res.data.message);
       // Optionally, clear the form

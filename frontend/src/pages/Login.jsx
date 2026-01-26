@@ -3,17 +3,17 @@ import axios from "axios";
 import { TextField, Button, Container, Typography, Box, Select, MenuItem, FormControl, InputLabel } from "@mui/material";
 import { useNavigate, Link } from "react-router-dom";
 
+
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("");
   const navigate = useNavigate();
 
   const handleLogin = async () => {
-  if (!username || !password) {
-    alert("Please fill in all the fields");
-    return;
-  }
+    if (!username || !password) {
+      alert("Please fill in all the fields");
+      return;
+    }
 
   try {
     const response = await axios.post(
@@ -31,7 +31,7 @@ const Login = () => {
     if (response.data.role === "Admin") {
       navigate("/Dashboard");
     } else if (response.data.role === "Staff") {
-      navigate("/StaffPage"); // replace with your staff dashboard route
+      navigate("/Accounts"); // replace with your staff dashboard route
     }
 
   } catch (error) {
@@ -73,17 +73,6 @@ const Login = () => {
           variant="outlined"
           sx={{ backgroundColor: "white" }}
         />
-        <FormControl fullWidth margin="normal" sx={{ backgroundColor: "white" }}>
-          <InputLabel>Role</InputLabel>
-          <Select
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            label="Role"
-          >
-            <MenuItem value="Admin">Admin</MenuItem>
-            <MenuItem value="Staff">Staff</MenuItem>
-          </Select>
-        </FormControl>
         <Button
           variant="contained"
           color="primary"

@@ -3,6 +3,7 @@ import React from "react";
 import Navbar from "../Reusables/Navbar.jsx";
 import Button from "../Reusables/Button.jsx";
 import AddAccountModal from "../modals/AddAccountModal.jsx";
+import Footer from "../Reusables/Footer.jsx";
 
 
 const Accounts = () => {
@@ -14,6 +15,7 @@ const Accounts = () => {
     <Typography>Accounts Page</Typography>
     <Button onClick={() => setOpen(true)}>Add Account</Button>
     <AddAccountModal open={open} onClose={() => setOpen(false)} />
+    <Footer/>
     </>
   );
 }

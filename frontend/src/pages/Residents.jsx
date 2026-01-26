@@ -1,7 +1,7 @@
 import { Typography } from "@mui/material";
 import React from "react";
 import Navbar from "../Reusables/Navbar.jsx";
-
+import Footer from "../Reusables/Footer.jsx";
 
 const Residents = () => {
 
@@ -9,7 +9,7 @@ const Residents = () => {
     <>
     <Navbar/>
     <Typography>Residents Page</Typography>
-
+    <Footer/>
     </>
   )
 }

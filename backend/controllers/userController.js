@@ -25,16 +25,18 @@ const addAccount = async (req, res) => {
       return res.status(400).json({ message: "Username already exists" });
     }
 
+    const createdBy = req.user.id; // Get the ID of the user creating the account
+
     // 4. Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // 5. Insert into database
     const insertSql =
-      "INSERT INTO users (Fullname, Username, Password, Role, Status, Created_at) VALUES (?, ?, ?, ?, 'Active', NOW())";
+      "INSERT INTO users (Fullname, Username, Password, Role, Status, Created_by, Created_at) VALUES (?, ?, ?, ?, 'Active', ?, NOW())";
 
     db.query(
       insertSql,
-      [fullname, username, hashedPassword, role],
+      [fullname, username, hashedPassword, role, createdBy],
       (err, result) => {
         if (err) return res.status(500).json({ message: "Database error", err });
 
