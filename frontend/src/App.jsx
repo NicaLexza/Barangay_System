@@ -1,9 +1,9 @@
 import{ BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import Login from "./pages/Login.jsx";
-import Dashboard from "./pages/Dashboard";
-import Accounts from "./pages/Accounts.jsx";
-import Residents from "./pages/Residents.jsx";
-import Eligibility from "./pages/Eligibility.jsx";
+import Login from "./pages/LoginPage.jsx";
+import Dashboard from "./pages/DashboardPage.jsx";
+import Accounts from "./pages/AccountsPage.jsx";
+import Residents from "./pages/Residents/ResidentsPage.jsx";
+import Eligibility from "./pages/EligibilityPage.jsx";
 
 function App() {
   return (
