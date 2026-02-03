@@ -7,3 +7,4 @@ const { login } = require("../controllers/authController"); // make sure this is
 router.post("/login", login);
 
 module.exports = router;
+//potangina mo wala ako database di ako makalogin
