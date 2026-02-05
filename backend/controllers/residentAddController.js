@@ -26,6 +26,21 @@ const addResident = (req, res) => {
 
   const created_by = req.user.id; // From JWT (authMiddleware)
 
+  const checkSql = `
+    SELECT COUNT(*) AS count 
+    FROM residents 
+    WHERE l_name = ? AND f_name = ? AND birthdate = ?
+  `;
+
+  db.query(checkSql, [l_name, f_name, birthdate], (err, results) => {
+    if (err) return res.status(500).json({ message: "Database error", error: err });
+
+    if (results[0].count > 0) {
+      return res.status(409).json({
+        message: "Resident already exists.",
+      });
+    }
+
   const sql = `
     INSERT INTO residents (
       f_name, m_name, l_name, suffix, sex, birthdate,
@@ -65,6 +80,7 @@ const addResident = (req, res) => {
       });
     }
   );
+});
 };
 
 module.exports = { addResident };
