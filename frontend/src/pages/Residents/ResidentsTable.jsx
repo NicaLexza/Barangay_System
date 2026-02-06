@@ -49,6 +49,8 @@ const ResidentsTable = () => {
 
     const filtered = allRows.filter((row) => {
       const age = calculateAge(row.birthdate);
+      const sectorArray = row.specialSector?.split(',').map(s => s.trim()) || [];
+       
 
       // Age range
       if (ageMin !== '' && (age === null || age < Number(ageMin))) return false;
@@ -65,9 +67,9 @@ const ResidentsTable = () => {
       if (employment === 'Unemployed' && row.occupation) return false;
 
       // Special Sector (AND)
-      if (sectors.pwd && !row.specialSector?.includes('PD')) return false;
-      if (sectors.senior && !row.specialSector?.includes('S')) return false;
-      if (sectors.solop && !row.specialSector?.includes('SP')) return false;
+      if (sectors.pwd && !sectorArray.includes('PD')) return false;
+      if (sectors.senior && !sectorArray.includes('S')) return false;
+      if (sectors.solop && !sectorArray.includes('SP')) return false;
 
       return true; // passed all filters
     });

@@ -135,6 +135,7 @@ const handleQuickFilterChange = (e) => {
           sx: { width: 320, p: 2, boxShadow: 3 },
         }}
       >
+    
         <Typography variant="h6" gutterBottom>
           Quick Filters
         </Typography>
