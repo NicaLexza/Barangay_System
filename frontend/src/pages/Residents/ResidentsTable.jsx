@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react';
 import { DataGrid } from '@mui/x-data-grid';
-import { Box } from '@mui/material';
+import { Box, IconButton, Popper, Paper, Typography } from '@mui/material';
 import ResidentsToolbar from './ResidentsToolbar';
 import axios from 'axios';
+import EditResidentModal from '../../modals/EditResidentModal';
+import DeleteConfirmModal from '../../modals/DeleteConfirmModal';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 const ResidentsTable = () => {
   const [allRows, setAllRows] = useState([]);  // original data
@@ -24,23 +29,51 @@ const ResidentsTable = () => {
   const columns = [
     { field: "no", headerName: "No.", width: 70, sortable: false },
     { field: "fullName", headerName: "Full Name", width: 220 },
+    { field: "address", headerName: "Address", width: 150 },
+    { field: "place_of_birth", headerName: "Place of Birth", width: 150 },
+    { field: "birthdate", headerName: "Date of Birth", width: 130 },
     {
       field: "age",
       headerName: "Age",
       width: 90,
-      valueGetter: (value, row) => calculateAge(row.birthdate),
       type: "number",
       align: "left",
       headerAlign: "left",
     },
     { field: "sex", headerName: "Sex", width: 90 },
-    { field: "birthdate", headerName: "Birthdate", width: 130 },
-    { field: "address", headerName: "Address", width: 150 },
     { field: "civilStatus", headerName: "Civil Status", width: 130 },
     { field: "occupation", headerName: "Occupation", width: 160 },
-    { field: "citizenship", headerName: "Citizenship", width: 140 },
     { field: "specialSector", headerName: "Special Sector", width: 180 },
-    { field: "actions", headerName: "Actions", width: 150, disableColumnMenu: true },
+    { field: "citizenship", headerName: "Citizenship", width: 140 },
+    {
+      field: "actions",
+      headerName: "Actions",
+      width: 150,
+      disableColumnMenu: true,
+      renderCell: (params) => {
+        const row = params.row;
+        return (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <IconButton size="small" onClick={() => handleEditClick(row)}>
+              <EditIcon fontSize="small" />
+            </IconButton>
+
+            <IconButton size="small" color="error" onClick={() => handleDeleteClick(row)}>
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+
+            <div
+              onMouseEnter={(e) => handleInfoEnter(e, row)}
+              onMouseLeave={() => handleInfoLeave()}
+            >
+              <IconButton size="small">
+                <InfoOutlinedIcon fontSize="small" />
+              </IconButton>
+            </div>
+          </div>
+        );
+      },
+    },
   ];
 
   // --- Manual stacked filter function ---
@@ -50,7 +83,6 @@ const ResidentsTable = () => {
     const filtered = allRows.filter((row) => {
       const age = calculateAge(row.birthdate);
       const sectorArray = row.specialSector?.split(',').map(s => s.trim()) || [];
-       
 
       // Age range
       if (ageMin !== '' && (age === null || age < Number(ageMin))) return false;
@@ -96,11 +128,20 @@ const ResidentsTable = () => {
           fullName: resident.fullName,
           sex: resident.sex,
           birthdate: resident.birthdate,
+          age: resident.age,
           address: resident.address,
+          house_no: resident.house_no || "",
+          street: resident.street || "",
+          place_of_birth: resident.place_of_birth,
           civilStatus: resident.civilStatus,
-          occupation: resident.occupation,
+          occupation: resident.occupation || '',
           citizenship: resident.citizenship,
           specialSector: resident.specialSector,
+          // optional metadata used by the info popup
+          created_by: resident.created_by,
+          created_at: resident.created_at,
+          updated_by: resident.updated_by,
+          updated_at: resident.updated_at,
         }));
 
         setAllRows(fetchedRows);
@@ -112,6 +153,33 @@ const ResidentsTable = () => {
 
     fetchResidents();
   }, [refreshKey]);
+
+  // UI state for edit/delete/info
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [infoAnchorEl, setInfoAnchorEl] = useState(null);
+
+  const handleEditClick = (row) => {
+    setSelectedRow(row);
+    setEditOpen(true);
+  };
+
+  const handleDeleteClick = (row) => {
+    setSelectedRow(row);
+    setDeleteOpen(true);
+  };
+
+  const handleInfoEnter = (event, row) => {
+    setSelectedRow(row);
+    setInfoAnchorEl(event.currentTarget);
+  };
+
+  const handleInfoLeave = () => {
+    setInfoAnchorEl(null);
+  };
+
+  const infoOpen = Boolean(infoAnchorEl);
 
   return (
     <Box sx={{ height: 550, width: 1600 }}>
@@ -128,6 +196,30 @@ const ResidentsTable = () => {
             onApplyFilters: applyManualFilters, // pass manual filter to toolbar
           },
         }}
+      />
+      {/* Info popper shown on hover */}
+      <Popper open={infoOpen} anchorEl={infoAnchorEl} placement="right-start" disablePortal>
+        <Paper elevation={3} sx={{ p: 1, maxWidth: 220 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>INFO</Typography>
+          <Typography variant="body2">Created by : {selectedRow?.created_by || 'N/A'}</Typography>
+          <Typography variant="body2">Created at : {selectedRow?.created_at || 'N/A'}</Typography>
+          <Typography variant="body2">Updated by : {selectedRow?.updated_by || 'N/A'}</Typography>
+          <Typography variant="body2">Updated at : {selectedRow?.updated_at || 'N/A'}</Typography>
+        </Paper>
+      </Popper>
+
+      <EditResidentModal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        onSuccess={() => setRefreshKey((p) => p + 1)}
+        initialData={selectedRow}
+      />
+
+      <DeleteConfirmModal
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={() => setRefreshKey((p) => p + 1)}
+        target={selectedRow}
       />
     </Box>
   );

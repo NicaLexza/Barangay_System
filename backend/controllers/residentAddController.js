@@ -9,6 +9,8 @@ const addResident = (req, res) => {
     suffix,
     sex,
     birthdate,
+    place_of_birth,
+    age,
     house_no,
     street,
     civil_status,
@@ -43,10 +45,10 @@ const addResident = (req, res) => {
 
   const sql = `
     INSERT INTO residents (
-      f_name, m_name, l_name, suffix, sex, birthdate,
+      f_name, m_name, l_name, suffix, sex, birthdate, place_of_birth, age,
       house_no, street, civil_status, occupation, citizenship,
       is_pwd, is_senior, is_solop, created_by
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   db.query(
@@ -58,6 +60,8 @@ const addResident = (req, res) => {
       suffix || null,
       sex,
       birthdate,
+      place_of_birth || null,
+      age || null,
       house_no || null,
       street,
       civil_status,

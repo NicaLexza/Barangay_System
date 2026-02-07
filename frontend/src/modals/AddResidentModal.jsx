@@ -23,11 +23,13 @@ import dayjs from "dayjs";
 const AddResidentModal = ({ open, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     f_name: "",
-    m_name: "",
     l_name: "",
+    m_name: "",
     suffix: "",
+    place_of_birth: "",
     sex: "Male",
     birthdate: null,
+    age: "",
     house_no: "",
     street: "",
     civil_status: "Single",
@@ -92,8 +94,10 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
         m_name: "",
         l_name: "",
         suffix: "",
+        place_of_birth: "",
         sex: "Male",
         birthdate: null,
+        age: "",
         house_no: "",
         street: "",
         civil_status: "Single",
@@ -115,24 +119,44 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle sx={{ borderBottom: 1, borderColor: "#e0e0e0", pb: 1 }}>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 3,
+        },
+      }}
+    >
+      {/* Header */}
+      <DialogTitle
+        sx={{
+          fontWeight: 600,
+          borderBottom: "1px solid #e0e0e0",
+          pb: 1,
+        }}
+      >
         Add New Resident
       </DialogTitle>
 
-      <DialogContent sx={{ px: 4, py: 3 }}>
-        <Stack spacing={2.5}>
-          <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 1 }}>
+      {/* Content */}
+      <DialogContent sx={{ px: 4, py: 3, bgcolor: "#f3f7fb" }}>
+        <Stack spacing={2}>
+          {/* Personal Information Section */}
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mt: 1 }}>
             Personal Information
           </Typography>
+
           <Stack direction="row" spacing={2}>
             <TextField
-              label="First Name *"
+              label="First Name"
               name="f_name"
               value={formData.f_name}
               onChange={handleChange}
               fullWidth
-              required
+              size="small"
             />
             <TextField
               label="Middle Name"
@@ -140,85 +164,85 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
               value={formData.m_name}
               onChange={handleChange}
               fullWidth
+              size="small"
             />
-          </Stack>
-          <Stack direction="row" spacing={2}>
             <TextField
-              label="Last Name *"
+              label="Last Name"
               name="l_name"
               value={formData.l_name}
               onChange={handleChange}
               fullWidth
-              required
+              size="small"
             />
+          </Stack>
+
+          <Stack direction="row" spacing={2}>
             <TextField
               label="Suffix (Jr, Sr, etc.)"
               name="suffix"
               value={formData.suffix}
               onChange={handleChange}
               fullWidth
+              size="small"
+            />
+          </Stack>
+
+          <Stack direction="row" spacing={2}>
+            <TextField
+              label="Place of Birth"
+              name="place_of_birth"
+              value={formData.place_of_birth}
+              onChange={handleChange}
+              fullWidth
+              size="small"
+            />
+          </Stack>
+
+          <Stack direction="row" spacing={2}>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DatePicker
+                label="Birthdate"
+                value={formData.birthdate}
+                onChange={handleDateChange}
+                format="MM/DD/YYYY"
+                slotProps={{ textField: { fullWidth: true, size: "small" } }}
+              />
+            </LocalizationProvider>
+
+            <TextField
+              label="Age"
+              name="age"
+              type="number"
+              value={formData.age}
+              onChange={handleChange}
+              fullWidth
+              size="small"
             />
           </Stack>
 
           <Stack direction="row" spacing={2}>
             <TextField
               select
-              label="Sex *"
+              label="Sex"
               name="sex"
               value={formData.sex}
               onChange={handleChange}
               fullWidth
-              required
+              size="small"
             >
               <MenuItem value="Male">Male</MenuItem>
               <MenuItem value="Female">Female</MenuItem>
               <MenuItem value="Other">Other</MenuItem>
             </TextField>
 
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DatePicker
-                label="Birthdate *"
-                value={formData.birthdate}
-                onChange={handleDateChange}
-                slotProps={{ textField: { fullWidth: true, required: true } }}
-                format="MM/DD/YYYY"
-              />
-            </LocalizationProvider>
-          </Stack>
-
-          <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 2 }}>
-            Address
-          </Typography>
-          <Stack direction="row" spacing={2}>
-            <TextField
-              label="House No. / Block / Lot"
-              name="house_no"
-              value={formData.house_no}
-              onChange={handleChange}
-              fullWidth
-            />
-            <TextField
-              label="Street *"
-              name="street"
-              value={formData.street}
-              onChange={handleChange}
-              fullWidth
-              required
-            />
-          </Stack>
-
-          <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 2 }}>
-            Other Information
-          </Typography>
-          <Stack direction="row" spacing={2}>
             <TextField
               select
-              label="Civil Status *"
+              label="Civil Status"
               name="civil_status"
               value={formData.civil_status}
               onChange={handleChange}
               fullWidth
-              required
+              size="small"
             >
               <MenuItem value="Single">Single</MenuItem>
               <MenuItem value="Married">Married</MenuItem>
@@ -227,56 +251,136 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
               <MenuItem value="Separated">Separated</MenuItem>
               <MenuItem value="Annulled">Annulled</MenuItem>
             </TextField>
+          </Stack>
 
+          {/* Address Section */}
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mt: 2 }}>
+            Address
+          </Typography>
+
+          <Stack direction="row" spacing={2}>
+            <TextField
+              label="House No. / Block / Lot"
+              name="house_no"
+              value={formData.house_no}
+              onChange={handleChange}
+              fullWidth
+              size="small"
+            />
+            <TextField
+              label="Street"
+              name="street"
+              value={formData.street}
+              onChange={handleChange}
+              fullWidth
+              size="small"
+            />
+          </Stack>
+
+          {/* Other Information Section */}
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mt: 2 }}>
+            Other Information
+          </Typography>
+
+          <Stack direction="row" spacing={2}>
             <TextField
               label="Occupation"
               name="occupation"
               value={formData.occupation}
               onChange={handleChange}
               fullWidth
+              size="small"
+            />
+            <TextField
+              label="Citizenship"
+              name="citizenship"
+              value={formData.citizenship}
+              onChange={handleChange}
+              fullWidth
+              size="small"
             />
           </Stack>
 
-          <TextField
-            label="Citizenship"
-            name="citizenship"
-            value={formData.citizenship}
-            onChange={handleChange}
-            fullWidth
-          />
-
-          <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 2 }}>
-            Special Sectors
-          </Typography>
-          <FormGroup row>
-            <FormControlLabel
-              control={<Checkbox name="is_pwd" checked={formData.is_pwd} onChange={handleChange} />}
-              label="Person with Disability (PWD)"
-            />
-            <FormControlLabel
-              control={<Checkbox name="is_senior" checked={formData.is_senior} onChange={handleChange} />}
-              label="Senior Citizen"
-            />
-            <FormControlLabel
-              control={<Checkbox name="is_solop" checked={formData.is_solop} onChange={handleChange} />}
-              label="Solo Parent"
-            />
-          </FormGroup>
-
-          {error && <Typography color="error" mt={2}>{error}</Typography>}
-          {success && <Typography color="success.main" mt={2}>{success}</Typography>}
+          {error && (
+            <Typography color="error" fontSize={13}>
+              {error}
+            </Typography>
+          )}
+          {success && (
+            <Typography color="success.main" fontSize={13}>
+              {success}
+            </Typography>
+          )}
         </Stack>
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button onClick={onClose} disabled={loading}>Cancel</Button>
+      {/* Special Sectors Section */}
+      <Stack spacing={1} sx={{ px: 4, py: 2, bgcolor: "#f3f7fb", borderTop: "1px solid #e0e0e0" }}>
+        <Typography
+          variant="subtitle2"
+          sx={{ fontWeight: 600, mt: 1 }}
+        >
+          Special Sectors
+        </Typography>
+
+        <FormGroup>
+          <FormControlLabel
+            control={
+              <Checkbox
+                name="is_solop"
+                checked={formData.is_solop}
+                onChange={handleChange}
+              />
+            }
+            label="Solo Parent"
+          />
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                name="is_pwd"
+                checked={formData.is_pwd}
+                onChange={handleChange}
+              />
+            }
+            label="PWD"
+          />
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                name="is_senior"
+                checked={formData.is_senior}
+                onChange={handleChange}
+              />
+            }
+            label="Senior Citizen"
+          />
+        </FormGroup>
+      </Stack>
+
+      {/* Actions */}
+      <DialogActions sx={{ justifyContent: "center", gap: 2, pb: 3, pt: 2 }}>
         <Button
           variant="contained"
           onClick={handleSave}
           disabled={loading}
-          sx={{ backgroundColor: "#002f59" }}
+          sx={{
+            minWidth: 140,
+            bgcolor: "#002f59",
+            textTransform: "none",
+          }}
         >
           {loading ? "Saving..." : "Add Resident"}
+        </Button>
+
+        <Button
+          variant="outlined"
+          onClick={onClose}
+          disabled={loading}
+          sx={{ minWidth: 100, textTransform: "none" }}
+        >
+          Cancel
         </Button>
       </DialogActions>
     </Dialog>

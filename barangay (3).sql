@@ -35,6 +35,7 @@ CREATE TABLE `residents` (
   `suffix` varchar(10) DEFAULT NULL,
   `sex` enum('Male','Female','Other') NOT NULL,
   `birthdate` date NOT NULL,
+  `place_of_birth` varchar(150) DEFAULT NULL,
   `house_no` varchar(50) DEFAULT NULL,
   `street` varchar(150) DEFAULT NULL,
   `civil_status` enum('Single','Married','Widowed','Divorced','Separated','Annulled') NOT NULL,
@@ -43,6 +44,7 @@ CREATE TABLE `residents` (
   `is_pwd` tinyint(1) DEFAULT 0,
   `is_senior` tinyint(1) DEFAULT 0,
   `is_solop` tinyint(1) DEFAULT 0,
+  `age` int(11) DEFAULT NULL,
   `created_by` int(11) DEFAULT NULL,
   `created_at` datetime DEFAULT current_timestamp(),
   `updated_by` int(11) DEFAULT NULL,
@@ -152,6 +154,7 @@ ALTER TABLE `users`
   ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`Created_by`) REFERENCES `users` (`User_id`),
   ADD CONSTRAINT `users_ibfk_2` FOREIGN KEY (`Updated_by`) REFERENCES `users` (`User_id`);
 COMMIT;
+
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
