@@ -1,5 +1,5 @@
-// AddResidentModal.jsx
-import React, { useState } from "react";
+// EditResidentModal.jsx
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -20,7 +20,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 
-const AddResidentModal = ({ open, onClose, onSuccess }) => {
+const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {  // ← change prop to residentId
   const [formData, setFormData] = useState({
     f_name: "",
     m_name: "",
@@ -43,6 +43,51 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  // Fetch full resident details when modal opens
+  useEffect(() => {
+    if (open && residentId) {
+      const fetchResident = async () => {
+        try {
+          const token = localStorage.getItem("token");
+          if (!token) {
+            setError("No token found.");
+            return;
+          }
+
+          const res = await axios.get(`http://localhost:5000/api/residents/${residentId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          const data = res.data;
+          console.log("Fetched resident for edit:", data); // debug
+
+          setFormData({
+            f_name: data.f_name || "",
+            m_name: data.m_name || "",
+            l_name: data.l_name || "",
+            suffix: data.suffix || "",
+            sex: data.sex || "Male",
+            birthdate: data.birthdate ? dayjs(data.birthdate) : null,
+            birthplace: data.birthplace || "",
+            house_no: data.house_no || "",
+            street: data.street || "",
+            civil_status: data.civil_status || "Single",
+            occupation: data.occupation || "",
+            citizenship: data.citizenship || "Filipino",
+            is_pwd: !!data.is_pwd,
+            is_senior: !!data.is_senior,
+            is_solop: !!data.is_solop,
+          });
+        } catch (err) {
+          console.error("Fetch single resident error:", err);
+          setError("Failed to load resident data.");
+        }
+      };
+
+      fetchResident();
+    }
+  }, [open, residentId]);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -55,11 +100,10 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
     setFormData((prev) => ({ ...prev, birthdate: date }));
   };
 
-  const handleSave = async () => {
+  const handleUpdate = async () => {
     setError("");
     setSuccess("");
 
-    // Validation
     if (!formData.f_name || !formData.l_name || !formData.sex || !formData.birthdate || !formData.birthplace || !formData.civil_status || !formData.street) {
       setError("Please fill all required fields (marked with *)");
       return;
@@ -70,47 +114,25 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        setError("No authentication token found. Please log in again.");
+        setError("No authentication token found.");
         return;
       }
 
       const payload = {
         ...formData,
         birthdate: formData.birthdate ? dayjs(formData.birthdate).format("YYYY-MM-DD") : null,
+        resident_id: residentId,
       };
 
-      const res = await axios.post("http://localhost:5000/api/residents/add", payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const res = await axios.put("http://localhost:5000/api/residents/update", payload, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      setSuccess(res.data.message || "Resident added successfully!");
-
-      // Clear form
-      setFormData({
-        f_name: "",
-        m_name: "",
-        l_name: "",
-        suffix: "",
-        sex: "Male",
-        birthdate: null,
-        birthplace: "",
-        house_no: "",
-        street: "",
-        civil_status: "Single",
-        occupation: "",
-        citizenship: "Filipino",
-        is_pwd: false,
-        is_senior: false,
-        is_solop: false,
-      });
-
-      // Refresh table
+      setSuccess(res.data.message || "Resident updated successfully!");
       onSuccess?.();
     } catch (err) {
-      console.error("Add resident error:", err);
-      setError(err.response?.data?.message || "Failed to add resident. Please try again.");
+      console.error("Update error:", err);
+      setError(err.response?.data?.message || "Failed to update resident.");
     } finally {
       setLoading(false);
     }
@@ -119,7 +141,7 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ borderBottom: 1, borderColor: "#e0e0e0", pb: 1 }}>
-        Add New Resident
+        Edit Resident
       </DialogTitle>
 
       <DialogContent sx={{ px: 4, py: 3 }}>
@@ -187,12 +209,14 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
               />
             </LocalizationProvider>
           </Stack>
+
           <TextField
-            label="Birthplace"
+            label="Birthplace *"
             name="birthplace"
             value={formData.birthplace}
             onChange={handleChange}
             fullWidth
+            required
           />
 
           <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 2 }}>
@@ -281,15 +305,15 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
         <Button onClick={onClose} disabled={loading}>Cancel</Button>
         <Button
           variant="contained"
-          onClick={handleSave}
+          onClick={handleUpdate}
           disabled={loading}
           sx={{ backgroundColor: "#002f59" }}
         >
-          {loading ? "Saving..." : "Add Resident"}
+          {loading ? "Updating..." : "Update Resident"}
         </Button>
       </DialogActions>
     </Dialog>
   );
 };
 
-export default AddResidentModal;
+export default EditResidentModal;

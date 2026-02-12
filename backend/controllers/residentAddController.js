@@ -9,6 +9,7 @@ const addResident = (req, res) => {
     suffix,
     sex,
     birthdate,
+    birthplace,
     house_no,
     street,
     civil_status,
@@ -20,7 +21,7 @@ const addResident = (req, res) => {
   } = req.body;
 
   // Required fields validation (basic server-side)
-  if (!f_name || !l_name || !sex || !birthdate || !civil_status || !street) {
+  if (!f_name || !l_name || !sex || !birthdate || !birthplace || !civil_status || !street ) {
     return res.status(400).json({ message: "Required fields missing" });
   }
 
@@ -43,10 +44,10 @@ const addResident = (req, res) => {
 
   const sql = `
     INSERT INTO residents (
-      f_name, m_name, l_name, suffix, sex, birthdate,
+      f_name, m_name, l_name, suffix, sex, birthdate, birthplace,
       house_no, street, civil_status, occupation, citizenship,
       is_pwd, is_senior, is_solop, created_by
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   db.query(
@@ -58,6 +59,7 @@ const addResident = (req, res) => {
       suffix || null,
       sex,
       birthdate,
+      birthplace,
       house_no || null,
       street,
       civil_status,

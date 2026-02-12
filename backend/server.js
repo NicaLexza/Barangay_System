@@ -12,12 +12,16 @@ const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const residentRoutes = require("./routes/residentRoutes");
 const residentAddRoutes = require("./routes/residentAddRoutes");
+const residentEditRoutes = require("./routes/residentEditRoutes");
+const residentDeleteRoutes = require("./routes/residentDeleteRoutes");
 
 // use routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/residents", residentRoutes);
 app.use("/api/residents", residentAddRoutes);
+app.use("/api/residents", residentEditRoutes);
+app.use("/api/residents", residentDeleteRoutes);
 
 // start server
 

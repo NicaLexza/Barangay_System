@@ -5,21 +5,30 @@ const db = require("../config/db");
 const getAllResidents = (req, res) => {
   const sql = `
     SELECT 
-      resident_id,
-      CONCAT_WS(' ', f_name, m_name, l_name, suffix) AS fullName,
-      DATE_FORMAT(birthdate, '%Y-%m-%d') AS birthdate,   -- ← format as YYYY-MM-DD string
-      CONCAT_WS(' ', house_no, street) AS address,
+      r.resident_id,
+      CONCAT_WS(' ', r.f_name, r.m_name, r.l_name, r.suffix) AS fullName,
+      DATE_FORMAT(r.birthdate, '%Y-%m-%d') AS birthdate,
+      r.birthplace,
+      CONCAT_WS(' ', r.house_no, r.street) AS address,
       CONCAT(
-        IF(is_pwd = 1, 'PD, ', ''),
-        IF(is_senior = 1, 'S, ', ''),
-        IF(is_solop = 1, 'SP', '')
+        IF(r.is_pwd = 1, 'PD, ', ''),
+        IF(r.is_senior = 1, 'S, ', ''),
+        IF(r.is_solop = 1, 'SP', '')
       ) AS specialSector,
-      sex,
-      civil_status AS civilStatus,
-      occupation,
-      citizenship
-    FROM residents
-    ORDER BY l_name, f_name
+      r.sex,
+      r.civil_status AS civilStatus,
+      r.occupation,
+      r.citizenship,
+      DATE_FORMAT(r.created_at, '%Y-%m-%d %H:%i:%s') AS created_at,
+      r.created_by,
+      cu.Fullname AS created_by_name,
+      DATE_FORMAT(r.updated_at, '%Y-%m-%d %H:%i:%s') AS updated_at,
+      r.updated_by,
+      uu.Fullname AS updated_by_name
+    FROM residents r
+    LEFT JOIN users cu ON cu.User_id = r.created_by
+    LEFT JOIN users uu ON uu.User_id = r.updated_by
+    ORDER BY r.l_name, r.f_name
   `;
 
   db.query(sql, (err, results) => {
@@ -44,4 +53,45 @@ const getAllResidents = (req, res) => {
   });
 };
 
-module.exports = { getAllResidents };
+// === NEW FUNCTION: Fetch one resident by ID (raw fields) ===
+const getResident = (req, res) => {
+  const { id } = req.params;
+
+  const sql = `
+    SELECT 
+      resident_id,
+      f_name,
+      m_name,
+      l_name,
+      suffix,
+      sex,
+      birthdate,
+      birthplace,
+      house_no,
+      street,
+      civil_status,
+      occupation,
+      citizenship,
+      is_pwd,
+      is_senior,
+      is_solop
+    FROM residents
+    WHERE resident_id = ?
+  `;
+
+  db.query(sql, [id], (err, results) => {
+    if (err) {
+      console.error("Get resident error:", err);
+      return res.status(500).json({ message: "Database error" });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ message: "Resident not found" });
+    }
+
+    // Return the raw row directly (no concatenation)
+    res.json(results[0]);
+  });
+};
+
+module.exports = { getAllResidents, getResident };

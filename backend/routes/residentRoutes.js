@@ -1,12 +1,16 @@
-// routes/residentRoutes.js
+// routes/residentRoutes.js (or residentAddRoutes.js)
 const express = require("express");
 const router = express.Router();
-const { getAllResidents } = require("../controllers/residentController");
+
+const { getAllResidents, getResident } = require("../controllers/residentController");
 const { verifyToken } = require("../middleware/authMiddleware");
 
-// GET all residents (protected route)
+// Existing list route
 router.get("/", verifyToken, getAllResidents);
 
-// Later: we'll add POST /add, PUT /:id, DELETE /:id
+// NEW: single resident
+router.get("/:id", verifyToken, getResident);
+
+// Your other routes (POST /add, PUT /update, etc.)
 
 module.exports = router;
