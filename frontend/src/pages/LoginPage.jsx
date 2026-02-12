@@ -1,18 +1,18 @@
 import { useState } from "react";
 import axios from "axios";
-import { TextField, Button, Typography, Box, Grid,InputAdornment, IconButton } from "@mui/material";
+import { TextField, Button, Typography, Box, Grid, InputAdornment, IconButton } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import PermIdentityIcon from '@mui/icons-material/PermIdentity';
 import LockIcon from '@mui/icons-material/Lock';
-
-
 
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState("Staff");
+  const [usernameFocused, setUsernameFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async () => {
@@ -33,18 +33,17 @@ const Login = () => {
       localStorage.setItem("username", response.data.username);
       localStorage.setItem("role", response.data.role);
 
-    // navigate based on backend role
-    if (response.data.role === "Admin") {
-      navigate("/Dashboard");
-    } else if (response.data.role === "Staff") {
-      navigate("/Accounts"); // replace with your staff dashboard route
+      // navigate based on backend role
+      if (response.data.role === "Admin") {
+        navigate("/Dashboard");
+      } else if (response.data.role === "Staff") {
+        navigate("/Accounts");
+      }
+
+    } catch (error) {
+      alert(error.response?.data?.message || "Login failed");
     }
-
-  } catch (error) {
-    alert(error.response?.data?.message || "Login failed");
-  }
-};
-
+  };
 
   return (
     <Box
@@ -56,24 +55,34 @@ const Login = () => {
         justifyContent: "center",
         background: "linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)",
         overflow: "hidden",
-          
       }}
     >
-      <Grid container spacing={0} sx={{ height: "350px", width: "700px" }}>
+      <Grid 
+        container 
+        sx={{ 
+          maxWidth: "900px",
+          minHeight: "400px",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
+          borderRadius: "10px",
+          overflow: "hidden",
+        }}
+      >
         {/* Left side: Login Form */}
         <Grid
           item
           xs={12}
-          sm={6}
+          md={6}
           sx={{
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
             p: 4,
             backgroundColor: "white",
-            borderTopLeftRadius: "16px",
-            borderBottomLeftRadius: "16px",
-            border: "3px solid #1e3f5a",
+            borderRadius: "10px",
+            borderRight: { md: ".5px solid #1e3f5a" },
+            borderBottom: { xs: "3px solid #1e3f5a"},
+            borderLeft: { xs: "3px solid #1e3f5a"},
+            borderTop: { xs: "3px solid #1e3f5a"},
           }}
         >
           <Typography
@@ -91,10 +100,11 @@ const Login = () => {
           <Box sx={{ display: "flex", gap: 1.5, flexDirection: "column" }}>
             {/* Username */}
             <TextField
-              placeholder="Username"
               label="Username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              onFocus={() => setUsernameFocused(true)}
+              onBlur={() => setUsernameFocused(false)}
               fullWidth
               variant="outlined"
               sx={{
@@ -102,28 +112,35 @@ const Login = () => {
                   borderRadius: "8px",
                   backgroundColor: "#f5f5f5",
                 },
-                "& .MuiOutlinedInput-input::label": {
-                  opacity: 0.7,
+              }}
+              InputLabelProps={{
+                shrink: usernameFocused || username.length > 0,
+                sx: {
+                   "&:not(.MuiInputLabel-shrink)": {
+                    marginLeft: "32px",
+                  },
+                  transition: "all 0.2s ease-in-out",
+                  },
+              }}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <PermIdentityIcon sx={{ color: "#666" }} />
+                    </InputAdornment>
+                  ),
                 },
               }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <PermIdentityIcon sx={{ color: "#666" }} />
-                  </InputAdornment>
-                ),
-              }}
             />
-          
-
 
             {/* Password */}
             <TextField
-              placeholder="Password"
               label="Password"
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onFocus={() => setPasswordFocused(true)}
+              onBlur={() => setPasswordFocused(false)}
               fullWidth
               variant="outlined"
               sx={{
@@ -131,31 +148,39 @@ const Login = () => {
                   borderRadius: "8px",
                   backgroundColor: "#f5f5f5",
                 },
-                "& .MuiOutlinedInput-input::label": {
-                  opacity: 0.7,
+              }}
+              InputLabelProps={{
+                shrink: passwordFocused || password.length > 0,
+                sx: {
+                   "&:not(.MuiInputLabel-shrink)": {
+                    marginLeft: "32px",
+                  },
+                  transition: "all 0.2s ease-in-out",
+                  },
+              }}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockIcon sx={{ color: "#666" }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                        sx={{ color: "#666" }}
+                      >
+                        {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
                 },
               }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LockIcon sx={{ color: "#666" }} />
-                  </InputAdornment>
-                ),
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowPassword(!showPassword)}
-                      edge="end"
-                      sx={{ color: "#000" }}
-                    >
-                      <VisibilityIcon />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
             />
-            </Box>
-            
+          </Box>
+
           {/* Login Button */}
           <Button
             variant="contained"
@@ -182,18 +207,19 @@ const Login = () => {
         <Grid
           item
           xs={12}
-          sm={6}
+          md={6}
           sx={{
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             p: 4,
             backgroundColor: "#ffffff",
-            borderTopRightRadius: "16px",
-            borderBottomRightRadius: "16px",
-            border: "3px solid #1e3f5a",
-            borderLeft: "none",
-            minHeight: { xs: "300px", sm: "auto" },
+            minHeight: { xs: "300px", md: "auto" },
+            borderRadius: "10px",
+            borderLeft: { md: ".5px solid #1e3f5a" },
+            borderRight: { md: "3px solid #1e3f5a" },
+            borderBottom: { xs: "3px solid #1e3f5a"},
+            borderTop: { xs: "3px solid #1e3f5a"},
           }}
         >
           <Box
@@ -201,9 +227,9 @@ const Login = () => {
             src="/blogo.jpg"
             alt="Barangay Logo"
             sx={{
-              width: { xs: "200px", sm: "280px" },
+              width: "100%",
+              maxWidth: "280px",
               height: "auto",
-              maxWidth: "100%",
             }}
           />
         </Grid>
