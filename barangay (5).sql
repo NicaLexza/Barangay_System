@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 12, 2026 at 08:53 AM
+-- Generation Time: Feb 18, 2026 at 12:12 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -20,6 +20,36 @@ SET time_zone = "+00:00";
 --
 -- Database: `barangay`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `households`
+--
+
+CREATE TABLE `households` (
+  `household_id` int(11) NOT NULL,
+  `f_name` varchar(100) NOT NULL,
+  `m_name` varchar(100) DEFAULT NULL,
+  `l_name` varchar(100) NOT NULL,
+  `suffix` varchar(10) DEFAULT NULL,
+  `house_no` varchar(50) DEFAULT NULL,
+  `street` varchar(150) NOT NULL,
+  `head_count` int(11) NOT NULL DEFAULT 1,
+  `created_by` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  `updated_by` int(11) DEFAULT NULL,
+  `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `households`
+--
+
+INSERT INTO `households` (`household_id`, `f_name`, `m_name`, `l_name`, `suffix`, `house_no`, `street`, `head_count`, `created_by`, `created_at`, `updated_by`, `updated_at`) VALUES
+(1, 'Jake', 'Corazon', 'Cruz', NULL, '12', 'Florida', 3, 4, '2026-02-16 20:08:18', NULL, '2026-02-16 20:08:18'),
+(2, 'James ', NULL, 'Cruz', NULL, '21', 'Bottom', 3, 4, '2026-02-18 18:34:44', NULL, '2026-02-18 18:34:44'),
+(3, 'corazon', NULL, 'doflamingo', NULL, '25', 'Don', 12, 4, '2026-02-18 18:53:02', NULL, '2026-02-18 18:53:02');
 
 -- --------------------------------------------------------
 
@@ -103,6 +133,14 @@ INSERT INTO `users` (`User_id`, `Username`, `Password`, `Fullname`, `Role`, `Sta
 --
 
 --
+-- Indexes for table `households`
+--
+ALTER TABLE `households`
+  ADD PRIMARY KEY (`household_id`),
+  ADD KEY `created_by` (`created_by`),
+  ADD KEY `updated_by` (`updated_by`);
+
+--
 -- Indexes for table `residents`
 --
 ALTER TABLE `residents`
@@ -124,10 +162,16 @@ ALTER TABLE `users`
 --
 
 --
+-- AUTO_INCREMENT for table `households`
+--
+ALTER TABLE `households`
+  MODIFY `household_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
 -- AUTO_INCREMENT for table `residents`
 --
 ALTER TABLE `residents`
-  MODIFY `resident_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `resident_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -138,6 +182,13 @@ ALTER TABLE `users`
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `households`
+--
+ALTER TABLE `households`
+  ADD CONSTRAINT `households_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`User_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `households_ibfk_2` FOREIGN KEY (`updated_by`) REFERENCES `users` (`User_id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `residents`

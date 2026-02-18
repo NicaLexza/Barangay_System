@@ -16,10 +16,13 @@ import {
   Checkbox,
   FormGroup,
   Divider,
+  Tabs,
+  Tab,  
 } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { useGridApiContext } from '@mui/x-data-grid';
 import AddResidentModal from '../../modals/AddResidentModal';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function ResidentsToolbar({ onAddSuccess, onApplyFilters }) {
   const [quickFilterValue, setQuickFilterValue] = useState('');
@@ -35,6 +38,18 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters }) {
   const [sectors, setSectors] = useState({ pwd: false, senior: false, solop: false });
 
   const apiRef = useGridApiContext(); // make sure to import/use
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const isResidentsView = location.pathname === '/Residents' || location.pathname === '/'; // adjust if needed
+
+  const toggleNavigation = () => {
+    if (isResidentsView) {
+      navigate('/Households');
+    } else {
+      navigate('/Residents');
+    }
+  };
 
 const handleQuickFilterChange = (e) => {
   const value = e.target.value;
@@ -77,13 +92,20 @@ const handleQuickFilterChange = (e) => {
     handleFilterClose();
   };
 
+  const handleTabChange = (event, newValue) => {
+    if (newValue === 1) { // Households tab
+      navigate('/households'); // ← navigates to HouseholdsPage
+    }
+    // Residents (0) stays on current page
+  };
+
   return (
     <>
       <Box
         sx={{
           backgroundColor: '#002f5944',
           display: 'flex',
-          justifyContent: 'flex-start',
+          justifyContent: 'space-between',
           alignItems: 'center',
           gap: 1.5,
           padding: '8px 16px',
@@ -92,6 +114,7 @@ const handleQuickFilterChange = (e) => {
         }}
       >
         {/* Quick search */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <TextField
           variant="outlined"
           size="small"
@@ -123,6 +146,23 @@ const handleQuickFilterChange = (e) => {
           + New Resident
         </Button>
       </Box>
+
+        {/* Right side: navigation tabs */}
+        <Button
+          onClick={toggleNavigation}
+          sx={{
+            color: 'white',
+            textTransform: 'none',
+            fontWeight: 500,
+            '&:hover': { color: '#fff176' },
+          }}
+        >
+          {isResidentsView ? 'Households' : 'Residents'}
+        </Button>
+      </Box>
+
+      
+      
 
       {/* Filter Panel */}
       <Popover

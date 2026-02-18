@@ -4,6 +4,8 @@ import Dashboard from "./pages/DashboardPage.jsx";
 import Accounts from "./pages/AccountsPage.jsx";
 import Residents from "./pages/Residents/ResidentsPage.jsx";
 import Eligibility from "./pages/EligibilityPage.jsx";
+import Households from "./pages/Households/HouseholdsPage.jsx";
+
 
 function App() {
   return (
@@ -13,7 +15,9 @@ function App() {
         <Route path="/Dashboard" element={<Dashboard />}/>
         <Route path="/Accounts" element={<Accounts />} />
         <Route path="/Residents" element={<Residents />} />
-        <Route path="/Eligibility" element={<Eligibility />} 
+        <Route path="/Eligibility" element={<Eligibility />} />
+        <Route path="/Households" element={<Households />}
+        
         
         />
       </Routes>

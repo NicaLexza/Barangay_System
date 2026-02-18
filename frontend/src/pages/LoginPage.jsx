@@ -172,7 +172,7 @@ const Login = () => {
                         edge="end"
                         sx={{ color: "#666" }}
                       >
-                        {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                        {showPassword ?  <VisibilityIcon /> : <VisibilityOffIcon />}
                       </IconButton>
                     </InputAdornment>
                   ),
