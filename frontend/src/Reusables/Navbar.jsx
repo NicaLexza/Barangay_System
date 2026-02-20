@@ -24,55 +24,64 @@ const Navbar = () => {
         {/* LEFT: Logo */}
         <Box display="flex" alignItems="center">
           <img
-            src="/logo.png"
+            src="/blogo.jpg"
             alt="Barangay Logo"
             style={{
-              height: 40,
-              width: 40,
+              height: 60,
+              width: 70,
               objectFit: "contain",
               marginRight: 8,
+              padding: 1.5,
             }}
           />
         </Box>
         
         {/* CENTER: Navigation */}
-        <Box display="flex" gap={5} flexShrink={0} mx="auto">
-          {[
-            { label: "Dashboard", path: "/Dashboard" },
-            { label: "Residents", path: "/Residents" },
-            { label: "Accounts", path: "/Accounts" },
-            { label: "Eligibility Forms", path: "/Eligibility" },
-          ].map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Button
-                key={item.path}
-                component={Link}
-                to={item.path}
-                sx={{
-                  color: isActive ? "#fff" : mainColor, // text color
-                  border: `1px solid ${mainColor}`,
-                  backgroundColor: isActive ? mainColor : "transparent",
-                  borderRadius: 1,
-                  textTransform: "none",
-                  textDecoration: "none",
-                  "&:hover": {
-                    backgroundColor: isActive ? mainColor : `${mainColor}33`,
-                    color: isActive ? "#fff" : mainColor, // maintain color on hover
-                  },
-                  "&:active": {
-                    color: isActive ? "#fff" : mainColor, // maintain color when clicked
-                  },
-                  "&:visited": {
-                    color: isActive ? "#fff" : mainColor, // maintain color for visited links
-                  },
-                }}
-              >
-                {item.label}
-              </Button>
-            );
-          })}
-        </Box>
+<Box
+  display="flex"
+  gap={3}
+  mx="auto"
+  sx={{
+    width: "600px", // control total width of nav area
+  }}
+>
+  {[
+    { label: "Dashboard", path: "/Dashboard" },
+    { label: "Residents", path: "/Residents" },
+    { label: "Accounts", path: "/Accounts" },
+    { label: "Eligibility Forms", path: "/Eligibility" },
+  ].map((item) => {
+    const isActive = location.pathname === item.path;
+
+    return (
+      <Button
+        key={item.path}
+        component={Link}
+        to={item.path}
+        sx={{
+          flex: 1, //  makes all buttons equal width
+          height: 48,
+          color: isActive ? "#fff" : mainColor,
+          border: `2px solid ${mainColor}`,
+          backgroundColor: isActive ? mainColor : "transparent",
+          borderRadius: "12px",
+          textTransform: "none",
+          fontWeight: 500,
+          transition: "all 0.3s ease",
+
+          "&:hover": {
+            backgroundColor: isActive ? mainColor : `${mainColor}22`,
+            color: '#000000',
+            transform: "translateY(-3px)",
+            boxShadow: `0 6px 12px ${mainColor}33`,
+          },
+        }}
+      >
+        {item.label}
+      </Button>
+    );
+  })}
+</Box>
 
         {/* LEFT: Logout */}
         <Box>
@@ -83,7 +92,7 @@ const Navbar = () => {
               border: `1px solid ${mainColor}`,
               borderRadius: 1,
               textTransform: "none",
-              backgroundColor: "transparent",
+              backgroundColor: "#F26076",
               "&:hover": { backgroundColor: `${mainColor}33` },
             }}
           >
