@@ -9,6 +9,7 @@ import EditResidentModal from '../../modals/EditResidentModal';
 import DeleteConfirmModal from '../../modals/DeleteResidentModal';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import axios from 'axios';
+import { head } from '../../../../backend/routes/householdEditRoutes';
 
 const ResidentsTable = () => {
   const [rows, setRows] = useState([]);
@@ -82,7 +83,7 @@ const ResidentsTable = () => {
       renderCell: (params) => {
         const row = params.row;
         return (
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
             <IconButton
               size="small"
               color="primary"

@@ -5,7 +5,9 @@ import { Box, IconButton, Popper, Paper, Typography, CircularProgress } from '@m
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import HouseholdsToolbar from './HouseholdsToolbar'; // ← your parallel toolbar
+import HouseholdsToolbar from './HouseholdsToolbar';
+import EditHouseholdModal from '../../modals/EditHouseholdModal'; 
+import DeleteConfirmModal from '../../modals/DeleteHouseholdModal';
 import axios from 'axios';
 
 const HouseholdsTable = () => {
@@ -58,7 +60,7 @@ const HouseholdsTable = () => {
       renderCell: (params) => {
         const row = params.row;
         return (
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, mt : 1 }}>
             <IconButton
               size="small"
               color="primary"
@@ -183,13 +185,13 @@ const HouseholdsTable = () => {
       </Popper>
 
       {/* Edit & Delete Modals (uncomment when ready) */}
-      {/* <EditHouseholdModal
+      <EditHouseholdModal
         open={editOpen}
         onClose={() => {
           setEditOpen(false);
           setSelectedRow(null);
         }}
-        residentId={selectedRow?.id || selectedRow?.household_id}
+        householdId={selectedRow?.id || selectedRow?.household_id}
         onSuccess={() => {
           setRefreshKey(prev => prev + 1);
           setEditOpen(false);
@@ -204,7 +206,7 @@ const HouseholdsTable = () => {
         }}
         onConfirm={() => setRefreshKey(prev => prev + 1)}
         target={selectedRow}
-      /> */}
+      />
     </Box>
   );
 };

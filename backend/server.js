@@ -16,6 +16,8 @@ const residentEditRoutes = require("./routes/residentEditRoutes");
 const residentDeleteRoutes = require("./routes/residentDeleteRoutes");
 const householdRoutes = require("./routes/householdRoutes");
 const householdAddRoutes = require("./routes/householdAddRoutes");
+const householdEditRoutes = require("./routes/householdEditRoutes");
+const householdDeleteRoutes = require("./routes/householdDeleteRoutes");
 
 // use routes
 app.use("/api/auth", authRoutes);
@@ -26,7 +28,8 @@ app.use("/api/residents", residentEditRoutes);
 app.use("/api/residents", residentDeleteRoutes);
 app.use("/api/households", householdRoutes);
 app.use("/api/households", householdAddRoutes);
-
+app.use("/api/households", householdEditRoutes);
+app.use("/api/households", householdDeleteRoutes);
 // start server
 
 app.listen(5000, () => {
