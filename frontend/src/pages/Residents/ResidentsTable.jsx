@@ -9,7 +9,6 @@ import EditResidentModal from '../../modals/EditResidentModal';
 import DeleteConfirmModal from '../../modals/DeleteResidentModal';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import axios from 'axios';
-import { head } from '../../../../backend/routes/householdEditRoutes';
 
 const ResidentsTable = () => {
   const [rows, setRows] = useState([]);

@@ -1,7 +1,7 @@
 import{ BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Login from "./pages/LoginPage.jsx";
 import Dashboard from "./pages/DashboardPage.jsx";
-import Accounts from "./pages/AccountsPage.jsx";
+import Accounts from "./pages/Accounts/AccountsPage.jsx";
 import Residents from "./pages/Residents/ResidentsPage.jsx";
 import Eligibility from "./pages/EligibilityPage.jsx";
 import Households from "./pages/Households/HouseholdsPage.jsx";

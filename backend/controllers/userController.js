@@ -1,49 +1,66 @@
-// controllers/userController.js
+// userController.js
 const db = require("../config/db");
-const bcrypt = require("bcryptjs");
 
-// Add a new account
-const addAccount = async (req, res) => {
-  const { fullname, username, password, confirmPassword, role } = req.body;
+// Get all users with computed fields
+const getAllUsers = (req, res) => {
+  const sql = `
+    SELECT 
+      u.user_id,
+      u.username,
+      u.fullname,
+      u.role,
+      u.status,
+      DATE_FORMAT(u.created_at, '%Y-%m-%d %H:%i:%s') AS created_at,
+      u.created_by,
+      cu.Fullname AS created_by_name,
+      DATE_FORMAT(u.updated_at, '%Y-%m-%d %H:%i:%s') AS updated_at,
+      u.updated_by,
+      uu.Fullname AS updated_by_name
+    FROM users u
+    LEFT JOIN users cu ON cu.User_id = u.created_by
+    LEFT JOIN users uu ON uu.User_id = u.updated_by
+    ORDER BY u.fullname
+  `;
 
-  // 1. Check all fields
-  if (!fullname || !username || !password || !confirmPassword || !role) {
-    return res.status(400).json({ message: "All fields are required" });
-  }
-
-  // 2. Check password match
-  if (password !== confirmPassword) {
-    return res.status(400).json({ message: "Passwords do not match" });
-  }
-
-  // 3. Check if username already exists
-  const checkSql = "SELECT * FROM users WHERE Username = ?";
-  db.query(checkSql, [username], async (err, results) => {
-    if (err) return res.status(500).json({ message: "Database error", err });
-
-    if (results.length > 0) {
-      return res.status(400).json({ message: "Username already exists" });
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Database error:", err);
+      return res.status(500).json({ message: "Failed to fetch users", error: err });
     }
 
-    const createdBy = req.user.id; // Get the ID of the user creating the account
-
-    // 4. Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // 5. Insert into database
-    const insertSql =
-      "INSERT INTO users (Fullname, Username, Password, Role, Status, Created_by, Created_at) VALUES (?, ?, ?, ?, 'Active', ?, NOW())";
-
-    db.query(
-      insertSql,
-      [fullname, username, hashedPassword, role, createdBy],
-      (err, result) => {
-        if (err) return res.status(500).json({ message: "Database error", err });
-
-        res.status(201).json({ message: "Account created successfully" });
-      }
-    );
+    res.json(results);
   });
 };
 
-module.exports = { addAccount };
+// Get single user by ID (full raw fields)
+const getUser = (req, res) => {
+  const { id } = req.params;
+
+  const sql = `
+    SELECT 
+      user_id,
+      username,
+      fullname,
+      role,
+      status
+    FROM users
+    WHERE user_id = ?
+  `;
+
+  db.query(sql, [id], (err, results) => {
+    if (err) {
+      console.error("Get user error:", err);
+      return res.status(500).json({ message: "Database error" });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Return raw row (no concatenation)
+    res.json(results[0]);
+  });
+};
+
+module.exports = { getAllUsers, getUser };
+      

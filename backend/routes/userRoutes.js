@@ -1,10 +1,15 @@
-// routes/userRoutes.js
 const express = require("express");
 const router = express.Router();
-const { addAccount } = require("../controllers/userController");
+
+const { getAllUsers, getUser } = require("../controllers/userController");
 const { verifyToken } = require("../middleware/authMiddleware");
 
-// POST /api/users/add
-router.post("/add", verifyToken, addAccount);
+// List all users
+router.get("/", verifyToken, getAllUsers);
+
+// Single user by ID
+router.get("/:id", verifyToken, getUser);
+
+// Later: add POST /add, PUT /update, DELETE /:id 
 
 module.exports = router;

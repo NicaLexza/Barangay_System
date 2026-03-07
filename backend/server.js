@@ -10,22 +10,33 @@ app.use(cors());
 // import routes
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
+const userAddRoutes = require("./routes/userAddRoutes");
+const userEditRoutes = require("./routes/userEditRoutes");
+const userDeleteRoutes = require("./routes/userDeleteRoutes");
+
 const residentRoutes = require("./routes/residentRoutes");
 const residentAddRoutes = require("./routes/residentAddRoutes");
 const residentEditRoutes = require("./routes/residentEditRoutes");
 const residentDeleteRoutes = require("./routes/residentDeleteRoutes");
+
 const householdRoutes = require("./routes/householdRoutes");
 const householdAddRoutes = require("./routes/householdAddRoutes");
 const householdEditRoutes = require("./routes/householdEditRoutes");
 const householdDeleteRoutes = require("./routes/householdDeleteRoutes");
 
+
 // use routes
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userEditRoutes);
+app.use("/api/users", userDeleteRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/users", userAddRoutes);
+
 app.use("/api/residents", residentRoutes);
 app.use("/api/residents", residentAddRoutes);
 app.use("/api/residents", residentEditRoutes);
 app.use("/api/residents", residentDeleteRoutes);
+
 app.use("/api/households", householdRoutes);
 app.use("/api/households", householdAddRoutes);
 app.use("/api/households", householdEditRoutes);

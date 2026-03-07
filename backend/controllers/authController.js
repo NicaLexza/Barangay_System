@@ -11,7 +11,7 @@ const login = (req, res) => {
     return res.status(400).json({ message: "All fields are required" });
   }
 
-  const sql = "SELECT * FROM users WHERE Username = ?";
+  const sql = "SELECT * FROM users WHERE username = ?";
 
   db.query(sql, [username], async (err, results) => {
     if (err) {
@@ -25,7 +25,7 @@ const login = (req, res) => {
     const user = results[0];
 
     // bcrypt.compare returns a promise, so we await it
-    const isMatch = await bcrypt.compare(password, user.Password);
+    const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid username or password" });
@@ -33,7 +33,7 @@ const login = (req, res) => {
 
     // Sign JWT
     const token = jwt.sign(
-      { id: user.User_id, username: user.Username, role: user.Role },
+      { id: user.user_id, username: user.username, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
@@ -41,8 +41,8 @@ const login = (req, res) => {
     res.json({
       message: "Login successful",
       token,
-      username: user.Username,
-      role: user.Role,
+      username: user.username,
+      role: user.role,
     });
   });
 };
