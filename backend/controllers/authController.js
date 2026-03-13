@@ -31,6 +31,11 @@ const login = (req, res) => {
       return res.status(400).json({ message: "Invalid username or password" });
     }
 
+    // Check if account is active
+    if (user.status !== "Active") {
+      return res.status(403).json({ message: "Account is inactive. Please contact support." });
+    }
+
     // Sign JWT
     const token = jwt.sign(
       { id: user.user_id, username: user.username, role: user.role },

@@ -4,8 +4,10 @@ import { DataGrid } from '@mui/x-data-grid';
 import { Box, IconButton, Popper, Paper, Typography } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import KeyIcon from '@mui/icons-material/Key';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import EditAccountModal from '../../modals/EditAccountModal';
+import ChangePasswordModal from '../../modals/ChangePasswordModal';
 import AccountsToolbar from './AccountsToolbar';
 import DeleteConfirmModal from '../../modals/DeleteAccountModal';
 import axios from 'axios';
@@ -16,6 +18,7 @@ const UsersTable = () => {
   const [selectedRow, setSelectedRow] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [infoAnchorEl, setInfoAnchorEl] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -37,9 +40,21 @@ const UsersTable = () => {
   const infoOpen = Boolean(infoAnchorEl);
 
   const columns = [
-    { field: "no", headerName: "No.", width: 70, sortable: false },
-    { field: "username", headerName: "Username", width: 250, sortable: true },
-    { field: "fullName", headerName: "Full Name", width: 300, sortable: true },
+    { field: "no",
+      headerName: "No.",
+      width: 70,
+      sortable: false 
+    },
+    { field: "username",
+      headerName: "Username",
+      width: 250,
+      sortable: true 
+    },
+    { field: "fullName",
+      headerName: "Full Name",
+      width: 300,
+      sortable: true 
+    },
     {
       field: "role",
       headerName: "Role",
@@ -69,6 +84,9 @@ const UsersTable = () => {
           <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
             <IconButton size="small" color="primary" onClick={() => { setSelectedRow(row); setEditOpen(true); }}>
               <EditIcon fontSize="small" />
+            </IconButton>
+            <IconButton size="small" color="warning" onClick={() => { setSelectedRow(row); setChangePasswordOpen(true); }}>
+              <KeyIcon fontSize="small" />
             </IconButton>
             <IconButton size="small" color="error" onClick={() => { setSelectedRow(row); setDeleteOpen(true); }}>
               <DeleteIcon fontSize="small" />
@@ -186,6 +204,13 @@ const UsersTable = () => {
         onClose={() => { setDeleteOpen(false); setSelectedRow(null); }}
         onConfirm={() => setRefreshKey(prev => prev + 1)}
         target={selectedRow}
+      />
+
+      <ChangePasswordModal
+        open={changePasswordOpen}
+        onClose={() => { setChangePasswordOpen(false); setSelectedRow(null); }}
+        userId={selectedRow?.id || selectedRow?.user_id}
+        onSuccess={() => { setRefreshKey(prev => prev + 1); setChangePasswordOpen(false); }}
       />
     </Box>
   );

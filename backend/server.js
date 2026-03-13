@@ -13,6 +13,7 @@ const userRoutes = require("./routes/userRoutes");
 const userAddRoutes = require("./routes/userAddRoutes");
 const userEditRoutes = require("./routes/userEditRoutes");
 const userDeleteRoutes = require("./routes/userDeleteRoutes");
+const userChangePassRoutes = require("./routes/userChangePassRoutes");
 
 const residentRoutes = require("./routes/residentRoutes");
 const residentAddRoutes = require("./routes/residentAddRoutes");
@@ -31,6 +32,7 @@ app.use("/api/users", userEditRoutes);
 app.use("/api/users", userDeleteRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/users", userAddRoutes);
+app.use("/api/users", userChangePassRoutes);
 
 app.use("/api/residents", residentRoutes);
 app.use("/api/residents", residentAddRoutes);
