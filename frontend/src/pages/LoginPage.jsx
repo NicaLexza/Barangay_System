@@ -224,7 +224,7 @@ const Login = () => {
         >
           <Box
             component="img"
-            src="/blogo.jpg"
+            src="/BLOGO.png"
             alt="Barangay Logo"
             sx={{
               width: "100%",

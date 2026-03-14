@@ -115,7 +115,16 @@ const EditHouseholdModal = ({ open, onClose, onSuccess, householdId }) => {
             Add New Household
           </DialogTitle>
     
-          <DialogContent sx={{ px: 4, py: 3 }}>
+          <DialogContent sx={{
+            px: 4,
+            py: 3,
+            backgroundImage: "url('BLOGO.png')",
+            backgroundSize: "700px 500px",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+            backgroundColor: "rgba(248, 251, 255, 0.85)", 
+            backgroundBlendMode: "lighten",
+           }}>
             <Stack spacing={2.5}>
               <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 1 }}>
                 Fill in the blanks

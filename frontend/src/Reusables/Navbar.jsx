@@ -24,7 +24,7 @@ const Navbar = () => {
         {/* LEFT: Logo */}
         <Box display="flex" alignItems="center">
           <img
-            src="/blogo.jpg"
+            src="/BLOGO.png"
             alt="Barangay Logo"
             style={{
               height: 60,
