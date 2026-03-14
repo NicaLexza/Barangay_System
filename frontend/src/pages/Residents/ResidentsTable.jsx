@@ -17,6 +17,7 @@ const ResidentsTable = () => {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [infoAnchorEl, setInfoAnchorEl] = useState(null);
+  const [searchValue, setSearchValue] = useState('');
   
   
   // Filter state
@@ -182,6 +183,22 @@ const ResidentsTable = () => {
 
   // Filter rows based on active filters
   const filteredRows = rows.filter((row) => {
+
+    // Search filter
+    if (searchValue) {
+    const search = searchValue.toLowerCase();
+    const matchesSearch =
+      row.fullName?.toLowerCase().includes(search) ||
+      row.sex?.toLowerCase().includes(search) ||
+      row.birthplace?.toLowerCase().includes(search) ||
+      row.address?.toLowerCase().includes(search) ||
+      row.civilStatus?.toLowerCase().includes(search) ||
+      row.occupation?.toLowerCase().includes(search) ||
+      row.citizenship?.toLowerCase().includes(search) ||
+      row.specialSector?.toLowerCase().includes(search);
+
+    if (!matchesSearch) return false;
+  }
     // Split specialSector string for exact matching
     const sectorArray = row.specialSector?.split(',').map(s => s.trim()) || [];
     
@@ -219,12 +236,13 @@ const ResidentsTable = () => {
         hideFooter
         showToolbar
         slots={{
-          toolbar: ResidentsToolbar,
+          toolbar: ResidentsToolbar,  
         }}
         slotProps={{
           toolbar: {
             onAddSuccess: () => setRefreshKey((prev) => prev + 1),
-            onApplyFilters: handleApplyFilters,
+            onApplyFilters: handleApplyFilters, filteredRows, 
+            onSearchChange: (value) => setSearchValue(value),
           },
         }}
       />

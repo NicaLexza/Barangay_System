@@ -22,11 +22,13 @@ import {
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { useGridApiContext } from '@mui/x-data-grid';
 import AddResidentModal from '../../modals/AddResidentModal';
+import AddEligibilityFormModal from '../../modals/AddEligibilityFormModal';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-export default function ResidentsToolbar({ onAddSuccess, onApplyFilters }) {
+export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filteredRows, onSearchChange }) {
   const [quickFilterValue, setQuickFilterValue] = useState('');
   const [openModal, setOpenModal] = useState(false);
+  const [openAddEligibilityModal, setOpenAddEligibilityModal] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const openFilter = Boolean(anchorEl);
 
@@ -54,7 +56,7 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters }) {
 const handleQuickFilterChange = (e) => {
   const value = e.target.value;
   setQuickFilterValue(value);
-  apiRef.current.setQuickFilterValues(value ? [value] : []); // ← this line applies the search
+  onSearchChange(value); // ← this line applies the search
 };
 
   const handleFilterClick = (event) => setAnchorEl(event.currentTarget);
@@ -144,6 +146,18 @@ const handleQuickFilterChange = (e) => {
           onClick={() => setOpenModal(true)}
         >
           + New Resident
+        </Button>
+
+        <Button
+          variant="contained"
+          size="small"
+          sx={{
+            backgroundColor: '#002f59',
+            '&:hover': { backgroundColor: '#001c38' },
+          }}
+          onClick={() => setOpenAddEligibilityModal(true)}
+        >
+          + Eligibility Form
         </Button>
       </Box>
 
@@ -284,6 +298,13 @@ const handleQuickFilterChange = (e) => {
         open={openModal}
         onClose={() => setOpenModal(false)}
         onSuccess={onAddSuccess}
+      />
+
+      <AddEligibilityFormModal
+        open={openAddEligibilityModal}
+        onClose={() => setOpenAddEligibilityModal(false)}
+        onSuccess={onAddSuccess}  
+        filteredRows={filteredRows}
       />
     </>
   );

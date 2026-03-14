@@ -25,6 +25,9 @@ const householdAddRoutes = require("./routes/householdAddRoutes");
 const householdEditRoutes = require("./routes/householdEditRoutes");
 const householdDeleteRoutes = require("./routes/householdDeleteRoutes");
 
+const eligibilityFormAddRoutes = require("./routes/EligibilityFormAddRoutes");
+const eligibilityFormRoutes = require("./routes/eligibilityFormRoutes");
+
 
 // use routes
 app.use("/api/auth", authRoutes);
@@ -43,6 +46,9 @@ app.use("/api/households", householdRoutes);
 app.use("/api/households", householdAddRoutes);
 app.use("/api/households", householdEditRoutes);
 app.use("/api/households", householdDeleteRoutes);
+
+app.use("/api/eligibility-forms", eligibilityFormAddRoutes);
+app.use("/api/eligibility-forms", eligibilityFormRoutes);
 // start server
 
 app.listen(5000, () => {
