@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 13, 2026 at 02:44 PM
+-- Generation Time: Mar 17, 2026 at 01:21 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -35,6 +35,17 @@ CREATE TABLE `eligibility_forms` (
   `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `eligibility_forms`
+--
+
+INSERT INTO `eligibility_forms` (`form_id`, `form_name`, `status`, `created_by`, `created_at`) VALUES
+(2, 'underaged', 'Enabled', 4, '2026-03-14 15:35:39'),
+(4, 'unemployed shytes', 'Enabled', 4, '2026-03-16 15:45:39'),
+(5, 'fuel subsidy ', 'Enabled', 4, '2026-03-16 15:53:34'),
+(6, 'eacakes', 'Enabled', 4, '2026-03-17 18:32:35'),
+(7, 'dasdasd', 'Disabled', 4, '2026-03-17 19:47:55');
+
 -- --------------------------------------------------------
 
 --
@@ -48,9 +59,41 @@ CREATE TABLE `eligibility_forms_entries` (
   `household_id` int(11) DEFAULT NULL,
   `is_rewarded` tinyint(1) NOT NULL DEFAULT 0,
   `processed_by` int(11) DEFAULT NULL,
-  `processed_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `submitted_at` datetime DEFAULT current_timestamp()
+  `processed_at` datetime DEFAULT NULL ON UPDATE current_timestamp()
 ) ;
+
+--
+-- Dumping data for table `eligibility_forms_entries`
+--
+
+INSERT INTO `eligibility_forms_entries` (`entry_id`, `form_id`, `resident_id`, `household_id`, `is_rewarded`, `processed_by`, `processed_at`) VALUES
+(14, 2, 19, NULL, 0, NULL, '2026-03-14 15:35:39'),
+(15, 2, 14, NULL, 0, NULL, '2026-03-14 15:35:39'),
+(16, 2, 13, NULL, 0, NULL, '2026-03-14 15:35:39'),
+(21, 4, 14, NULL, 0, NULL, '2026-03-16 15:45:39'),
+(22, 4, 13, NULL, 0, NULL, '2026-03-16 15:45:39'),
+(23, 5, 6, NULL, 1, 4, '2026-03-17 18:18:37'),
+(24, 5, 19, NULL, 0, NULL, '2026-03-16 15:53:34'),
+(25, 5, 15, NULL, 0, NULL, '2026-03-16 15:53:34'),
+(26, 5, 1, NULL, 0, NULL, '2026-03-16 15:53:34'),
+(27, 5, 9, NULL, 0, NULL, '2026-03-16 15:53:34'),
+(28, 5, 2, NULL, 0, NULL, '2026-03-16 15:53:34'),
+(29, 5, 14, NULL, 0, NULL, '2026-03-16 15:53:34'),
+(30, 5, 7, NULL, 0, NULL, '2026-03-16 15:53:34'),
+(31, 5, 4, NULL, 0, NULL, '2026-03-16 15:53:34'),
+(32, 5, 10, NULL, 0, NULL, '2026-03-16 15:53:34'),
+(33, 5, 11, NULL, 0, NULL, '2026-03-16 15:53:34'),
+(34, 5, 17, NULL, 0, NULL, '2026-03-16 15:53:34'),
+(35, 5, 13, NULL, 0, NULL, '2026-03-16 15:53:34'),
+(37, 6, 15, NULL, 1, 4, '2026-03-17 19:39:49'),
+(38, 6, 2, NULL, 0, NULL, NULL),
+(39, 6, 4, NULL, 1, 4, '2026-03-17 19:47:13'),
+(40, 6, 10, NULL, 0, NULL, NULL),
+(41, 7, 6, NULL, 1, 4, '2026-03-17 19:58:16'),
+(42, 7, 1, NULL, 0, NULL, NULL),
+(43, 7, 2, NULL, 0, NULL, NULL),
+(44, 7, 7, NULL, 0, NULL, NULL),
+(45, 7, 10, NULL, 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -218,7 +261,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `eligibility_forms`
 --
 ALTER TABLE `eligibility_forms`
-  MODIFY `form_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `form_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `eligibility_forms_entries`

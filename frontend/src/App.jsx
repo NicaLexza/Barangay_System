@@ -5,6 +5,7 @@ import Accounts from "./pages/Accounts/AccountsPage.jsx";
 import Residents from "./pages/Residents/ResidentsPage.jsx";
 import Eligibility from "./pages/EligibilityForm/EligibilityPage.jsx";
 import Households from "./pages/Households/HouseholdsPage.jsx";
+import EligibilityEntries from "./pages/EligibilityForm/EligibilityEntriesPage.jsx";
 
 
 function App() {
@@ -16,7 +17,9 @@ function App() {
         <Route path="/Accounts" element={<Accounts />} />
         <Route path="/Residents" element={<Residents />} />
         <Route path="/Eligibility" element={<Eligibility />} />
-        <Route path="/Households" element={<Households />}
+        <Route path="/Households" element={<Households />} />
+        <Route path="/Eligibility/:formId" element={<EligibilityEntries />}
+
         
         
         />

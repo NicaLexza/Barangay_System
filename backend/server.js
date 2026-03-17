@@ -27,9 +27,16 @@ const householdDeleteRoutes = require("./routes/householdDeleteRoutes");
 
 const eligibilityFormAddRoutes = require("./routes/EligibilityFormAddRoutes");
 const eligibilityFormRoutes = require("./routes/eligibilityFormRoutes");
+const eligibilityFormDeleteRoutes = require("./routes/eligibilityFormDeleteRoutes");
+
+const eligibilityFormEntriesRoutes = require("./routes/eligibilityFormEntriesRoutes");
+const eligibilityFormEntriesUpdateRoutes = require("./routes/eligibilityFormEntriesUpdateRoutes");
+const eligibilityFormEntriesDeleteRoutes = require("./routes/eligibilityFormEntriesDeleteRoutes");
 
 
 // use routes
+
+
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userEditRoutes);
 app.use("/api/users", userDeleteRoutes);
@@ -49,8 +56,13 @@ app.use("/api/households", householdDeleteRoutes);
 
 app.use("/api/eligibility-forms", eligibilityFormAddRoutes);
 app.use("/api/eligibility-forms", eligibilityFormRoutes);
-// start server
+app.use("/api/eligibility-forms", eligibilityFormDeleteRoutes);
 
+app.use("/api/eligibility-forms", eligibilityFormEntriesRoutes);
+app.use("/api/eligibility-forms", eligibilityFormEntriesUpdateRoutes);
+app.use("/api/eligibility-forms", eligibilityFormEntriesDeleteRoutes);
+
+// start server
 app.listen(5000, () => {
   console.log("Server running on port 5000");
 });

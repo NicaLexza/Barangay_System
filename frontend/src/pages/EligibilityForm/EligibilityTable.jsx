@@ -1,3 +1,4 @@
+// EligibilityTable.jsx 
 import React, { useState, useEffect } from "react";
 import {
   Typography, Box, Grid, Card, CardContent, CardActionArea,
@@ -7,15 +8,19 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import DeleteEligibilityFormModal from "../../modals/DeleteEligibilityFormModal";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const EligibilityTable = () => {
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [selectedForm, setSelectedForm] = useState(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchForms = async () => {
@@ -64,8 +69,12 @@ const EligibilityTable = () => {
   };
 
   const handleCardClick = (form) => {
-    console.log("Clicked form:", form.form_id);
-    // navigate to form detail later
+    navigate(`/Eligibility/${form.form_id}`, { 
+      state: { 
+        form_name: form.form_name,
+        is_disabled: form.status === "Disabled",
+      } 
+    });
   };
 
   const formatDate = (datetime) => {
@@ -224,7 +233,22 @@ const EligibilityTable = () => {
         >
           Disable
         </MenuItem>
+
+        <Divider />
+        <MenuItem
+          onClick={() => { setDeleteOpen(true); setMenuAnchor(null); }}
+          sx={{ color: "error.main" }}
+        >
+          Delete
+        </MenuItem>
       </Menu>
+
+      <DeleteEligibilityFormModal
+        open={deleteOpen}
+        onClose={() => { setDeleteOpen(false); setSelectedForm(null); }}
+        onConfirm={() => setRefreshKey((prev) => prev + 1)}
+        target={selectedForm}
+      />
 
     </Box>
   );
