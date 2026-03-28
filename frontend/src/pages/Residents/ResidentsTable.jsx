@@ -228,13 +228,14 @@ const ResidentsTable = () => {
   });
 
   return (
-    <Box sx={{ height: 550, width: 1600 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       <DataGrid
         rows={filteredRows}
         columns={columns}
         getRowId={(row) => row.id}
         hideFooter
         showToolbar
+        sx={{ flex: 1, minHeight: 0 }} 
         slots={{
           toolbar: ResidentsToolbar,  
         }}
@@ -248,8 +249,8 @@ const ResidentsTable = () => {
       />
 
       {/* Info popper shown on hover */}
-      <Popper open={infoOpen} anchorEl={infoAnchorEl} placement="left-start" disablePortal>
-        <Paper elevation={3} sx={{ p: 1, maxWidth: 220 }}>
+      <Popper open={infoOpen} anchorEl={infoAnchorEl} placement="left-start" disablePortal sx={{ zIndex: 9999 }}>
+        <Paper elevation={3} sx={{ p: 1, maxWidth: 220, }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>INFO</Typography>
           <Typography variant="body2">Created by : {selectedRow?.created_by_name || 'N/A'}</Typography>
           <Typography variant="body2">Created at : {selectedRow?.created_at || 'N/A'}</Typography>

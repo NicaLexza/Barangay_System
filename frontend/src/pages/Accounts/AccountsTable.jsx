@@ -20,6 +20,7 @@ const UsersTable = () => {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [infoAnchorEl, setInfoAnchorEl] = useState(null);
+  const [searchValue, setSearchValue] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Filter state
@@ -156,26 +157,35 @@ const UsersTable = () => {
 
   // Derived filtered rows
   const filteredRows = rows.filter((row) => {
+    if (searchValue) {
+      const search = searchValue.toLowerCase();
+      const matchesSearch =
+        row.username?.toLowerCase().includes(search) ||
+        row.fullName?.toLowerCase().includes(search) ||
+        row.role?.toLowerCase().includes(search) ||
+        row.status?.toLowerCase().includes(search);
+      if (!matchesSearch) return false;
+    }
     if (filters.role !== 'All' && row.role !== filters.role) return false;
     if (filters.status !== 'All' && row.status !== filters.status) return false;
     return true;
   });
 
   return (
-    <Box sx={{ height: 550, width: 1600 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       <DataGrid
         rows={filteredRows}
         columns={columns}
         getRowId={(row) => row.id}
         hideFooter
         showToolbar
-        slots={{
-          toolbar: AccountsToolbar,
-        }}
+        sx={{ flex: 1, minHeight: 0 }}  // ✅
+        slots={{ toolbar: AccountsToolbar }}
         slotProps={{
           toolbar: {
             onAddSuccess: () => setRefreshKey((prev) => prev + 1),
             onApplyFilters: handleApplyFilters,
+            onSearchChange: (value) => setSearchValue(value),  // ✅
           },
         }}
       />

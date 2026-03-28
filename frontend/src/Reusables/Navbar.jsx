@@ -1,3 +1,4 @@
+// Navbar.jsx
 import { useState } from "react";
 import { AppBar, Toolbar, Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, Typography } from "@mui/material";
 import { Link, useLocation, useNavigate } from "react-router-dom";

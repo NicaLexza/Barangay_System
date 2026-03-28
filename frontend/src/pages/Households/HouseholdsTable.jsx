@@ -17,6 +17,7 @@ const HouseholdsTable = () => {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [infoAnchorEl, setInfoAnchorEl] = useState(null);
+  const [searchValue, setSearchValue] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleInfoEnter = (event, row) => {
@@ -99,6 +100,7 @@ const HouseholdsTable = () => {
   ];
 
   useEffect(() => {
+
     const fetchHouseholds = async () => {
       setLoading(true);
       try {
@@ -154,21 +156,34 @@ const HouseholdsTable = () => {
     fetchHouseholds();
   }, [refreshKey]);
 
+  const filteredRows = rows.filter((row) => {
+      if (searchValue) {
+        const search = searchValue.toLowerCase();
+        const matchesSearch =
+          row.headFullName?.toLowerCase().includes(search) ||
+          row.address?.toLowerCase().includes(search) ||
+          String(row.headCount)?.includes(search);
+        if (!matchesSearch) return false;
+      }
+      return true;
+    });
+
   return (
-    <Box sx={{ height: 550, width: 1600 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
         <DataGrid
-          rows={rows}
+          rows={filteredRows}
           columns={columns}
           getRowId={(row) => row.id}
           hideFooter
           showToolbar
+          sx={{ flex: 1, minHeight: 0 }}
           slots={{
             toolbar: HouseholdsToolbar,
           }}
           slotProps={{
             toolbar: {
               onAddSuccess: () => setRefreshKey((prev) => prev + 1),
-              // onApplyFilters: your filter handler if needed
+              onSearchChange: (value) => setSearchValue(value),
             },
           }}
         />

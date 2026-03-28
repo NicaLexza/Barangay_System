@@ -5,6 +5,7 @@ import Button from "../../Reusables/Button.jsx";
 import AddAccountModal from "../../modals/AddAccountModal.jsx";
 import Footer from "../../Reusables/Footer.jsx";
 import AccountsTable from "./AccountsTable.jsx";
+import PageLayout from "../../Reusables/PageLayout.jsx";
 
 
 const Accounts = () => {
@@ -13,8 +14,9 @@ const Accounts = () => {
   return (
     <>
     <Navbar/>
-    <Typography>Accounts Page</Typography>
-    <AccountsTable />
+    <PageLayout>
+      <AccountsTable />
+    </PageLayout>
     <Footer/>
     </>
   );

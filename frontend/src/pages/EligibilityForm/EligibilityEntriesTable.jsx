@@ -172,13 +172,14 @@ const EligibilityEntriesTable = () => {
   }, [formId, refreshKey]);
 
   return (
-    <Box sx={{ height: 550, width: 1600 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       <DataGrid
         rows={filteredRows}
         columns={columns}
         getRowId={(row) => row.id}
         hideFooter
         showToolbar
+        sx={{ flex: 1, minHeight: 0 }}
         slots={{ toolbar: EligibilityEntriesToolbar }}
         slotProps={{
           toolbar: {

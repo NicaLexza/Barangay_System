@@ -1,4 +1,3 @@
-// ResidentsToolbar.jsx
 import { useState } from 'react';
 import {
   Box,
@@ -16,8 +15,6 @@ import {
   Checkbox,
   FormGroup,
   Divider,
-  Tabs,
-  Tab,  
 } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { useGridApiContext } from '@mui/x-data-grid';
@@ -39,11 +36,9 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
   const [employment, setEmployment] = useState('All');
   const [sectors, setSectors] = useState({ pwd: false, senior: false, solop: false });
 
-  const apiRef = useGridApiContext(); // make sure to import/use
   const navigate = useNavigate();
   const location = useLocation();
-
-  const isResidentsView = location.pathname === '/Residents' || location.pathname === '/'; // adjust if needed
+  const isResidentsView = location.pathname === '/Residents' || location.pathname === '/';
 
   const toggleNavigation = () => {
     if (isResidentsView) {
@@ -53,24 +48,17 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
     }
   };
 
-const handleQuickFilterChange = (e) => {
-  const value = e.target.value;
-  setQuickFilterValue(value);
-  onSearchChange(value); // ← this line applies the search
-};
+  const handleQuickFilterChange = (e) => {
+    const value = e.target.value;
+    setQuickFilterValue(value);
+    onSearchChange(value);
+  };
 
   const handleFilterClick = (event) => setAnchorEl(event.currentTarget);
   const handleFilterClose = () => setAnchorEl(null);
 
   const applyFilters = () => {
-    onApplyFilters({
-      ageMin,
-      ageMax,
-      gender,
-      civilStatuses,
-      employment,
-      sectors,
-    });
+    onApplyFilters({ ageMin, ageMax, gender, civilStatuses, employment, sectors });
     handleFilterClose();
   };
 
@@ -81,24 +69,12 @@ const handleQuickFilterChange = (e) => {
     setCivilStatuses([]);
     setEmployment('All');
     setSectors({ pwd: false, senior: false, solop: false });
-
     onApplyFilters({
-      ageMin: '',
-      ageMax: '',
-      gender: 'All',
-      civilStatuses: [],
-      employment: 'All',
+      ageMin: '', ageMax: '', gender: 'All',
+      civilStatuses: [], employment: 'All',
       sectors: { pwd: false, senior: false, solop: false },
     });
-
     handleFilterClose();
-  };
-
-  const handleTabChange = (event, newValue) => {
-    if (newValue === 1) { // Households tab
-      navigate('/households'); // ← navigates to HouseholdsPage
-    }
-    // Residents (0) stays on current page
   };
 
   return (
@@ -106,77 +82,86 @@ const handleQuickFilterChange = (e) => {
       <Box
         sx={{
           backgroundColor: '#002f5944',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 1.5,
-          padding: '8px 16px',
-          flexWrap: 'wrap',
           borderBottom: '1px solid rgba(0, 47, 89, 0.2)',
         }}
       >
-        {/* Quick search */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <TextField
-          variant="outlined"
-          size="small"
-          placeholder="Quick search..."
-          value={quickFilterValue}
-          onChange={handleQuickFilterChange}
+        {/* ✅ Top row — Page Title */}
+        <Box
           sx={{
-            minWidth: 220,
-            backgroundColor: 'white',
-            '& .MuiOutlinedInput-root': { borderRadius: 1 },
+            px: 2,
+            pt: 1.5,
+            pb: 1,
+            borderBottom: '1px solid rgba(0, 47, 89, 0.1)',
           }}
-        />
-
-        {/* Filter button */}
-        <IconButton onClick={handleFilterClick} sx={{ color: 'white' }}>
-          <FilterListIcon />
-        </IconButton>
-
-        {/* + New Resident */}
-        <Button
-          variant="contained"
-          size="small"
-          sx={{
-            backgroundColor: '#002f59',
-            '&:hover': { backgroundColor: '#001c38' },
-          }}
-          onClick={() => setOpenModal(true)}
         >
-          + New Resident
-        </Button>
+          <Typography variant="h6" fontWeight="bold" color="#002f59">
+            Residents
+          </Typography>
+        </Box>
 
-        <Button
-          variant="contained"
-          size="small"
+        {/* ✅ Bottom row — Search, Filter, Buttons */}
+        <Box
           sx={{
-            backgroundColor: '#002f59',
-            '&:hover': { backgroundColor: '#001c38' },
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 1.5,
+            padding: '8px 16px',
+            flexWrap: 'wrap',
           }}
-          onClick={() => setOpenAddEligibilityModal(true)}
         >
-          + Eligibility Form
-        </Button>
+          {/* Left side: search + filter + action buttons */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <TextField
+              variant="outlined"
+              size="small"
+              placeholder="Quick search..."
+              value={quickFilterValue}
+              onChange={handleQuickFilterChange}
+              sx={{
+                minWidth: 220,
+                backgroundColor: 'white',
+                '& .MuiOutlinedInput-root': { borderRadius: 1 },
+              }}
+            />
+
+            <IconButton onClick={handleFilterClick} sx={{ color: 'white' }}>
+              <FilterListIcon />
+            </IconButton>
+
+            <Button
+              variant="contained"
+              size="small"
+              sx={{ backgroundColor: '#002f59', '&:hover': { backgroundColor: '#001c38' } }}
+              onClick={() => setOpenModal(true)}
+            >
+              + New Resident
+            </Button>
+
+            <Button
+              variant="contained"
+              size="small"
+              sx={{ backgroundColor: '#002f59', '&:hover': { backgroundColor: '#001c38' } }}
+              onClick={() => setOpenAddEligibilityModal(true)}
+            >
+              + Eligibility Form
+            </Button>
+          </Box>
+
+          {/* Right side: navigation toggle */}
+          <Button
+            onClick={toggleNavigation}
+            sx={{
+              color: 'white',
+              textTransform: 'none',
+              fontWeight: 500,
+              '&:hover': { color: '#fff176' },
+            }}
+          >
+            {isResidentsView ? 'Households' : 'Residents'}
+          </Button>
+        </Box>
       </Box>
-
-        {/* Right side: navigation tabs */}
-        <Button
-          onClick={toggleNavigation}
-          sx={{
-            color: 'white',
-            textTransform: 'none',
-            fontWeight: 500,
-            '&:hover': { color: '#fff176' },
-          }}
-        >
-          {isResidentsView ? 'Households' : 'Residents'}
-        </Button>
-      </Box>
-
-      
-      
 
       {/* Filter Panel */}
       <Popover
@@ -185,51 +170,31 @@ const handleQuickFilterChange = (e) => {
         onClose={handleFilterClose}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
         transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-        PaperProps={{
-          sx: { width: 320, p: 2, boxShadow: 3 },
-        }}
+        PaperProps={{ sx: { width: 320, p: 2, boxShadow: 3 } }}
       >
-    
         <Typography variant="h6" gutterBottom>
           Quick Filters
         </Typography>
 
         <Stack spacing={2.5}>
-          {/* Age Range */}
           <FormControl>
             <FormLabel>Age Range</FormLabel>
             <Stack direction="row" spacing={1}>
-              <TextField
-                label="Min"
-                type="number"
-                value={ageMin}
-                onChange={(e) => setAgeMin(e.target.value)}
-                size="small"
-                sx={{ width: 120 }}
-              />
-              <TextField
-                label="Max"
-                type="number"
-                value={ageMax}
-                onChange={(e) => setAgeMax(e.target.value)}
-                size="small"
-                sx={{ width: 120 }}
-              />
+              <TextField label="Min" type="number" value={ageMin} onChange={(e) => setAgeMin(e.target.value)} size="small" sx={{ width: 120 }} />
+              <TextField label="Max" type="number" value={ageMax} onChange={(e) => setAgeMax(e.target.value)} size="small" sx={{ width: 120 }} />
             </Stack>
           </FormControl>
 
-          {/* Gender */}
           <FormControl>
             <FormLabel>Gender</FormLabel>
             <RadioGroup row value={gender} onChange={(e) => setGender(e.target.value)}>
-              <FormControlLabel value="All" control={<Radio />} label="All" />
-              <FormControlLabel value="Male" control={<Radio />} label="Male" />
+              <FormControlLabel value="All"    control={<Radio />} label="All" />
+              <FormControlLabel value="Male"   control={<Radio />} label="Male" />
               <FormControlLabel value="Female" control={<Radio />} label="Female" />
-              <FormControlLabel value="Other" control={<Radio />} label="Other" />
+              <FormControlLabel value="Other"  control={<Radio />} label="Other" />
             </RadioGroup>
           </FormControl>
 
-          {/* Civil Status */}
           <FormControl>
             <FormLabel>Civil Status</FormLabel>
             <FormGroup row>
@@ -254,22 +219,20 @@ const handleQuickFilterChange = (e) => {
             </FormGroup>
           </FormControl>
 
-          {/* Employment */}
           <FormControl>
             <FormLabel>Employment Status</FormLabel>
             <RadioGroup row value={employment} onChange={(e) => setEmployment(e.target.value)}>
-              <FormControlLabel value="All" control={<Radio />} label="All" />
-              <FormControlLabel value="Employed" control={<Radio />} label="Employed" />
+              <FormControlLabel value="All"        control={<Radio />} label="All" />
+              <FormControlLabel value="Employed"   control={<Radio />} label="Employed" />
               <FormControlLabel value="Unemployed" control={<Radio />} label="Unemployed" />
             </RadioGroup>
           </FormControl>
 
-          {/* Special Sector */}
           <FormControl>
             <FormLabel>Special Sector</FormLabel>
             <FormGroup row>
               <FormControlLabel
-                control={<Checkbox checked={sectors.pwd} onChange={e => setSectors({ ...sectors, pwd: e.target.checked })} />}
+                control={<Checkbox checked={sectors.pwd}    onChange={e => setSectors({ ...sectors, pwd: e.target.checked })} />}
                 label="PWD"
               />
               <FormControlLabel
@@ -277,7 +240,7 @@ const handleQuickFilterChange = (e) => {
                 label="Senior"
               />
               <FormControlLabel
-                control={<Checkbox checked={sectors.solop} onChange={e => setSectors({ ...sectors, solop: e.target.checked })} />}
+                control={<Checkbox checked={sectors.solop}  onChange={e => setSectors({ ...sectors, solop: e.target.checked })} />}
                 label="Solo Parent"
               />
             </FormGroup>
@@ -287,9 +250,7 @@ const handleQuickFilterChange = (e) => {
 
           <Stack direction="row" spacing={2} justifyContent="flex-end">
             <Button onClick={clearFilters}>Clear</Button>
-            <Button variant="contained" onClick={applyFilters}>
-              Apply
-            </Button>
+            <Button variant="contained" onClick={applyFilters}>Apply</Button>
           </Stack>
         </Stack>
       </Popover>
@@ -303,7 +264,7 @@ const handleQuickFilterChange = (e) => {
       <AddEligibilityFormModal
         open={openAddEligibilityModal}
         onClose={() => setOpenAddEligibilityModal(false)}
-        onSuccess={onAddSuccess}  
+        onSuccess={onAddSuccess}
         filteredRows={filteredRows}
       />
     </>

@@ -6,7 +6,6 @@ import {
 } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { useGridApiContext } from '@mui/x-data-grid';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function EligibilityEntriesToolbar({ onApplyFilters, onSearchChange, formName, entryCount }) {
@@ -14,8 +13,7 @@ export default function EligibilityEntriesToolbar({ onApplyFilters, onSearchChan
   const [anchorEl, setAnchorEl] = useState(null);
   const [rewardedStatus, setRewardedStatus] = useState('All');
   const openFilter = Boolean(anchorEl);
-
-  const apiRef = useGridApiContext();
+  
   const navigate = useNavigate();
 
   const handleQuickFilterChange = (e) => {

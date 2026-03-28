@@ -3,13 +3,15 @@ import React from "react";
 import Navbar from "../../Reusables/Navbar.jsx";
 import Footer from "../../Reusables/Footer.jsx";
 import HouseholdsTable from "./HouseholdsTable.jsx";
+import PageLayout from "../../Reusables/PageLayout.jsx";
 
 const HouseholdsPage = () => {
   return (
     <>
     <Navbar/>
-    <Typography>Households Page</Typography>
-    <HouseholdsTable/>
+    <PageLayout>
+      <HouseholdsTable/>  
+    </PageLayout>
     <Footer/>
     </>
   )

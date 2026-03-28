@@ -1,22 +1,14 @@
-// HouseholdsToolbar.jsx
 import { useState } from 'react';
-import {
-  Box,
-  Button,
-  TextField,
-} from '@mui/material';
-import { useGridApiContext } from '@mui/x-data-grid';
+import { Box, Button, TextField, Typography } from '@mui/material';
 import AddHouseholdModal from '../../modals/AddHouseholdModal';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-export default function HouseholdsToolbar({ onAddSuccess }) {
-  const apiRef = useGridApiContext();
+export default function HouseholdsToolbar({ onAddSuccess, onSearchChange }) {
   const [quickFilterValue, setQuickFilterValue] = useState('');
   const [openModal, setOpenModal] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
-
   const isHouseholdsView = location.pathname === '/Households';
 
   const toggleNavigation = () => {
@@ -30,7 +22,7 @@ export default function HouseholdsToolbar({ onAddSuccess }) {
   const handleQuickFilterChange = (e) => {
     const value = e.target.value;
     setQuickFilterValue(value);
-    apiRef.current.setQuickFilterValues(value ? [value] : []);
+    onSearchChange(value); // ✅ lifts search up to HouseholdsTable
   };
 
   return (
@@ -38,55 +30,70 @@ export default function HouseholdsToolbar({ onAddSuccess }) {
       <Box
         sx={{
           backgroundColor: '#002f5944',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 1.5,
-          padding: '8px 16px',
-          flexWrap: 'wrap',
           borderBottom: '1px solid rgba(0, 47, 89, 0.2)',
         }}
       >
-        {/* Left side: search + add button */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <TextField
-            variant="outlined"
-            size="small"
-            placeholder="Quick search..."
-            value={quickFilterValue}
-            onChange={handleQuickFilterChange}
-            sx={{
-              minWidth: 220,
-              backgroundColor: 'white',
-              '& .MuiOutlinedInput-root': { borderRadius: 1 },
-            }}
-          />
-
-          <Button
-            variant="contained"
-            size="small"
-            sx={{
-              backgroundColor: '#002f59',
-              '&:hover': { backgroundColor: '#001c38' },
-            }}
-            onClick={() => setOpenModal(true)}
-          >
-            + New Household
-          </Button>
-        </Box>
-
-        {/* Right side: navigation toggle */}
-        <Button
-          onClick={toggleNavigation}
+        {/* ✅ Top row — Page Title */}
+        <Box
           sx={{
-            color: 'white',
-            textTransform: 'none',
-            fontWeight: 500,
-            '&:hover': { color: '#fff176' },
+            px: 2,
+            pt: 1.5,
+            pb: 1,
+            borderBottom: '1px solid rgba(0, 47, 89, 0.1)',
           }}
         >
-          {isHouseholdsView ? 'Residents' : 'Households'}
-        </Button>
+          <Typography variant="h6" fontWeight="bold" color="#002f59">
+            Households
+          </Typography>
+        </Box>
+
+        {/* ✅ Bottom row — Search + Buttons */}
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 1.5,
+            padding: '8px 16px',
+            flexWrap: 'wrap',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <TextField
+              variant="outlined"
+              size="small"
+              placeholder="Quick search..."
+              value={quickFilterValue}
+              onChange={handleQuickFilterChange}
+              sx={{
+                minWidth: 220,
+                backgroundColor: 'white',
+                '& .MuiOutlinedInput-root': { borderRadius: 1 },
+              }}
+            />
+
+            <Button
+              variant="contained"
+              size="small"
+              sx={{ backgroundColor: '#002f59', '&:hover': { backgroundColor: '#001c38' } }}
+              onClick={() => setOpenModal(true)}
+            >
+              + New Household
+            </Button>
+          </Box>
+
+          <Button
+            onClick={toggleNavigation}
+            sx={{
+              color: 'white',
+              textTransform: 'none',
+              fontWeight: 500,
+              '&:hover': { color: '#fff176' },
+            }}
+          >
+            {isHouseholdsView ? 'Residents' : 'Households'}
+          </Button>
+        </Box>
       </Box>
 
       <AddHouseholdModal
