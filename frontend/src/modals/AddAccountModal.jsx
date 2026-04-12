@@ -1,15 +1,7 @@
-// AddAccountModal.jsx
 import React, { useState } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  Stack,
-  MenuItem,
-  Typography,
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  Button, TextField, Stack, MenuItem, Typography,
 } from "@mui/material";
 import axios from "axios";
 
@@ -17,8 +9,6 @@ const AddAccountModal = ({ open, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     fullname: "",
     username: "",
-    password: "",
-    confirmPassword: "",
     role: "Staff",
   });
 
@@ -28,24 +18,15 @@ const AddAccountModal = ({ open, onClose, onSuccess }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSave = async () => {
     setError("");
     setSuccess("");
 
-    // Validation
-    if (!formData.fullname || !formData.username || !formData.password || !formData.confirmPassword) {
+    if (!formData.fullname || !formData.username) {
       setError("Please fill all required fields (marked with *)");
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
       return;
     }
 
@@ -59,23 +40,12 @@ const AddAccountModal = ({ open, onClose, onSuccess }) => {
       }
 
       const res = await axios.post("http://localhost:5000/api/users/add", formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      setSuccess(res.data.message || "Account added successfully!");
+      setSuccess(res.data.message || "Account created successfully!");
 
-      // Clear form
-      setFormData({
-        fullname: "",
-        username: "",
-        password: "",
-        confirmPassword: "",
-        role: "Staff",
-      });
-
-      // Refresh table
+      setFormData({ fullname: "", username: "", role: "Staff" });
       onSuccess?.();
     } catch (err) {
       console.error("Add account error:", err);
@@ -85,22 +55,29 @@ const AddAccountModal = ({ open, onClose, onSuccess }) => {
     }
   };
 
+  const handleClose = () => {
+    setFormData({ fullname: "", username: "", role: "Staff" });
+    setError("");
+    setSuccess("");
+    onClose();
+  };
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ borderBottom: 1, borderColor: "#e0e0e0", pb: 1 }}>
         Add New Account
       </DialogTitle>
 
-      <DialogContent sx={{ 
-        px: 4, 
+      <DialogContent sx={{
+        px: 4,
         py: 3,
-        backgroundImage: "url('BLOGO.png')",  
+        backgroundImage: "url('BLOGO.png')",
         backgroundSize: "500px 400px",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
         backgroundColor: "rgba(248, 251, 255, 0.85)",
         backgroundBlendMode: "lighten",
-       }}>
+      }}>
         <Stack spacing={2.5}>
           <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 1 }}>
             Account Information
@@ -122,27 +99,6 @@ const AddAccountModal = ({ open, onClose, onSuccess }) => {
             fullWidth
             required
           />
-          <Stack direction="row" spacing={2}>
-            <TextField
-              label="Password *"
-              name="password"
-              type="password"
-              value={formData.password}
-              onChange={handleChange}
-              fullWidth
-              required
-            />
-            <TextField
-              label="Confirm Password *"
-              name="confirmPassword"
-              type="password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              fullWidth
-              required
-            />
-          </Stack>
-
           <TextField
             select
             label="Role"
@@ -161,7 +117,7 @@ const AddAccountModal = ({ open, onClose, onSuccess }) => {
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button onClick={onClose} disabled={loading}>Cancel</Button>
+        <Button onClick={handleClose} disabled={loading}>Cancel</Button>
         <Button
           variant="contained"
           onClick={handleSave}

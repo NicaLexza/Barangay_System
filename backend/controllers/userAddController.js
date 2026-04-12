@@ -1,22 +1,18 @@
-// controllers/userController.js
+// controllers/userAddController.js
 const db = require("../config/db");
 const bcrypt = require("bcryptjs");
 
-// Add a new account
+const DEFAULT_PASSWORD = "Barangay@2025";
+
 const addAccount = async (req, res) => {
-  const { fullname, username, password, confirmPassword, role } = req.body;
+  const { fullname, username, role } = req.body;
 
   // 1. Check all fields
-  if (!fullname || !username || !password || !confirmPassword || !role) {
+  if (!fullname || !username || !role) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
-  // 2. Check password match
-  if (password !== confirmPassword) {
-    return res.status(400).json({ message: "Passwords do not match" });
-  }
-
-  // 3. Check if username already exists
+  // 2. Check if username already exists
   const checkSql = "SELECT * FROM users WHERE username = ?";
   db.query(checkSql, [username], async (err, results) => {
     if (err) return res.status(500).json({ message: "Database error", err });
@@ -25,24 +21,24 @@ const addAccount = async (req, res) => {
       return res.status(400).json({ message: "Username already exists" });
     }
 
-    const createdBy = req.user.id; // Get the ID of the user creating the account
+    const createdBy = req.user.id;
 
-    // 4. Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // 3. Hash the default password
+    const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, 10);
 
-    // 5. Insert into database
-    const insertSql =
-      "INSERT INTO users (fullname, username, password, role, status, created_by, created_at) VALUES (?, ?, ?, ?, 'Active', ?, NOW())";
+    // 4. Insert into database with must_change_password = 1
+    const insertSql = `
+      INSERT INTO users (fullname, username, password, role, status, must_change_password, created_by, created_at)
+      VALUES (?, ?, ?, ?, 'Active', 1, ?, NOW())
+    `;
 
-    db.query(
-      insertSql,
-      [fullname, username, hashedPassword, role, createdBy],
-      (err, result) => {
-        if (err) return res.status(500).json({ message: "Database error", err });
+    db.query(insertSql, [fullname, username, hashedPassword, role, createdBy], (err) => {
+      if (err) return res.status(500).json({ message: "Database error", err });
 
-        res.status(201).json({ message: "Account created successfully" });
-      }
-    );
+      res.status(201).json({
+        message: `Account created successfully. Default password is: ${DEFAULT_PASSWORD}`,
+      });
+    });
   });
 };
 

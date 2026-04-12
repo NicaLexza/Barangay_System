@@ -184,12 +184,14 @@ const HouseholdsTable = () => {
             toolbar: {
               onAddSuccess: () => setRefreshKey((prev) => prev + 1),
               onSearchChange: (value) => setSearchValue(value),
+              filteredRows, 
+
             },
           }}
         />
 
       {/* Info Popper */}
-      <Popper open={infoOpen} anchorEl={infoAnchorEl} placement="left-start" disablePortal>
+      <Popper open={infoOpen} anchorEl={infoAnchorEl} placement="left-start" sx={{ zIndex: 9999 }}>
         <Paper elevation={3} sx={{ p: 1, maxWidth: 220 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>INFO</Typography>
           <Typography variant="body2">Created by: {selectedRow?.created_by_name || 'N/A'}</Typography>

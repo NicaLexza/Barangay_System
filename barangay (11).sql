@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 17, 2026 at 01:21 PM
+-- Generation Time: Apr 12, 2026 at 01:06 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -44,7 +44,8 @@ INSERT INTO `eligibility_forms` (`form_id`, `form_name`, `status`, `created_by`,
 (4, 'unemployed shytes', 'Enabled', 4, '2026-03-16 15:45:39'),
 (5, 'fuel subsidy ', 'Enabled', 4, '2026-03-16 15:53:34'),
 (6, 'eacakes', 'Enabled', 4, '2026-03-17 18:32:35'),
-(7, 'dasdasd', 'Disabled', 4, '2026-03-17 19:47:55');
+(7, 'dasdasd', 'Disabled', 4, '2026-03-17 19:47:55'),
+(9, 'households', 'Enabled', 4, '2026-04-12 17:40:21');
 
 -- --------------------------------------------------------
 
@@ -85,15 +86,18 @@ INSERT INTO `eligibility_forms_entries` (`entry_id`, `form_id`, `resident_id`, `
 (33, 5, 11, NULL, 0, NULL, '2026-03-16 15:53:34'),
 (34, 5, 17, NULL, 0, NULL, '2026-03-16 15:53:34'),
 (35, 5, 13, NULL, 0, NULL, '2026-03-16 15:53:34'),
-(37, 6, 15, NULL, 1, 4, '2026-03-17 19:39:49'),
-(38, 6, 2, NULL, 0, NULL, NULL),
+(37, 6, 15, NULL, 0, 4, '2026-03-23 11:55:53'),
+(38, 6, 2, NULL, 1, 4, '2026-03-28 18:49:23'),
 (39, 6, 4, NULL, 1, 4, '2026-03-17 19:47:13'),
 (40, 6, 10, NULL, 0, NULL, NULL),
 (41, 7, 6, NULL, 1, 4, '2026-03-17 19:58:16'),
 (42, 7, 1, NULL, 0, NULL, NULL),
 (43, 7, 2, NULL, 0, NULL, NULL),
 (44, 7, 7, NULL, 0, NULL, NULL),
-(45, 7, 10, NULL, 0, NULL, NULL);
+(45, 7, 10, NULL, 0, NULL, NULL),
+(47, 9, NULL, 1, 0, NULL, NULL),
+(48, 9, NULL, 2, 0, NULL, NULL),
+(49, 9, NULL, 4, 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -189,21 +193,23 @@ CREATE TABLE `users` (
   `created_by` int(11) DEFAULT NULL,
   `created_at` datetime DEFAULT current_timestamp(),
   `updated_by` int(11) DEFAULT NULL,
-  `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `must_change_password` tinyint(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`user_id`, `username`, `password`, `fullname`, `role`, `status`, `created_by`, `created_at`, `updated_by`, `updated_at`) VALUES
-(1, 'juls', '123', 'Julius Caliao', 'Admin', 'Active', NULL, '2026-01-20 00:04:50', NULL, '2026-01-20 00:04:50'),
-(2, 'eljan', '$2b$10$SEkrCAgdyuuhMk4K56PQj.JUt56k7vlEm6JG.7jP.hCJkIh/MN5iu', 'Marco Esmeli', 'Admin', 'Active', NULL, '2026-01-23 21:24:44', NULL, '2026-01-23 21:24:44'),
-(3, 'glen', '$2b$10$9/sJn80GjMTu7Gv6yVyrUOGD1Hh4wdXE1k2fv889hlZ7n6p5ijqA6', 'Glen Pata', 'Staff', 'Active', NULL, '2026-01-23 21:38:47', 4, '2026-03-13 21:43:37'),
-(4, 'rus ', '$2b$10$RZinA3VTVxkinV1eVA7G1ezOGz1R10snSK347c73Bhvx74KH7nOai', 'rus vill', 'Staff', 'Active', NULL, '2026-01-25 20:23:57', NULL, '2026-01-25 20:23:57'),
-(5, 'rald', '$2b$10$xKwr0HBO7SHgKqlDmCNuT.HFN/HwYMRrZfcGY0uScOjEnuyuVGZke', 'Herald Nigger', 'Admin', 'Active', 2, '2026-01-26 19:02:53', NULL, '2026-01-26 19:02:53'),
-(6, 'James', '$2b$10$A8MCfaYXN4rPfwutc.jxK.OTZUqOPOniLQXEoQkJ9f.qU5cN6Nt.e', 'James Smith', 'Staff', 'Active', 4, '2026-03-07 18:12:30', NULL, '2026-03-07 18:12:30'),
-(10, 'reid', '$2b$10$Q2aZiIn0uKvRu8lLzuyUO.c7HAeGmjnxMK5CCUkHk0MQlqLpVOCjW', 'James Reid', 'Admin', 'Inactive', 4, '2026-03-07 22:46:30', 4, '2026-03-07 22:46:41');
+INSERT INTO `users` (`user_id`, `username`, `password`, `fullname`, `role`, `status`, `created_by`, `created_at`, `updated_by`, `updated_at`, `must_change_password`) VALUES
+(1, 'juls', '123', 'Julius Caliao', 'Admin', 'Active', NULL, '2026-01-20 00:04:50', NULL, '2026-04-12 18:04:54', 0),
+(2, 'eljan', '$2b$10$SEkrCAgdyuuhMk4K56PQj.JUt56k7vlEm6JG.7jP.hCJkIh/MN5iu', 'Marco Esmeli', 'Admin', 'Active', NULL, '2026-01-23 21:24:44', NULL, '2026-04-12 18:04:54', 0),
+(3, 'glen', '$2b$10$9/sJn80GjMTu7Gv6yVyrUOGD1Hh4wdXE1k2fv889hlZ7n6p5ijqA6', 'Glen Pata', 'Staff', 'Active', NULL, '2026-01-23 21:38:47', 4, '2026-04-12 18:04:54', 0),
+(4, 'rus ', '$2b$10$RZinA3VTVxkinV1eVA7G1ezOGz1R10snSK347c73Bhvx74KH7nOai', 'rus vill', 'Staff', 'Active', NULL, '2026-01-25 20:23:57', NULL, '2026-04-12 18:04:54', 0),
+(5, 'rald', '$2b$10$xKwr0HBO7SHgKqlDmCNuT.HFN/HwYMRrZfcGY0uScOjEnuyuVGZke', 'Herald Nigger', 'Admin', 'Active', 2, '2026-01-26 19:02:53', NULL, '2026-04-12 18:04:54', 0),
+(6, 'James', '$2b$10$A8MCfaYXN4rPfwutc.jxK.OTZUqOPOniLQXEoQkJ9f.qU5cN6Nt.e', 'James Smith', 'Staff', 'Active', 4, '2026-03-07 18:12:30', NULL, '2026-04-12 18:04:54', 0),
+(10, 'reid', '$2b$10$Q2aZiIn0uKvRu8lLzuyUO.c7HAeGmjnxMK5CCUkHk0MQlqLpVOCjW', 'James Reid', 'Admin', 'Inactive', 4, '2026-03-07 22:46:30', 4, '2026-04-12 18:04:54', 0),
+(15, 'sample', '$2b$10$p/imSAnE72uXhYb7/wHDGers80g0Zisqw0sJFdcVx3ra2ZLBjGQte', 'sample', 'Staff', 'Active', 4, '2026-04-12 18:32:23', 15, '2026-04-12 18:48:50', 0);
 
 --
 -- Indexes for dumped tables
@@ -261,7 +267,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `eligibility_forms`
 --
 ALTER TABLE `eligibility_forms`
-  MODIFY `form_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `form_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `eligibility_forms_entries`
@@ -285,7 +291,7 @@ ALTER TABLE `residents`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- Constraints for dumped tables

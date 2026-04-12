@@ -249,7 +249,7 @@ const ResidentsTable = () => {
       />
 
       {/* Info popper shown on hover */}
-      <Popper open={infoOpen} anchorEl={infoAnchorEl} placement="left-start" disablePortal sx={{ zIndex: 9999 }}>
+      <Popper open={infoOpen} anchorEl={infoAnchorEl} placement="left-start"  sx={{ zIndex: 9999 }}>
         <Paper elevation={3} sx={{ p: 1, maxWidth: 220, }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>INFO</Typography>
           <Typography variant="body2">Created by : {selectedRow?.created_by_name || 'N/A'}</Typography>

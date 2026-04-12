@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Box, Button, TextField, Typography } from '@mui/material';
 import AddHouseholdModal from '../../modals/AddHouseholdModal';
+import AddEligibilityFormModal from '../../modals/AddEligibilityFormModal';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-export default function HouseholdsToolbar({ onAddSuccess, onSearchChange }) {
+export default function HouseholdsToolbar({ onAddSuccess, onSearchChange, filteredRows }) {
   const [quickFilterValue, setQuickFilterValue] = useState('');
   const [openModal, setOpenModal] = useState(false);
+  const [openEligibilityModal, setOpenEligibilityModal] = useState(false); // ✅
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -22,7 +24,7 @@ export default function HouseholdsToolbar({ onAddSuccess, onSearchChange }) {
   const handleQuickFilterChange = (e) => {
     const value = e.target.value;
     setQuickFilterValue(value);
-    onSearchChange(value); // ✅ lifts search up to HouseholdsTable
+    onSearchChange(value);
   };
 
   return (
@@ -33,7 +35,7 @@ export default function HouseholdsToolbar({ onAddSuccess, onSearchChange }) {
           borderBottom: '1px solid rgba(0, 47, 89, 0.2)',
         }}
       >
-        {/* ✅ Top row — Page Title */}
+        {/* Top row — Page Title */}
         <Box
           sx={{
             px: 2,
@@ -47,7 +49,7 @@ export default function HouseholdsToolbar({ onAddSuccess, onSearchChange }) {
           </Typography>
         </Box>
 
-        {/* ✅ Bottom row — Search + Buttons */}
+        {/* Bottom row — Search + Buttons */}
         <Box
           sx={{
             display: 'flex',
@@ -80,6 +82,16 @@ export default function HouseholdsToolbar({ onAddSuccess, onSearchChange }) {
             >
               + New Household
             </Button>
+
+            {/* ✅ Eligibility Form button */}
+            <Button
+              variant="contained"
+              size="small"
+              sx={{ backgroundColor: '#002f59', '&:hover': { backgroundColor: '#001c38' } }}
+              onClick={() => setOpenEligibilityModal(true)}
+            >
+              + Eligibility Form
+            </Button>
           </Box>
 
           <Button
@@ -100,6 +112,15 @@ export default function HouseholdsToolbar({ onAddSuccess, onSearchChange }) {
         open={openModal}
         onClose={() => setOpenModal(false)}
         onSuccess={onAddSuccess}
+      />
+
+      {/* ✅ Eligibility Form Modal — type tells it to send household_ids */}
+      <AddEligibilityFormModal
+        open={openEligibilityModal}
+        onClose={() => setOpenEligibilityModal(false)}
+        onSuccess={onAddSuccess}
+        filteredRows={filteredRows}
+        type="household"
       />
     </>
   );

@@ -1,3 +1,4 @@
+// LoginPage.jsx
 import { useState } from "react";
 import axios from "axios";
 import { TextField, Button, Typography, Box, Grid, InputAdornment, IconButton } from "@mui/material";
@@ -28,12 +29,16 @@ const Login = () => {
         { headers: { "Content-Type": "application/json" } }
       );
 
-      // save token and info from backend
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("username", response.data.username);
       localStorage.setItem("role", response.data.role);
 
-      // navigate based on backend role
+      // ✅ check if password change is required before navigating
+      if (response.data.must_change_password === 1) {
+        navigate("/ChangePassword");
+        return;
+      }
+
       if (response.data.role === "Admin") {
         navigate("/Dashboard");
       } else if (response.data.role === "Staff") {
@@ -44,7 +49,7 @@ const Login = () => {
       alert(error.response?.data?.message || "Login failed");
     }
   };
-
+  
   return (
     <Box
       sx={{

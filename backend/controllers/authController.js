@@ -1,9 +1,8 @@
 // controllers/authController.js
 const bcrypt = require("bcryptjs");
-const db = require("../config/db"); 
+const db = require("../config/db");
 const jwt = require("jsonwebtoken");
 
-// LOGIN function
 const login = (req, res) => {
   const { username, password } = req.body;
 
@@ -24,23 +23,25 @@ const login = (req, res) => {
 
     const user = results[0];
 
-    // bcrypt.compare returns a promise, so we await it
     const isMatch = await bcrypt.compare(password, user.password);
-
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid username or password" });
     }
 
-    // Check if account is active
     if (user.status !== "Active") {
       return res.status(403).json({ message: "Account is inactive. Please contact support." });
     }
 
-    // Sign JWT
+    // ✅ include must_change_password in the token
     const token = jwt.sign(
-      { id: user.user_id, username: user.username, role: user.role },
+      {
+        id: user.user_id,
+        username: user.username,
+        role: user.role,
+        must_change_password: user.must_change_password,
+      },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "8h" }
     );
 
     res.json({
@@ -48,6 +49,7 @@ const login = (req, res) => {
       token,
       username: user.username,
       role: user.role,
+      must_change_password: user.must_change_password, // ✅ include in response
     });
   });
 };

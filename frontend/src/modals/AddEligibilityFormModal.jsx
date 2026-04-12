@@ -1,32 +1,20 @@
-// EligibilityFormModal.jsx
+// AddEligibilityFormModal.jsx
 import React, { useState } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  Stack,
-  Typography,
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  Button, TextField, Stack, Typography,
 } from "@mui/material";
 import axios from "axios";
 
-const EligibilityFormModal = ({ open, onClose, onSuccess, filteredRows }) => {
-  const [formData, setFormData] = useState({
-    form_name: "",
-  });
-
+const AddEligibilityFormModal = ({ open, onClose, onSuccess, filteredRows, type = "resident" }) => {
+  const [formData, setFormData] = useState({ form_name: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSave = async () => {
@@ -47,18 +35,24 @@ const EligibilityFormModal = ({ open, onClose, onSuccess, filteredRows }) => {
         return;
       }
 
-      const residentIds = filteredRows.map((row) => row.id);
+      const ids = filteredRows.map((row) => row.id);
+
+      // ✅ send the right key depending on which page triggered the modal
+      const payload = {
+        form_name: formData.form_name,
+        ...(type === "household"
+          ? { household_ids: ids }
+          : { resident_ids: ids }),
+      };
 
       const res = await axios.post(
         "http://localhost:5000/api/eligibility-forms",
-        { form_name: formData.form_name, resident_ids: residentIds, },
+        payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       setSuccess(res.data.message || "Eligibility form created successfully!");
-
       setFormData({ form_name: "" });
-
       onSuccess?.();
     } catch (err) {
       console.error("Create eligibility form error:", err);
@@ -116,4 +110,4 @@ const EligibilityFormModal = ({ open, onClose, onSuccess, filteredRows }) => {
   );
 };
 
-export default EligibilityFormModal;
+export default AddEligibilityFormModal;
