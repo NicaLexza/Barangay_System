@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { Box, Button, TextField, Typography } from '@mui/material';
 import AddHouseholdModal from '../../modals/AddHouseholdModal';
 import AddEligibilityFormModal from '../../modals/AddEligibilityFormModal';
+import ImportHouseholdModal from '../../modals/ImportHouseholdModal';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function HouseholdsToolbar({ onAddSuccess, onSearchChange, filteredRows }) {
   const [quickFilterValue, setQuickFilterValue] = useState('');
   const [openModal, setOpenModal] = useState(false);
-  const [openEligibilityModal, setOpenEligibilityModal] = useState(false); // ✅
+  const [openEligibilityModal, setOpenEligibilityModal] = useState(false);
+  const [openImportModal, setOpenImportModal] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -83,7 +85,6 @@ export default function HouseholdsToolbar({ onAddSuccess, onSearchChange, filter
               + New Household
             </Button>
 
-            {/* ✅ Eligibility Form button */}
             <Button
               variant="contained"
               size="small"
@@ -92,6 +93,16 @@ export default function HouseholdsToolbar({ onAddSuccess, onSearchChange, filter
             >
               + Eligibility Form
             </Button>
+
+                        <Button
+              variant="contained"
+              size="small"
+              sx={{ backgroundColor: '#5c6bc0', '&:hover': { backgroundColor: '#3949ab' } }}
+              onClick={() => setOpenImportModal(true)}
+            >
+              + Import
+            </Button>
+
           </Box>
 
           <Button
@@ -114,7 +125,12 @@ export default function HouseholdsToolbar({ onAddSuccess, onSearchChange, filter
         onSuccess={onAddSuccess}
       />
 
-      {/* ✅ Eligibility Form Modal — type tells it to send household_ids */}
+      <ImportHouseholdModal
+        open={openImportModal}
+        onClose={() => setOpenImportModal(false)}
+        onSuccess={onAddSuccess}
+      />
+
       <AddEligibilityFormModal
         open={openEligibilityModal}
         onClose={() => setOpenEligibilityModal(false)}

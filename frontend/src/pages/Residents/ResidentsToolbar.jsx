@@ -20,12 +20,14 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import { useGridApiContext } from '@mui/x-data-grid';
 import AddResidentModal from '../../modals/AddResidentModal';
 import AddEligibilityFormModal from '../../modals/AddEligibilityFormModal';
+import ImportResidentModal from '../../modals/ImportResidentModal';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filteredRows, onSearchChange }) {
   const [quickFilterValue, setQuickFilterValue] = useState('');
   const [openModal, setOpenModal] = useState(false);
   const [openAddEligibilityModal, setOpenAddEligibilityModal] = useState(false);
+  const [openImportModal, setOpenImportModal] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const openFilter = Boolean(anchorEl);
 
@@ -145,6 +147,15 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
               onClick={() => setOpenAddEligibilityModal(true)}
             >
               + Eligibility Form
+            </Button>
+
+            <Button
+              variant="contained"
+              size="small"
+              sx={{ backgroundColor: '#5c6bc0', '&:hover': { backgroundColor: '#3949ab' } }}
+              onClick={() => setOpenImportModal(true)}
+            >
+              Import
             </Button>
           </Box>
 
@@ -266,6 +277,12 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
         onClose={() => setOpenAddEligibilityModal(false)}
         onSuccess={onAddSuccess}
         filteredRows={filteredRows}
+      />
+
+      <ImportResidentModal
+        open={openImportModal}
+        onClose={() => setOpenImportModal(false)}
+        onSuccess={onAddSuccess}
       />
     </>
   );

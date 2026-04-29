@@ -1,4 +1,4 @@
-import{ BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Login from "./pages/LoginPage.jsx";
 import Dashboard from "./pages/DashboardPage.jsx";
 import Accounts from "./pages/Accounts/AccountsPage.jsx";
@@ -7,28 +7,79 @@ import Eligibility from "./pages/EligibilityForm/EligibilityPage.jsx";
 import Households from "./pages/Households/HouseholdsPage.jsx";
 import EligibilityEntries from "./pages/EligibilityForm/EligibilityEntriesPage.jsx";
 import ChangePassword from "./pages/ChangePasswordPage.jsx";
-
+import ProtectedRoute from "./Reusables/ProtectedRoute.jsx";
 
 function App() {
   return (
     <Router>
       <Routes>
+        {/* Public — login only */}
         <Route path="/" element={<Login />} />
-        <Route path="/Dashboard" element={<Dashboard />}/>
-        <Route path="/Accounts" element={<Accounts />} />
-        <Route path="/Residents" element={<Residents />} />
-        <Route path="/Eligibility" element={<Eligibility />} />
-        <Route path="/Households" element={<Households />} />
-        <Route path="/Eligibility/:formId" element={<EligibilityEntries />} />
-        <Route path="/ChangePassword" element={<ChangePassword />} 
 
+        {/* Forced password change — authenticated, any role */}
+        <Route
+          path="/ChangePassword"
+          element={
+            <ProtectedRoute>
+              <ChangePassword />
+            </ProtectedRoute>
+          }
+        />
 
-        
-        
+        {/* Admin-only routes */}
+        <Route
+          path="/Dashboard"
+          element={
+            <ProtectedRoute allowedRoles={["Admin"]}>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/Accounts"
+          element={
+            <ProtectedRoute allowedRoles={["Admin"]}>
+              <Accounts />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Shared routes — Admin and Staff */}
+        <Route
+          path="/Residents"
+          element={
+            <ProtectedRoute allowedRoles={["Admin", "Staff"]}>
+              <Residents />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/Households"
+          element={
+            <ProtectedRoute allowedRoles={["Admin", "Staff"]}>
+              <Households />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/Eligibility"
+          element={
+            <ProtectedRoute allowedRoles={["Admin", "Staff"]}>
+              <Eligibility />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/Eligibility/:formId"
+          element={
+            <ProtectedRoute allowedRoles={["Admin", "Staff"]}>
+              <EligibilityEntries />
+            </ProtectedRoute>
+          }
         />
       </Routes>
     </Router>
   );
-};
+}
 
 export default App;
