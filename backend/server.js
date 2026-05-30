@@ -35,6 +35,8 @@ const eligibilityFormEntriesRoutes = require("./routes/eligibilityFormEntriesRou
 const eligibilityFormEntriesUpdateRoutes = require("./routes/eligibilityFormEntriesUpdateRoutes");
 const eligibilityFormEntriesDeleteRoutes = require("./routes/eligibilityFormEntriesDeleteRoutes");
 
+const dashboardRoutes = require("./routes/dashboardRoutes");
+
 
 // use routes
 
@@ -64,6 +66,8 @@ app.use("/api/eligibility-forms", eligibilityFormDeleteRoutes);
 app.use("/api/eligibility-forms", eligibilityFormEntriesRoutes);
 app.use("/api/eligibility-forms", eligibilityFormEntriesUpdateRoutes);
 app.use("/api/eligibility-forms", eligibilityFormEntriesDeleteRoutes);
+
+app.use("/api/dashboard", dashboardRoutes);
 
 // start server
 app.listen(5000, () => {

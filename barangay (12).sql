@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 12, 2026 at 01:06 PM
+-- Generation Time: May 22, 2026 at 04:09 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -127,7 +127,7 @@ CREATE TABLE `households` (
 INSERT INTO `households` (`household_id`, `f_name`, `m_name`, `l_name`, `suffix`, `house_no`, `street`, `head_count`, `created_by`, `created_at`, `updated_by`, `updated_at`) VALUES
 (1, 'Jake', 'Corazon', 'Cruz', 'Sr.', '12', 'Florida', 3, 4, '2026-02-16 20:08:18', 4, '2026-02-24 21:39:14'),
 (2, 'Jelo', NULL, 'Cruz', NULL, '21', 'Bottom', 3, 4, '2026-02-18 18:34:44', 4, '2026-02-24 21:39:35'),
-(4, 'Taylor', NULL, 'Morgan', NULL, '13', 'Singapore', 5, 4, '2026-02-24 21:49:55', NULL, '2026-02-24 21:49:55');
+(4, 'Taylor', NULL, 'Morgan', NULL, '13', 'Singapore', 3, 4, '2026-02-24 21:49:55', 5, '2026-04-29 19:04:29');
 
 -- --------------------------------------------------------
 
@@ -175,7 +175,9 @@ INSERT INTO `residents` (`resident_id`, `f_name`, `m_name`, `l_name`, `suffix`, 
 (14, 'John ', NULL, 'Doe', 'Jr.', 'Male', '2021-02-06', 'Manila', '79', 'Boston', 'Divorced', NULL, 'Filipino', 0, 0, 1, 4, '2026-02-06 17:47:21', NULL, '2026-02-09 07:55:32'),
 (15, 'Bruce', NULL, 'Caliao', NULL, 'Female', '2005-09-27', 'Manila', '21', 'Bohol', 'Single', 'Criminal', 'Filipino', 0, 0, 0, 4, '2026-02-09 16:22:39', 4, '2026-02-24 13:40:35'),
 (17, 'sample', 'sample', 'sample', NULL, 'Male', '2005-09-27', 'japan', '21', 'sample', 'Single', 'sample', 'Filipino', 1, 1, 0, 4, '2026-02-12 15:35:22', 4, '2026-02-12 07:35:36'),
-(19, 'sample', NULL, 'Asis', NULL, 'Male', '2026-03-04', 'Batangas', '750', 'Bohol St', 'Single', NULL, 'Filipino', 0, 0, 1, 4, '2026-03-07 20:21:56', NULL, NULL);
+(19, 'sample', NULL, 'Asis', NULL, 'Male', '2026-03-04', 'Batangas', '750', 'Bohol St', 'Single', NULL, 'Filipino', 0, 0, 1, 4, '2026-03-07 20:21:56', NULL, NULL),
+(20, 'Julius Cesar', 'Mabagal', 'Caliao', 'Jr', 'Male', '2005-09-27', 'Leyte', '750', 'Bohol', 'Married', 'Network Gingineer', 'Bisaya', 0, 0, 1, 4, '2026-04-21 18:11:53', NULL, NULL),
+(21, 'Jheric', NULL, 'Esmeli', 'Sr', 'Male', '2026-04-15', 'Toronto', '67', 'york', 'Divorced', 'assassin', 'Filipino', 0, 0, 0, 4, '2026-04-22 20:45:36', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -209,7 +211,8 @@ INSERT INTO `users` (`user_id`, `username`, `password`, `fullname`, `role`, `sta
 (5, 'rald', '$2b$10$xKwr0HBO7SHgKqlDmCNuT.HFN/HwYMRrZfcGY0uScOjEnuyuVGZke', 'Herald Nigger', 'Admin', 'Active', 2, '2026-01-26 19:02:53', NULL, '2026-04-12 18:04:54', 0),
 (6, 'James', '$2b$10$A8MCfaYXN4rPfwutc.jxK.OTZUqOPOniLQXEoQkJ9f.qU5cN6Nt.e', 'James Smith', 'Staff', 'Active', 4, '2026-03-07 18:12:30', NULL, '2026-04-12 18:04:54', 0),
 (10, 'reid', '$2b$10$Q2aZiIn0uKvRu8lLzuyUO.c7HAeGmjnxMK5CCUkHk0MQlqLpVOCjW', 'James Reid', 'Admin', 'Inactive', 4, '2026-03-07 22:46:30', 4, '2026-04-12 18:04:54', 0),
-(15, 'sample', '$2b$10$p/imSAnE72uXhYb7/wHDGers80g0Zisqw0sJFdcVx3ra2ZLBjGQte', 'sample', 'Staff', 'Active', 4, '2026-04-12 18:32:23', 15, '2026-04-12 18:48:50', 0);
+(15, 'sample', '$2b$10$p/imSAnE72uXhYb7/wHDGers80g0Zisqw0sJFdcVx3ra2ZLBjGQte', 'sample', 'Staff', 'Active', 4, '2026-04-12 18:32:23', 15, '2026-04-12 18:48:50', 0),
+(16, 'bro', '$2b$10$olGUewUHjaAnkkeOW1PIgewTymMT0NSNDC3bH3zsfk7z9mVa/Jrze', 'bro', 'Staff', 'Active', 4, '2026-04-28 00:44:16', 16, '2026-04-28 00:44:46', 0);
 
 --
 -- Indexes for dumped tables
@@ -285,13 +288,13 @@ ALTER TABLE `households`
 -- AUTO_INCREMENT for table `residents`
 --
 ALTER TABLE `residents`
-  MODIFY `resident_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `resident_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- Constraints for dumped tables

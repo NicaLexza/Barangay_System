@@ -6,14 +6,21 @@ import {
 } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { useNavigate, useLocation } from 'react-router-dom';
+import PrintIcon from '@mui/icons-material/Print';
+import { useNavigate } from 'react-router-dom';
 
-export default function EligibilityEntriesToolbar({ onApplyFilters, onSearchChange, formName, entryCount }) {
+export default function EligibilityEntriesToolbar({
+  onApplyFilters,
+  onSearchChange,
+  onPrint,
+  formName,
+  entryCount,
+}) {
   const [quickFilterValue, setQuickFilterValue] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
   const [rewardedStatus, setRewardedStatus] = useState('All');
   const openFilter = Boolean(anchorEl);
-  
+
   const navigate = useNavigate();
 
   const handleQuickFilterChange = (e) => {
@@ -73,7 +80,7 @@ export default function EligibilityEntriesToolbar({ onApplyFilters, onSearchChan
           </Box>
         </Box>
 
-        {/* Bottom row — search + filter */}
+        {/* Bottom row — search + filter + print */}
         <Box
           sx={{
             display: 'flex',
@@ -98,6 +105,20 @@ export default function EligibilityEntriesToolbar({ onApplyFilters, onSearchChan
           <IconButton onClick={handleFilterClick} sx={{ color: 'white' }}>
             <FilterListIcon />
           </IconButton>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<PrintIcon />}
+            onClick={onPrint}
+            sx={{
+              backgroundColor: '#002f59',
+              textTransform: 'none',
+              fontWeight: 600,
+              '&:hover': { backgroundColor: '#001c38' },
+            }}
+          >
+            Print
+          </Button>
         </Box>
       </Box>
 
