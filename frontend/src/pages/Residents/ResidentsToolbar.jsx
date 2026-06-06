@@ -22,6 +22,8 @@ import AddResidentModal from '../../modals/AddResidentModal';
 import AddEligibilityFormModal from '../../modals/AddEligibilityFormModal';
 import ImportResidentModal from '../../modals/ImportResidentModal';
 import { useNavigate, useLocation } from 'react-router-dom';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import ResidentStatsModal from '../../modals/ResidentStatsModal';
 
 export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filteredRows, onSearchChange }) {
   const [quickFilterValue, setQuickFilterValue] = useState('');
@@ -30,6 +32,7 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
   const [openImportModal, setOpenImportModal] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const openFilter = Boolean(anchorEl);
+  const [openStatsModal, setOpenStatsModal] = useState(false);
 
   const [ageMin, setAgeMin] = useState('');
   const [ageMax, setAgeMax] = useState('');
@@ -157,6 +160,16 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
             >
               Import
             </Button>
+
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<BarChartIcon />}
+              sx={{ backgroundColor: '#0369a1', '&:hover': { backgroundColor: '#0c5a8a' } }}
+              onClick={() => setOpenStatsModal(true)}
+            >
+              Statistics
+            </Button>
           </Box>
 
           {/* Right side: navigation toggle */}
@@ -283,6 +296,12 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
         open={openImportModal}
         onClose={() => setOpenImportModal(false)}
         onSuccess={onAddSuccess}
+      />
+
+      <ResidentStatsModal
+        open={openStatsModal}
+        onClose={() => setOpenStatsModal(false)}
+        filteredRows={filteredRows}
       />
     </>
   );
