@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 22, 2026 at 04:09 PM
+-- Generation Time: Jun 06, 2026 at 04:06 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -30,7 +30,7 @@ SET time_zone = "+00:00";
 CREATE TABLE `eligibility_forms` (
   `form_id` int(11) NOT NULL,
   `form_name` varchar(150) NOT NULL,
-  `status` enum('Enabled','Disabled') NOT NULL DEFAULT 'Enabled',
+  `status` enum('Enabled','Disabled','Archived') NOT NULL DEFAULT 'Enabled',
   `created_by` int(11) DEFAULT NULL,
   `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -40,10 +40,10 @@ CREATE TABLE `eligibility_forms` (
 --
 
 INSERT INTO `eligibility_forms` (`form_id`, `form_name`, `status`, `created_by`, `created_at`) VALUES
-(2, 'underaged', 'Enabled', 4, '2026-03-14 15:35:39'),
+(2, 'underaged', 'Archived', 4, '2026-03-14 15:35:39'),
 (4, 'unemployed shytes', 'Enabled', 4, '2026-03-16 15:45:39'),
 (5, 'fuel subsidy ', 'Enabled', 4, '2026-03-16 15:53:34'),
-(6, 'eacakes', 'Enabled', 4, '2026-03-17 18:32:35'),
+(6, 'eacakes', 'Archived', 4, '2026-03-17 18:32:35'),
 (7, 'dasdasd', 'Disabled', 4, '2026-03-17 19:47:55'),
 (9, 'households', 'Enabled', 4, '2026-04-12 17:40:21');
 
@@ -68,9 +68,9 @@ CREATE TABLE `eligibility_forms_entries` (
 --
 
 INSERT INTO `eligibility_forms_entries` (`entry_id`, `form_id`, `resident_id`, `household_id`, `is_rewarded`, `processed_by`, `processed_at`) VALUES
-(14, 2, 19, NULL, 0, NULL, '2026-03-14 15:35:39'),
-(15, 2, 14, NULL, 0, NULL, '2026-03-14 15:35:39'),
-(16, 2, 13, NULL, 0, NULL, '2026-03-14 15:35:39'),
+(14, 2, 19, NULL, 1, 5, '2026-06-06 21:43:14'),
+(15, 2, 14, NULL, 1, 5, '2026-06-06 21:43:25'),
+(16, 2, 13, NULL, 1, 5, '2026-06-06 21:43:26'),
 (21, 4, 14, NULL, 0, NULL, '2026-03-16 15:45:39'),
 (22, 4, 13, NULL, 0, NULL, '2026-03-16 15:45:39'),
 (23, 5, 6, NULL, 1, 4, '2026-03-17 18:18:37'),
@@ -127,7 +127,8 @@ CREATE TABLE `households` (
 INSERT INTO `households` (`household_id`, `f_name`, `m_name`, `l_name`, `suffix`, `house_no`, `street`, `head_count`, `created_by`, `created_at`, `updated_by`, `updated_at`) VALUES
 (1, 'Jake', 'Corazon', 'Cruz', 'Sr.', '12', 'Florida', 3, 4, '2026-02-16 20:08:18', 4, '2026-02-24 21:39:14'),
 (2, 'Jelo', NULL, 'Cruz', NULL, '21', 'Bottom', 3, 4, '2026-02-18 18:34:44', 4, '2026-02-24 21:39:35'),
-(4, 'Taylor', NULL, 'Morgan', NULL, '13', 'Singapore', 3, 4, '2026-02-24 21:49:55', 5, '2026-04-29 19:04:29');
+(4, 'Taylor', NULL, 'Morgan', NULL, '13', 'Singapore', 3, 4, '2026-02-24 21:49:55', 5, '2026-04-29 19:04:29'),
+(5, 'Juls', NULL, 'Caliao', 'Sr', '17', 'Bohol', 25, 5, '2026-05-31 14:08:01', NULL, '2026-05-31 14:08:01');
 
 -- --------------------------------------------------------
 
@@ -166,7 +167,7 @@ INSERT INTO `residents` (`resident_id`, `f_name`, `m_name`, `l_name`, `suffix`, 
 (1, 'Julius', 'Mabagal', 'Caliao', NULL, 'Male', '2005-09-27', 'Manila', '15', 'Bohol', 'Married', 'Drug Dealer ', 'Filipino', 0, 1, 1, 4, '2026-01-30 16:37:11', NULL, '2026-02-09 07:51:32'),
 (2, 'Maria', 'Santos', 'Cruz', NULL, 'Female', '1978-03-15', 'Opol', '42', 'Rizal', 'Married', 'Teacher', 'Filipino', 0, 0, 0, 2, '2026-02-02 13:48:27', NULL, '2026-02-09 07:52:01'),
 (4, 'Ana', 'Lopez', 'Mendoza', NULL, 'Female', '1990-11-08', 'Nueva Ecija', '63', 'Bonifacio', 'Single', 'Nurse', 'Filipino', 0, 0, 0, 4, '2026-02-02 13:48:27', NULL, '2026-02-09 07:54:08'),
-(6, 'Elena', 'Ramos', 'Aquino', NULL, 'Female', '1967-12-03', 'Manila', '89', 'Luna', 'Married', 'Vendor', 'Filipino', 1, 1, 1, 2, '2026-02-02 13:48:27', 4, '2026-02-09 11:10:15'),
+(6, 'Elena', 'Ramos', 'Aquino', NULL, 'Female', '1967-12-03', 'Manila', '89', 'Luna', 'Divorced', 'Vendor', 'Filipino', 1, 1, 1, 2, '2026-02-02 13:48:27', 5, '2026-05-23 07:30:53'),
 (7, 'Jose', 'Bautista', 'Hernandez', NULL, 'Male', '1985-09-12', 'Nueva Ecija', '56', 'Aguinaldo', 'Married', 'Carpenter', 'Filipino', 0, 0, 0, 3, '2026-02-02 13:57:21', NULL, '2026-02-09 07:54:08'),
 (9, 'Pedro', 'Flores', 'Castillo', 'III', 'Male', '1995-01-30', 'Opol', '78', 'Lapu-Lapu', 'Single', 'Security Guard', 'Filipino', 0, 0, 0, 5, '2026-02-02 13:57:21', NULL, '2026-02-09 07:54:08'),
 (10, 'Rosa', 'Diaz', 'Morales', NULL, 'Female', '1988-06-14', 'Opol', '21', 'Magsaysay', 'Married', 'Barangay Health Worker', 'Filipino', 0, 0, 0, 2, '2026-02-02 13:57:21', NULL, '2026-02-09 07:55:32'),
@@ -282,7 +283,7 @@ ALTER TABLE `eligibility_forms_entries`
 -- AUTO_INCREMENT for table `households`
 --
 ALTER TABLE `households`
-  MODIFY `household_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `household_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `residents`

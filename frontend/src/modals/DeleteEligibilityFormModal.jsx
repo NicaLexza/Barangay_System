@@ -1,4 +1,4 @@
-// frontend/src/modals/DeleteEligibilityFormModal.jsx
+// DeleteEligibilityFormModal.jsx
 import React, { useState } from "react";
 import {
   Dialog,
@@ -9,13 +9,18 @@ import {
   Typography,
   Box,
 } from "@mui/material";
-import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import ArchiveIcon from "@mui/icons-material/Archive";
 import axios from "axios";
 
+/**
+ * Soft-deletes the form by setting its status to 'Archived'.
+ * The backend DELETE endpoint now performs a soft-delete (status = 'Archived')
+ * so this modal's HTTP call remains the same.
+ */
 const DeleteEligibilityFormModal = ({ open, onClose, onConfirm, target }) => {
   const [loading, setLoading] = useState(false);
 
-  const handleDelete = async () => {
+  const handleArchive = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
@@ -60,18 +65,18 @@ const DeleteEligibilityFormModal = ({ open, onClose, onConfirm, target }) => {
               width: 72,
               height: 72,
               borderRadius: "50%",
-              bgcolor: "#fdecea",
+              bgcolor: "#f5f5f4",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <DeleteOutlineRoundedIcon sx={{ fontSize: 36, color: "#e53935" }} />
+            <ArchiveIcon sx={{ fontSize: 36, color: "#78716c" }} />
           </Box>
 
           {/* Title */}
           <Typography variant="h6" fontWeight={600}>
-            Delete Eligibility Form?
+            Archive Form?
           </Typography>
 
           {/* Message */}
@@ -79,12 +84,10 @@ const DeleteEligibilityFormModal = ({ open, onClose, onConfirm, target }) => {
             variant="body2"
             color="text.secondary"
             align="center"
-            sx={{ maxWidth: 260 }}
+            sx={{ maxWidth: 280 }}
           >
-            Are you sure you want to delete{" "}
-            <strong>{target?.form_name}</strong>? All entries linked to this
-            form will also be deleted. This action <strong>cannot</strong> be
-            undone.
+            <strong>{target?.form_name}</strong> will be moved to the archive.
+            It will become read-only and can be restored later by an admin.
           </Typography>
         </Stack>
       </DialogContent>
@@ -92,21 +95,25 @@ const DeleteEligibilityFormModal = ({ open, onClose, onConfirm, target }) => {
       <DialogActions sx={{ justifyContent: "center", pb: 3, gap: 2 }}>
         <Button
           variant="contained"
-          color="error"
-          onClick={handleDelete}
+          onClick={handleArchive}
           disabled={loading}
-          sx={{ minWidth: 100 }}
+          sx={{
+            minWidth: 110,
+            backgroundColor: "#78716c",
+            "&:hover": { backgroundColor: "#57534e" },
+            textTransform: "none",
+          }}
         >
-          {loading ? "Deleting..." : "Delete"}
+          {loading ? "Archiving..." : "Archive"}
         </Button>
 
         <Button
           variant="outlined"
           onClick={onClose}
           disabled={loading}
-          sx={{ minWidth: 100 }}
+          sx={{ minWidth: 100, textTransform: "none" }}
         >
-          Back
+          Cancel
         </Button>
       </DialogActions>
     </Dialog>

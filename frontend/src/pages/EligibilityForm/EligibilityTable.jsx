@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import {
   Typography, Box, Grid, Card, CardContent, CardActionArea,
   IconButton, Menu, MenuItem, Chip, Divider, CircularProgress,
+  Button,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
@@ -10,6 +11,7 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import DeleteEligibilityFormModal from "../../modals/DeleteEligibilityFormModal";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
+import ArchiveIcon from "@mui/icons-material/Archive";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -18,7 +20,7 @@ const EligibilityTable = () => {
   const [loading, setLoading] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [selectedForm, setSelectedForm] = useState(null);
-  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const navigate = useNavigate();
 
@@ -73,6 +75,7 @@ const EligibilityTable = () => {
       state: { 
         form_name: form.form_name,
         is_disabled: form.status === "Disabled",
+        is_archived: false,
       } 
     });
   };
@@ -85,7 +88,32 @@ const EligibilityTable = () => {
   };
 
   return (
-    <Box sx={{ px: 4, py: 3, minHeight: "80vh" }}>
+    <Box sx={{ px: 4, py: 3, minHeight: "80vh", width: "100%" }}>
+
+      {/* View Archived button — fixed to top-right of viewport */}
+      <Button
+        variant="outlined"
+        size="small"
+        startIcon={<ArchiveIcon />}
+        onClick={() => navigate("/Eligibility/Archived")}
+        sx={{
+          position: "fixed",
+          top: 72,
+          right: 24,
+          zIndex: 1200,
+          textTransform: "none",
+          borderColor: "#78716c",
+          color: "#57534e",
+          fontWeight: 500,
+          backgroundColor: "#fff",
+          "&:hover": {
+            borderColor: "#57534e",
+            backgroundColor: "#f5f5f4",
+          },
+        }}
+      >
+        View Archived
+      </Button>
 
       {/* Header */}
       <Box sx={{ mb: 3 }}>
@@ -235,17 +263,21 @@ const EligibilityTable = () => {
         </MenuItem>
 
         <Divider />
+
+        {/* "Archive" replaces the old "Delete" — soft-delete via the existing delete endpoint */}
         <MenuItem
-          onClick={() => { setDeleteOpen(true); setMenuAnchor(null); }}
-          sx={{ color: "error.main" }}
+          onClick={() => { setArchiveOpen(true); setMenuAnchor(null); }}
+          sx={{ color: "#78716c" }}
         >
-          Delete
+          Archive
         </MenuItem>
       </Menu>
 
+      {/* Archive (soft-delete) confirmation modal — reuses DeleteEligibilityFormModal
+          with updated wording supplied by its new props */}
       <DeleteEligibilityFormModal
-        open={deleteOpen}
-        onClose={() => { setDeleteOpen(false); setSelectedForm(null); }}
+        open={archiveOpen}
+        onClose={() => { setArchiveOpen(false); setSelectedForm(null); }}
         onConfirm={() => setRefreshKey((prev) => prev + 1)}
         target={selectedForm}
       />

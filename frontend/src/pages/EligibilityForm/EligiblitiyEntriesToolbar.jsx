@@ -15,6 +15,7 @@ export default function EligibilityEntriesToolbar({
   onPrint,
   formName,
   entryCount,
+  isArchived,
 }) {
   const [quickFilterValue, setQuickFilterValue] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
@@ -65,7 +66,7 @@ export default function EligibilityEntriesToolbar({
         >
           <IconButton
             size="small"
-            onClick={() => navigate('/Eligibility')}
+            onClick={() => navigate(isArchived ? '/Eligibility/Archived' : '/Eligibility')}
             sx={{ color: '#002f59' }}
           >
             <ArrowBackIcon fontSize="small" />

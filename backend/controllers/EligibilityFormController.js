@@ -1,5 +1,10 @@
+// controllers/EligibilityFormController.js
 const db = require("../config/db");
 
+/**
+ * GET /api/eligibility-forms
+ * Returns Enabled + Disabled forms only (Archived are excluded).
+ */
 const getForms = (req, res) => {
   const sql = `
     SELECT 
@@ -15,6 +20,7 @@ const getForms = (req, res) => {
       ON ef.created_by = u.user_id
     LEFT JOIN eligibility_forms_entries efe
       ON ef.form_id = efe.form_id
+    WHERE ef.status IN ('Enabled', 'Disabled')
     GROUP BY
       ef.form_id, ef.form_name, ef.status, ef.created_at, u.fullname
     ORDER BY ef.created_at DESC
@@ -26,6 +32,10 @@ const getForms = (req, res) => {
   });
 };
 
+/**
+ * PUT /api/eligibility-forms/:id/status
+ * Toggles between Enabled and Disabled only (Archived is handled separately).
+ */
 const updateFormStatus = (req, res) => {
   const { id } = req.params;
   const { status } = req.body;

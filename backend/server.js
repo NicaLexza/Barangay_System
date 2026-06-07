@@ -30,6 +30,7 @@ const householdBulkImportRoutes = require("./routes/householdBulkImportRoutes");
 const eligibilityFormAddRoutes = require("./routes/EligibilityFormAddRoutes");
 const eligibilityFormRoutes = require("./routes/eligibilityFormRoutes");
 const eligibilityFormDeleteRoutes = require("./routes/eligibilityFormDeleteRoutes");
+const eligibilityFormArchiveRoutes = require("./routes/eligibilityFormArchiveRoutes");
 
 const eligibilityFormEntriesRoutes = require("./routes/eligibilityFormEntriesRoutes");
 const eligibilityFormEntriesUpdateRoutes = require("./routes/eligibilityFormEntriesUpdateRoutes");
@@ -59,6 +60,7 @@ app.use("/api/households", householdEditRoutes);
 app.use("/api/households", householdDeleteRoutes);
 app.use("/api/households", householdBulkImportRoutes);
 
+app.use("/api/eligibility-forms", eligibilityFormArchiveRoutes);
 app.use("/api/eligibility-forms", eligibilityFormAddRoutes);
 app.use("/api/eligibility-forms", eligibilityFormRoutes);
 app.use("/api/eligibility-forms", eligibilityFormDeleteRoutes);

@@ -426,6 +426,7 @@ const EligibilityEntriesTable = () => {
             onPrint: handlePrint,
             formName: state?.form_name,
             entryCount: filteredRows.length,
+            isArchived: state?.is_archived ?? false,
           },
         }}
       />

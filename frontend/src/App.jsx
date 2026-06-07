@@ -6,6 +6,7 @@ import Residents from "./pages/Residents/ResidentsPage.jsx";
 import Eligibility from "./pages/EligibilityForm/EligibilityPage.jsx";
 import Households from "./pages/Households/HouseholdsPage.jsx";
 import EligibilityEntries from "./pages/EligibilityForm/EligibilityEntriesPage.jsx";
+import EligibilityArchivedPage from "./pages/EligibilityForm/EligibilityArchivedPage.jsx";
 import ChangePassword from "./pages/ChangePasswordPage.jsx";
 import ProtectedRoute from "./Reusables/ProtectedRoute.jsx";
 
@@ -66,6 +67,16 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["Admin", "Staff"]}>
               <Eligibility />
+            </ProtectedRoute>
+          }
+        />
+        {/* NOTE: /Eligibility/Archived must be declared BEFORE /Eligibility/:formId
+            so React Router does not treat "Archived" as a formId param */}
+        <Route
+          path="/Eligibility/Archived"
+          element={
+            <ProtectedRoute allowedRoles={["Admin", "Staff"]}>
+              <EligibilityArchivedPage />
             </ProtectedRoute>
           }
         />
