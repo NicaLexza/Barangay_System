@@ -1,5 +1,6 @@
 // controllers/residentAddController.js
 const db = require("../config/db");
+const { logActivity } = require("../utils/activityLogger");
 
 const addResident = (req, res) => {
   const {
@@ -79,6 +80,15 @@ const addResident = (req, res) => {
       res.status(201).json({
         message: "Resident added successfully",
         resident_id: result.insertId,
+
+        });
+        
+        logActivity({
+          entity_type:  "Resident",
+          entity_id:    result.insertId,
+          entity_name:  `${f_name} ${l_name}`,
+          action_type:  "added",
+          performed_by: created_by,
       });
     }
   );

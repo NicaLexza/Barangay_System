@@ -1,6 +1,8 @@
 //householdEditController.js
 
 const db = require("../config/db");
+const { logActivity } = require("../utils/activityLogger");
+
 
 const updateHousehold = (req, res) => {
   const { household_id, ...data } = req.body;
@@ -78,6 +80,13 @@ const updateHousehold = (req, res) => {
       if (err) return res.status(500).json({ message: "Update failed", error: err.message });
       if (results.affectedRows === 0) return res.status(404).json({ message: "Household not found" });
       res.json({ message: "Household updated successfully" });
+      logActivity({
+        entity_type:  "Household",
+        entity_id:    household_id,
+        entity_name:  `${data.f_name || ""} ${data.l_name || ""}`.trim(),
+        action_type:  "updated",
+        performed_by: updated_by,
+      });
     });
   }
 };

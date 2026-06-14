@@ -1,11 +1,8 @@
 // controllers/eligibilityFormArchiveController.js
 const db = require("../config/db");
 const bcrypt = require("bcryptjs");
+const { logActivity } = require("../utils/activityLogger");
 
-/**
- * GET /api/eligibility-forms/archived
- * Returns all forms with status = 'Archived'
- */
 const getArchivedForms = (req, res) => {
   const sql = `
     SELECT
@@ -33,16 +30,10 @@ const getArchivedForms = (req, res) => {
   });
 };
 
-/**
- * POST /api/eligibility-forms/archived/:id/restore
- * Admin-only. Verifies credentials then restores form to 'Disabled'.
- * Body: { username, password }
- */
 const restoreForm = (req, res) => {
   const { id } = req.params;
   const { username, password } = req.body;
 
-  // Only admins may restore
   if (req.user.role !== "Admin") {
     return res.status(403).json({ message: "Only admins can restore archived forms." });
   }
@@ -51,7 +42,6 @@ const restoreForm = (req, res) => {
     return res.status(400).json({ message: "Username and password are required." });
   }
 
-  // Verify the credentials belong to the currently logged-in admin
   const fetchSql = "SELECT * FROM users WHERE username = ? AND user_id = ?";
   db.query(fetchSql, [username, req.user.id], async (err, results) => {
     if (err) return res.status(500).json({ message: "Database error", err });
@@ -71,35 +61,43 @@ const restoreForm = (req, res) => {
       return res.status(403).json({ message: "Account is inactive." });
     }
 
-    // Credentials OK — restore the form (set back to Disabled so it's visible but not active)
-    const updateSql = `
-      UPDATE eligibility_forms
-      SET status = 'Disabled'
-      WHERE form_id = ? AND status = 'Archived'
-    `;
+    // ✅ Fetch form name first, then update
+    const nameSql = "SELECT form_name FROM eligibility_forms WHERE form_id = ?";
+    db.query(nameSql, [id], (nameErr, nameResults) => {
+      if (nameErr) return res.status(500).json({ message: "Database error", err: nameErr });
 
-    db.query(updateSql, [id], (err2, result) => {
-      if (err2) return res.status(500).json({ message: "Database error", err: err2 });
+      const formName = nameResults?.[0]?.form_name || null;
 
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ message: "Archived form not found." });
-      }
+      const updateSql = `
+        UPDATE eligibility_forms
+        SET status = 'Disabled'
+        WHERE form_id = ? AND status = 'Archived'
+      `;
 
-      res.status(200).json({ message: "Form restored successfully." });
+      db.query(updateSql, [id], (err2, result) => {
+        if (err2) return res.status(500).json({ message: "Database error", err: err2 });
+        if (result.affectedRows === 0) {
+          return res.status(404).json({ message: "Archived form not found." });
+        }
+
+        res.status(200).json({ message: "Form restored successfully." });
+
+        logActivity({
+          entity_type:  "Eligibility Form",
+          entity_id:    id,
+          entity_name:  formName,
+          action_type:  "restored",
+          performed_by: req.user.id,
+        });
+      });
     });
   });
 };
 
-/**
- * DELETE /api/eligibility-forms/archived/:id
- * Admin-only. Verifies credentials then permanently deletes the form.
- * Body: { username, password }
- */
 const permanentDeleteForm = (req, res) => {
   const { id } = req.params;
   const { username, password } = req.body;
 
-  // Only admins may permanently delete
   if (req.user.role !== "Admin") {
     return res.status(403).json({ message: "Only admins can permanently delete archived forms." });
   }
@@ -108,7 +106,6 @@ const permanentDeleteForm = (req, res) => {
     return res.status(400).json({ message: "Username and password are required." });
   }
 
-  // Verify credentials belong to current logged-in admin
   const fetchSql = "SELECT * FROM users WHERE username = ? AND user_id = ?";
   db.query(fetchSql, [username, req.user.id], async (err, results) => {
     if (err) return res.status(500).json({ message: "Database error", err });
@@ -128,17 +125,31 @@ const permanentDeleteForm = (req, res) => {
       return res.status(403).json({ message: "Account is inactive." });
     }
 
-    // Credentials OK — permanently delete
-    const deleteSql = "DELETE FROM eligibility_forms WHERE form_id = ? AND status = 'Archived'";
+    // ✅ Fetch form name first, then delete
+    const nameSql = "SELECT form_name FROM eligibility_forms WHERE form_id = ?";
+    db.query(nameSql, [id], (nameErr, nameResults) => {
+      if (nameErr) return res.status(500).json({ message: "Database error", err: nameErr });
 
-    db.query(deleteSql, [id], (err2, result) => {
-      if (err2) return res.status(500).json({ message: "Database error", err: err2 });
+      const formName = nameResults?.[0]?.form_name || null;
 
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ message: "Archived form not found." });
-      }
+      const deleteSql = "DELETE FROM eligibility_forms WHERE form_id = ? AND status = 'Archived'";
 
-      res.status(200).json({ message: "Form permanently deleted." });
+      db.query(deleteSql, [id], (err2, result) => {
+        if (err2) return res.status(500).json({ message: "Database error", err: err2 });
+        if (result.affectedRows === 0) {
+          return res.status(404).json({ message: "Archived form not found." });
+        }
+
+        res.status(200).json({ message: "Form permanently deleted." });
+
+        logActivity({
+          entity_type:  "Eligibility Form",
+          entity_id:    id,
+          entity_name:  formName, // ✅ now populated
+          action_type:  "deleted",
+          performed_by: req.user.id,
+        });
+      });
     });
   });
 };

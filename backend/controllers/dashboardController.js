@@ -114,58 +114,17 @@ const getDashboardStats = (req, res) => {
  */
 const getRecentActivity = (req, res) => {
   const sql = `
-    (
-      SELECT 'Resident' AS entity_type,
-             CONCAT_WS(' ', f_name, l_name) AS entity_name,
-             'added'    AS action_type,
-             r.created_at AS action_time,
-             u.fullname   AS performed_by
-      FROM residents r
-      LEFT JOIN users u ON r.created_by = u.user_id
-      WHERE r.created_at IS NOT NULL
-    )
-    UNION ALL
-    (
-      SELECT 'Resident', CONCAT_WS(' ', f_name, l_name),
-             'updated', r.updated_at, u.fullname
-      FROM residents r
-      LEFT JOIN users u ON r.updated_by = u.user_id
-      WHERE r.updated_at IS NOT NULL
-    )
-    UNION ALL
-    (
-      SELECT 'Household', CONCAT_WS(' ', f_name, l_name),
-             'added', h.created_at, u.fullname
-      FROM households h
-      LEFT JOIN users u ON h.created_by = u.user_id
-      WHERE h.created_at IS NOT NULL
-    )
-    UNION ALL
-    (
-      SELECT 'Household', CONCAT_WS(' ', f_name, l_name),
-             'updated', h.updated_at, u.fullname
-      FROM households h
-      LEFT JOIN users u ON h.updated_by = u.user_id
-      WHERE h.updated_at IS NOT NULL
-    )
-    UNION ALL
-    (
-      SELECT 'Account', us.fullname,
-             'created', us.created_at, u.fullname
-      FROM users us
-      LEFT JOIN users u ON us.created_by = u.user_id
-      WHERE us.created_at IS NOT NULL
-    )
-    UNION ALL
-    (
-      SELECT 'Eligibility Form', ef.form_name,
-             'created', ef.created_at, u.fullname
-      FROM eligibility_forms ef
-      LEFT JOIN users u ON ef.created_by = u.user_id
-      WHERE ef.created_at IS NOT NULL
-    )
-    ORDER BY action_time DESC
-    LIMIT 30
+    SELECT
+      al.log_id,
+      al.entity_type,
+      al.entity_name,
+      al.action_type,
+      al.performed_at  AS action_time,
+      u.fullname       AS performed_by
+    FROM activity_logs al
+    LEFT JOIN users u ON al.performed_by = u.user_id
+    ORDER BY al.performed_at DESC
+    LIMIT 50
   `;
 
   db.query(sql, (err, results) => {

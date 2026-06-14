@@ -1,6 +1,7 @@
 //residentEditController.js
 
 const db = require("../config/db");
+const { logActivity } = require("../utils/activityLogger");
 
 const updateResident = (req, res) => {
   const { resident_id, ...data } = req.body;
@@ -84,6 +85,14 @@ const updateResident = (req, res) => {
       if (result.affectedRows === 0) return res.status(404).json({ message: "Resident not found" });
 
       res.json({ message: "Resident updated successfully" });
+      
+      logActivity({
+        entity_type:  "Resident",
+        entity_id:    resident_id,
+        entity_name:  `${data.f_name || ""} ${data.l_name || ""}`.trim(),
+        action_type:  "updated",
+        performed_by: updated_by,
+      });
     });
   }
 };

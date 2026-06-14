@@ -1,7 +1,7 @@
 // controllers/userAddController.js
 const db = require("../config/db");
 const bcrypt = require("bcryptjs");
-
+const { logActivity } = require("../utils/activityLogger");
 const DEFAULT_PASSWORD = "Barangay@2025";
 
 const addAccount = async (req, res) => {
@@ -37,6 +37,14 @@ const addAccount = async (req, res) => {
 
       res.status(201).json({
         message: `Account created successfully. Default password is: ${DEFAULT_PASSWORD}`,
+      });
+      
+      logActivity({
+        entity_type:  "Account",
+        entity_id:    result?.insertId,
+        entity_name:  fullname,
+        action_type:  "created",
+        performed_by: createdBy,
       });
     });
   });

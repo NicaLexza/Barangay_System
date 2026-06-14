@@ -170,7 +170,16 @@ const Dot = ({ color }) => (
 const ActivityRow = ({ item, last }) => {
   const key   = `${item.entity_type}:${item.action_type}`;
   const color = ACT_COLORS[key] ?? INK_3;
-  const verb  = item.action_type === "added" || item.action_type === "created" ? "added" : "updated";
+  const verbMap = {
+    added:    "added",
+    created:  "created",
+    updated:  "updated",
+    imported: "imported",
+    archived: "archived",
+    restored: "restored",
+    deleted:  "deleted permanently",
+  };
+  const verb = verbMap[item.action_type] ?? item.action_type;
   return (
     <>
       <ListItem alignItems="flex-start" disablePadding sx={{ py: 1.25, gap: 1.25, display: "flex" }}>

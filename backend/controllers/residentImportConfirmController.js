@@ -1,5 +1,6 @@
 // controllers/residentImportConfirmController.js
 const db = require("../config/db");
+const { logActivity } = require("../utils/activityLogger");
 
 const confirmImportResidents = (req, res) => {
   const { rows } = req.body;
@@ -9,7 +10,6 @@ const confirmImportResidents = (req, res) => {
     return res.status(400).json({ message: "No rows to process." });
   }
 
-  // Only process enabled rows that are green or yellow
   const toProcess = rows.filter(
     (r) => r.enabled && (r.status === "green" || r.status === "yellow")
   );
@@ -40,7 +40,6 @@ const confirmImportResidents = (req, res) => {
 
   for (const row of toProcess) {
     if (row.status === "green") {
-      // INSERT new record
       const insertSql = `
         INSERT INTO residents (
           f_name, m_name, l_name, suffix, sex, birthdate, birthplace,
@@ -69,7 +68,8 @@ const confirmImportResidents = (req, res) => {
           row.is_solop ? 1 : 0,
           created_by,
         ],
-        (err) => {
+        // ✅ renamed to (err, result) so insertId is accessible
+        (err, result) => {
           if (err) {
             errorRows.push({
               name: `${row.f_name} ${row.l_name}`,
@@ -77,13 +77,22 @@ const confirmImportResidents = (req, res) => {
             });
           } else {
             imported++;
+
+            // ✅ inside callback, after confirming success
+            logActivity({
+              entity_type:  "Resident",
+              entity_id:    result.insertId,
+              entity_name:  `${row.f_name} ${row.l_name}`,
+              action_type:  "imported",
+              performed_by: created_by,
+            });
           }
           processed++;
           checkDone();
         }
       );
+
     } else if (row.status === "yellow") {
-      // UPDATE existing record — update all fields except birthdate
       const updateSql = `
         UPDATE residents SET
           f_name = ?, m_name = ?, l_name = ?, suffix = ?,
@@ -114,6 +123,7 @@ const confirmImportResidents = (req, res) => {
           created_by,
           row.existing_id,
         ],
+        // ✅ inside callback, after confirming success
         (err) => {
           if (err) {
             errorRows.push({
@@ -122,6 +132,15 @@ const confirmImportResidents = (req, res) => {
             });
           } else {
             updated++;
+
+            // ✅ inside the else block so it only logs on success
+            logActivity({
+              entity_type:  "Resident",
+              entity_id:    row.existing_id,
+              entity_name:  `${row.f_name} ${row.l_name}`,
+              action_type:  "updated",
+              performed_by: created_by,
+            });
           }
           processed++;
           checkDone();
