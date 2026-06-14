@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 06, 2026 at 04:06 PM
+-- Generation Time: Jun 14, 2026 at 12:14 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -24,6 +24,33 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `activity_logs`
+--
+
+CREATE TABLE `activity_logs` (
+  `log_id` int(11) NOT NULL,
+  `entity_type` varchar(50) NOT NULL,
+  `entity_id` int(11) DEFAULT NULL,
+  `entity_name` varchar(255) DEFAULT NULL,
+  `action_type` varchar(50) NOT NULL,
+  `performed_by` int(11) DEFAULT NULL,
+  `performed_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `activity_logs`
+--
+
+INSERT INTO `activity_logs` (`log_id`, `entity_type`, `entity_id`, `entity_name`, `action_type`, `performed_by`, `performed_at`) VALUES
+(1, 'Eligibility Form', 6, 'eacakes', 'restored', 5, '2026-06-14 14:47:57'),
+(2, 'Household', 5, 'Juls Caliao', 'updated', 5, '2026-06-14 14:48:22'),
+(3, 'Eligibility Form', 9, 'households', 'deleted', 5, '2026-06-14 15:39:56'),
+(4, 'Resident', 22, 'James Bond', 'imported', 5, '2026-06-14 15:44:39'),
+(5, 'Resident', 15, 'bruce caliao', 'updated', 5, '2026-06-14 15:44:39');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `eligibility_forms`
 --
 
@@ -40,12 +67,11 @@ CREATE TABLE `eligibility_forms` (
 --
 
 INSERT INTO `eligibility_forms` (`form_id`, `form_name`, `status`, `created_by`, `created_at`) VALUES
-(2, 'underaged', 'Archived', 4, '2026-03-14 15:35:39'),
-(4, 'unemployed shytes', 'Enabled', 4, '2026-03-16 15:45:39'),
+(4, 'unemployed shytes', 'Disabled', 4, '2026-03-16 15:45:39'),
 (5, 'fuel subsidy ', 'Enabled', 4, '2026-03-16 15:53:34'),
-(6, 'eacakes', 'Archived', 4, '2026-03-17 18:32:35'),
+(6, 'eacakes', 'Disabled', 4, '2026-03-17 18:32:35'),
 (7, 'dasdasd', 'Disabled', 4, '2026-03-17 19:47:55'),
-(9, 'households', 'Enabled', 4, '2026-04-12 17:40:21');
+(10, 'dasdasd', 'Disabled', 5, '2026-06-14 14:23:09');
 
 -- --------------------------------------------------------
 
@@ -57,78 +83,38 @@ CREATE TABLE `eligibility_forms_entries` (
   `entry_id` int(11) NOT NULL,
   `form_id` int(11) NOT NULL,
   `resident_id` int(11) DEFAULT NULL,
-  `household_id` int(11) DEFAULT NULL,
   `is_rewarded` tinyint(1) NOT NULL DEFAULT 0,
   `processed_by` int(11) DEFAULT NULL,
   `processed_at` datetime DEFAULT NULL ON UPDATE current_timestamp()
-) ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `eligibility_forms_entries`
 --
 
-INSERT INTO `eligibility_forms_entries` (`entry_id`, `form_id`, `resident_id`, `household_id`, `is_rewarded`, `processed_by`, `processed_at`) VALUES
-(14, 2, 19, NULL, 1, 5, '2026-06-06 21:43:14'),
-(15, 2, 14, NULL, 1, 5, '2026-06-06 21:43:25'),
-(16, 2, 13, NULL, 1, 5, '2026-06-06 21:43:26'),
-(21, 4, 14, NULL, 0, NULL, '2026-03-16 15:45:39'),
-(22, 4, 13, NULL, 0, NULL, '2026-03-16 15:45:39'),
-(23, 5, 6, NULL, 1, 4, '2026-03-17 18:18:37'),
-(24, 5, 19, NULL, 0, NULL, '2026-03-16 15:53:34'),
-(25, 5, 15, NULL, 0, NULL, '2026-03-16 15:53:34'),
-(26, 5, 1, NULL, 0, NULL, '2026-03-16 15:53:34'),
-(27, 5, 9, NULL, 0, NULL, '2026-03-16 15:53:34'),
-(28, 5, 2, NULL, 0, NULL, '2026-03-16 15:53:34'),
-(29, 5, 14, NULL, 0, NULL, '2026-03-16 15:53:34'),
-(30, 5, 7, NULL, 0, NULL, '2026-03-16 15:53:34'),
-(31, 5, 4, NULL, 0, NULL, '2026-03-16 15:53:34'),
-(32, 5, 10, NULL, 0, NULL, '2026-03-16 15:53:34'),
-(33, 5, 11, NULL, 0, NULL, '2026-03-16 15:53:34'),
-(34, 5, 17, NULL, 0, NULL, '2026-03-16 15:53:34'),
-(35, 5, 13, NULL, 0, NULL, '2026-03-16 15:53:34'),
-(37, 6, 15, NULL, 0, 4, '2026-03-23 11:55:53'),
-(38, 6, 2, NULL, 1, 4, '2026-03-28 18:49:23'),
-(39, 6, 4, NULL, 1, 4, '2026-03-17 19:47:13'),
-(40, 6, 10, NULL, 0, NULL, NULL),
-(41, 7, 6, NULL, 1, 4, '2026-03-17 19:58:16'),
-(42, 7, 1, NULL, 0, NULL, NULL),
-(43, 7, 2, NULL, 0, NULL, NULL),
-(44, 7, 7, NULL, 0, NULL, NULL),
-(45, 7, 10, NULL, 0, NULL, NULL),
-(47, 9, NULL, 1, 0, NULL, NULL),
-(48, 9, NULL, 2, 0, NULL, NULL),
-(49, 9, NULL, 4, 0, NULL, NULL);
-
--- --------------------------------------------------------
-
---
--- Table structure for table `households`
---
-
-CREATE TABLE `households` (
-  `household_id` int(11) NOT NULL,
-  `f_name` varchar(100) NOT NULL,
-  `m_name` varchar(100) DEFAULT NULL,
-  `l_name` varchar(100) NOT NULL,
-  `suffix` varchar(10) DEFAULT NULL,
-  `house_no` varchar(50) DEFAULT NULL,
-  `street` varchar(150) NOT NULL,
-  `head_count` int(11) NOT NULL DEFAULT 1,
-  `created_by` int(11) DEFAULT NULL,
-  `created_at` datetime DEFAULT current_timestamp(),
-  `updated_by` int(11) DEFAULT NULL,
-  `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `households`
---
-
-INSERT INTO `households` (`household_id`, `f_name`, `m_name`, `l_name`, `suffix`, `house_no`, `street`, `head_count`, `created_by`, `created_at`, `updated_by`, `updated_at`) VALUES
-(1, 'Jake', 'Corazon', 'Cruz', 'Sr.', '12', 'Florida', 3, 4, '2026-02-16 20:08:18', 4, '2026-02-24 21:39:14'),
-(2, 'Jelo', NULL, 'Cruz', NULL, '21', 'Bottom', 3, 4, '2026-02-18 18:34:44', 4, '2026-02-24 21:39:35'),
-(4, 'Taylor', NULL, 'Morgan', NULL, '13', 'Singapore', 3, 4, '2026-02-24 21:49:55', 5, '2026-04-29 19:04:29'),
-(5, 'Juls', NULL, 'Caliao', 'Sr', '17', 'Bohol', 25, 5, '2026-05-31 14:08:01', NULL, '2026-05-31 14:08:01');
+INSERT INTO `eligibility_forms_entries` (`entry_id`, `form_id`, `resident_id`, `is_rewarded`, `processed_by`, `processed_at`) VALUES
+(21, 4, 14, 0, NULL, '2026-03-16 15:45:39'),
+(23, 5, 6, 1, 4, '2026-03-17 18:18:37'),
+(24, 5, 19, 1, 5, '2026-06-14 14:47:39'),
+(25, 5, 15, 0, NULL, '2026-03-16 15:53:34'),
+(26, 5, 1, 0, NULL, '2026-03-16 15:53:34'),
+(27, 5, 9, 0, NULL, '2026-03-16 15:53:34'),
+(28, 5, 2, 0, NULL, '2026-03-16 15:53:34'),
+(29, 5, 14, 0, NULL, '2026-03-16 15:53:34'),
+(30, 5, 7, 0, NULL, '2026-03-16 15:53:34'),
+(31, 5, 4, 0, NULL, '2026-03-16 15:53:34'),
+(32, 5, 10, 0, NULL, '2026-03-16 15:53:34'),
+(33, 5, 11, 0, NULL, '2026-03-16 15:53:34'),
+(34, 5, 17, 0, NULL, '2026-03-16 15:53:34'),
+(37, 6, 15, 0, 4, '2026-03-23 11:55:53'),
+(38, 6, 2, 1, 4, '2026-03-28 18:49:23'),
+(39, 6, 4, 1, 4, '2026-03-17 19:47:13'),
+(40, 6, 10, 0, NULL, NULL),
+(41, 7, 6, 1, 4, '2026-03-17 19:58:16'),
+(42, 7, 1, 0, NULL, NULL),
+(43, 7, 2, 0, NULL, NULL),
+(44, 7, 7, 0, NULL, NULL),
+(45, 7, 10, 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -153,6 +139,8 @@ CREATE TABLE `residents` (
   `is_pwd` tinyint(1) DEFAULT 0,
   `is_senior` tinyint(1) DEFAULT 0,
   `is_solop` tinyint(1) DEFAULT 0,
+  `is_household_head` tinyint(1) NOT NULL DEFAULT 0,
+  `household_member_count` int(11) DEFAULT NULL,
   `created_by` int(11) DEFAULT NULL,
   `created_at` datetime DEFAULT current_timestamp(),
   `updated_by` int(11) DEFAULT NULL,
@@ -163,22 +151,22 @@ CREATE TABLE `residents` (
 -- Dumping data for table `residents`
 --
 
-INSERT INTO `residents` (`resident_id`, `f_name`, `m_name`, `l_name`, `suffix`, `sex`, `birthdate`, `birthplace`, `house_no`, `street`, `civil_status`, `occupation`, `citizenship`, `is_pwd`, `is_senior`, `is_solop`, `created_by`, `created_at`, `updated_by`, `updated_at`) VALUES
-(1, 'Julius', 'Mabagal', 'Caliao', NULL, 'Male', '2005-09-27', 'Manila', '15', 'Bohol', 'Married', 'Drug Dealer ', 'Filipino', 0, 1, 1, 4, '2026-01-30 16:37:11', NULL, '2026-02-09 07:51:32'),
-(2, 'Maria', 'Santos', 'Cruz', NULL, 'Female', '1978-03-15', 'Opol', '42', 'Rizal', 'Married', 'Teacher', 'Filipino', 0, 0, 0, 2, '2026-02-02 13:48:27', NULL, '2026-02-09 07:52:01'),
-(4, 'Ana', 'Lopez', 'Mendoza', NULL, 'Female', '1990-11-08', 'Nueva Ecija', '63', 'Bonifacio', 'Single', 'Nurse', 'Filipino', 0, 0, 0, 4, '2026-02-02 13:48:27', NULL, '2026-02-09 07:54:08'),
-(6, 'Elena', 'Ramos', 'Aquino', NULL, 'Female', '1967-12-03', 'Manila', '89', 'Luna', 'Divorced', 'Vendor', 'Filipino', 1, 1, 1, 2, '2026-02-02 13:48:27', 5, '2026-05-23 07:30:53'),
-(7, 'Jose', 'Bautista', 'Hernandez', NULL, 'Male', '1985-09-12', 'Nueva Ecija', '56', 'Aguinaldo', 'Married', 'Carpenter', 'Filipino', 0, 0, 0, 3, '2026-02-02 13:57:21', NULL, '2026-02-09 07:54:08'),
-(9, 'Pedro', 'Flores', 'Castillo', 'III', 'Male', '1995-01-30', 'Opol', '78', 'Lapu-Lapu', 'Single', 'Security Guard', 'Filipino', 0, 0, 0, 5, '2026-02-02 13:57:21', NULL, '2026-02-09 07:54:08'),
-(10, 'Rosa', 'Diaz', 'Morales', NULL, 'Female', '1988-06-14', 'Opol', '21', 'Magsaysay', 'Married', 'Barangay Health Worker', 'Filipino', 0, 0, 0, 2, '2026-02-02 13:57:21', NULL, '2026-02-09 07:55:32'),
-(11, 'Glen', 'Jabolero', 'Pata', NULL, 'Male', '2005-02-02', 'Nueva Ecija', '67', 'Supot', 'Single', 'Loverboy ', 'Filipino', 1, 0, 0, 4, '2026-02-02 15:47:45', NULL, '2026-02-09 07:55:32'),
-(13, 'Eljan', 'Kantu', 'Teru', NULL, 'Male', '2017-02-11', 'Manila', '69', 'Fitterkarma', 'Divorced', NULL, 'Filipino', 1, 0, 0, 4, '2026-02-05 18:49:38', NULL, '2026-02-09 07:55:32'),
-(14, 'John ', NULL, 'Doe', 'Jr.', 'Male', '2021-02-06', 'Manila', '79', 'Boston', 'Divorced', NULL, 'Filipino', 0, 0, 1, 4, '2026-02-06 17:47:21', NULL, '2026-02-09 07:55:32'),
-(15, 'Bruce', NULL, 'Caliao', NULL, 'Female', '2005-09-27', 'Manila', '21', 'Bohol', 'Single', 'Criminal', 'Filipino', 0, 0, 0, 4, '2026-02-09 16:22:39', 4, '2026-02-24 13:40:35'),
-(17, 'sample', 'sample', 'sample', NULL, 'Male', '2005-09-27', 'japan', '21', 'sample', 'Single', 'sample', 'Filipino', 1, 1, 0, 4, '2026-02-12 15:35:22', 4, '2026-02-12 07:35:36'),
-(19, 'sample', NULL, 'Asis', NULL, 'Male', '2026-03-04', 'Batangas', '750', 'Bohol St', 'Single', NULL, 'Filipino', 0, 0, 1, 4, '2026-03-07 20:21:56', NULL, NULL),
-(20, 'Julius Cesar', 'Mabagal', 'Caliao', 'Jr', 'Male', '2005-09-27', 'Leyte', '750', 'Bohol', 'Married', 'Network Gingineer', 'Bisaya', 0, 0, 1, 4, '2026-04-21 18:11:53', NULL, NULL),
-(21, 'Jheric', NULL, 'Esmeli', 'Sr', 'Male', '2026-04-15', 'Toronto', '67', 'york', 'Divorced', 'assassin', 'Filipino', 0, 0, 0, 4, '2026-04-22 20:45:36', NULL, NULL);
+INSERT INTO `residents` (`resident_id`, `f_name`, `m_name`, `l_name`, `suffix`, `sex`, `birthdate`, `birthplace`, `house_no`, `street`, `civil_status`, `occupation`, `citizenship`, `is_pwd`, `is_senior`, `is_solop`, `is_household_head`, `household_member_count`, `created_by`, `created_at`, `updated_by`, `updated_at`) VALUES
+(1, 'Julius', 'Mabagal', 'Caliao', NULL, 'Male', '2005-09-27', 'Manila', '15', 'Bohol', 'Married', 'Drug Dealer ', 'Filipino', 0, 1, 1, 0, NULL, 4, '2026-01-30 16:37:11', NULL, '2026-02-09 07:51:32'),
+(2, 'Maria', 'Santos', 'Cruz', NULL, 'Female', '1978-03-15', 'Opol', '42', 'Rizal', 'Married', 'Teacher', 'Filipino', 0, 0, 0, 0, NULL, 2, '2026-02-02 13:48:27', NULL, '2026-02-09 07:52:01'),
+(4, 'Ana', 'Lopez', 'Mendoza', NULL, 'Female', '1990-11-08', 'Nueva Ecija', '63', 'Bonifacio', 'Single', 'Nurse', 'Filipino', 0, 0, 0, 0, NULL, 4, '2026-02-02 13:48:27', NULL, '2026-02-09 07:54:08'),
+(6, 'Elena', 'Ramos', 'Aquino', NULL, 'Female', '1967-12-03', 'Manila', '89', 'bohol', 'Divorced', 'Vendor', 'Filipino', 1, 1, 1, 0, NULL, 2, '2026-02-02 13:48:27', 5, '2026-06-08 11:57:49'),
+(7, 'Jose', 'Bautista', 'Hernandez', NULL, 'Male', '1985-09-12', 'Nueva Ecija', '56', 'Aguinaldo', 'Married', 'Carpenter', 'Filipino', 0, 0, 0, 0, NULL, 3, '2026-02-02 13:57:21', NULL, '2026-02-09 07:54:08'),
+(9, 'Pedro', 'Flores', 'Castillo', 'III', 'Male', '1995-01-30', 'Opol', '78', 'Lapu-Lapu', 'Single', 'Security Guard', 'Filipino', 0, 0, 0, 0, NULL, 5, '2026-02-02 13:57:21', NULL, '2026-02-09 07:54:08'),
+(10, 'Rosa', 'Diaz', 'Morales', NULL, 'Female', '1988-06-14', 'Opol', '21', 'Magsaysay', 'Married', 'Barangay Health Worker', 'Filipino', 0, 0, 0, 0, NULL, 2, '2026-02-02 13:57:21', NULL, '2026-02-09 07:55:32'),
+(11, 'Glen', 'Jabolero', 'Pata', NULL, 'Male', '2005-02-02', 'Nueva Ecija', '67', 'Supot', 'Single', 'Loverboy ', 'Filipino', 1, 0, 0, 0, NULL, 4, '2026-02-02 15:47:45', NULL, '2026-02-09 07:55:32'),
+(14, 'John ', NULL, 'Doe', 'Jr.', 'Male', '2021-02-06', 'Manila', '79', 'Boston', 'Divorced', NULL, 'Filipino', 0, 0, 1, 0, NULL, 4, '2026-02-06 17:47:21', NULL, '2026-02-09 07:55:32'),
+(15, 'bruce', NULL, 'caliao', NULL, 'Female', '2005-09-27', 'Manila', '21', 'Bohol', 'Married', 'Criminal', 'Filipino', 1, 0, 0, 0, NULL, 4, '2026-02-09 16:22:39', 5, '2026-06-14 07:44:39'),
+(17, 'sample', 'sample', 'sample', NULL, 'Male', '2005-09-27', 'japan', '21', 'sample', 'Single', 'sample', 'Filipino', 1, 1, 0, 0, NULL, 4, '2026-02-12 15:35:22', 4, '2026-02-12 07:35:36'),
+(19, 'sample', NULL, 'Asis', NULL, 'Male', '2026-03-04', 'Batangas', '750', 'Bohol St', 'Single', NULL, 'Filipino', 0, 0, 1, 0, NULL, 4, '2026-03-07 20:21:56', NULL, NULL),
+(20, 'Julius Cesar', 'Mabagal', 'Caliao', 'Jr', 'Male', '2005-09-27', 'Leyte', '750', 'Bohol', 'Married', 'Network Gingineer', 'Bisaya', 0, 0, 1, 0, NULL, 4, '2026-04-21 18:11:53', NULL, NULL),
+(21, 'Jheric', NULL, 'Esmeli', 'Sr', 'Male', '2026-04-15', 'Toronto', '67', 'york', 'Divorced', 'assassin', 'Filipino', 0, 0, 0, 0, NULL, 4, '2026-04-22 20:45:36', NULL, NULL),
+(22, 'James', NULL, 'Bond', 'Sr', 'Male', '2026-04-15', 'NewYork', '67', 'york', 'Divorced', 'assassin', 'Filipino', 0, 0, 0, 0, NULL, 5, '2026-06-14 15:44:39', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -220,6 +208,14 @@ INSERT INTO `users` (`user_id`, `username`, `password`, `fullname`, `role`, `sta
 --
 
 --
+-- Indexes for table `activity_logs`
+--
+ALTER TABLE `activity_logs`
+  ADD PRIMARY KEY (`log_id`),
+  ADD KEY `idx_performed_at` (`performed_at`),
+  ADD KEY `idx_performed_by` (`performed_by`);
+
+--
 -- Indexes for table `eligibility_forms`
 --
 ALTER TABLE `eligibility_forms`
@@ -232,19 +228,9 @@ ALTER TABLE `eligibility_forms`
 ALTER TABLE `eligibility_forms_entries`
   ADD PRIMARY KEY (`entry_id`),
   ADD UNIQUE KEY `unique_form_resident` (`form_id`,`resident_id`),
-  ADD UNIQUE KEY `unique_form_household` (`form_id`,`household_id`),
   ADD KEY `eligibility_forms_entries_ibfk_3` (`processed_by`),
   ADD KEY `idx_form_id` (`form_id`),
-  ADD KEY `eligibility_forms_entries_ibfk_2` (`resident_id`),
-  ADD KEY `eligibility_forms_entries_ibfk_4` (`household_id`);
-
---
--- Indexes for table `households`
---
-ALTER TABLE `households`
-  ADD PRIMARY KEY (`household_id`),
-  ADD KEY `households_ibfk_1` (`created_by`),
-  ADD KEY `households_ibfk_2` (`updated_by`);
+  ADD KEY `eligibility_forms_entries_ibfk_2` (`resident_id`);
 
 --
 -- Indexes for table `residents`
@@ -268,28 +254,28 @@ ALTER TABLE `users`
 --
 
 --
+-- AUTO_INCREMENT for table `activity_logs`
+--
+ALTER TABLE `activity_logs`
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
 -- AUTO_INCREMENT for table `eligibility_forms`
 --
 ALTER TABLE `eligibility_forms`
-  MODIFY `form_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `form_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `eligibility_forms_entries`
 --
 ALTER TABLE `eligibility_forms_entries`
-  MODIFY `entry_id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `households`
---
-ALTER TABLE `households`
-  MODIFY `household_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `entry_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=54;
 
 --
 -- AUTO_INCREMENT for table `residents`
 --
 ALTER TABLE `residents`
-  MODIFY `resident_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `resident_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -300,6 +286,12 @@ ALTER TABLE `users`
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `activity_logs`
+--
+ALTER TABLE `activity_logs`
+  ADD CONSTRAINT `activity_logs_ibfk_1` FOREIGN KEY (`performed_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `eligibility_forms`
@@ -313,15 +305,7 @@ ALTER TABLE `eligibility_forms`
 ALTER TABLE `eligibility_forms_entries`
   ADD CONSTRAINT `eligibility_forms_entries_ibfk_1` FOREIGN KEY (`form_id`) REFERENCES `eligibility_forms` (`form_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `eligibility_forms_entries_ibfk_2` FOREIGN KEY (`resident_id`) REFERENCES `residents` (`resident_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `eligibility_forms_entries_ibfk_3` FOREIGN KEY (`processed_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `eligibility_forms_entries_ibfk_4` FOREIGN KEY (`household_id`) REFERENCES `households` (`household_id`) ON DELETE CASCADE;
-
---
--- Constraints for table `households`
---
-ALTER TABLE `households`
-  ADD CONSTRAINT `households_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `households_ibfk_2` FOREIGN KEY (`updated_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
+  ADD CONSTRAINT `eligibility_forms_entries_ibfk_3` FOREIGN KEY (`processed_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `residents`
