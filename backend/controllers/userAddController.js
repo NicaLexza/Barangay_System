@@ -2,7 +2,9 @@
 const db = require("../config/db");
 const bcrypt = require("bcryptjs");
 const { logActivity } = require("../utils/activityLogger");
-const DEFAULT_PASSWORD = "Barangay@2025";
+const { generateRandomPassword } = require("../utils/passwordGenerator");
+
+const TEMP_PASSWORD_LENGTH = 6;
 
 const addAccount = async (req, res) => {
   const { fullname, username, role } = req.body;
@@ -23,8 +25,10 @@ const addAccount = async (req, res) => {
 
     const createdBy = req.user.id;
 
-    // 3. Hash the default password
-    const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, 10);
+    // 3. Generate a unique random temp password and hash it
+    //    (never logged or stored anywhere in plaintext)
+    const tempPassword = generateRandomPassword(TEMP_PASSWORD_LENGTH);
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
     // 4. Insert into database with must_change_password = 1
     const insertSql = `
@@ -32,13 +36,14 @@ const addAccount = async (req, res) => {
       VALUES (?, ?, ?, ?, 'Active', 1, ?, NOW())
     `;
 
-    db.query(insertSql, [fullname, username, hashedPassword, role, createdBy], (err) => {
+    db.query(insertSql, [fullname, username, hashedPassword, role, createdBy], (err, result) => {
       if (err) return res.status(500).json({ message: "Database error", err });
 
       res.status(201).json({
-        message: `Account created successfully. Default password is: ${DEFAULT_PASSWORD}`,
+        message: "Account created successfully.",
+        temp_password: tempPassword,
       });
-      
+
       logActivity({
         entity_type:  "Account",
         entity_id:    result?.insertId,

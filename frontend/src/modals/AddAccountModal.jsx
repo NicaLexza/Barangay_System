@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, TextField, Stack, MenuItem, Typography,
+  Button, TextField, Stack, MenuItem, Typography, Box,
 } from "@mui/material";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import axios from "axios";
 
 const AddAccountModal = ({ open, onClose, onSuccess }) => {
@@ -14,16 +15,22 @@ const AddAccountModal = ({ open, onClose, onSuccess }) => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [tempPassword, setTempPassword] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    // Editing the form again means they're starting a new entry —
+    // clear out the previous temp password so it isn't mistaken for the new one.
+    if (tempPassword) {
+      setTempPassword(null);
+      setCopied(false);
+    }
   };
 
   const handleSave = async () => {
     setError("");
-    setSuccess("");
 
     if (!formData.fullname || !formData.username) {
       setError("Please fill all required fields (marked with *)");
@@ -43,8 +50,7 @@ const AddAccountModal = ({ open, onClose, onSuccess }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setSuccess(res.data.message || "Account created successfully!");
-
+      setTempPassword(res.data.temp_password || null);
       setFormData({ fullname: "", username: "", role: "Staff" });
       onSuccess?.();
     } catch (err) {
@@ -55,10 +61,23 @@ const AddAccountModal = ({ open, onClose, onSuccess }) => {
     }
   };
 
+  const handleCopyPassword = async () => {
+    if (!tempPassword) return;
+    try {
+      await navigator.clipboard.writeText(tempPassword);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API unavailable (e.g. insecure context) — password is still
+      // visible on screen and can be selected/copied manually.
+    }
+  };
+
   const handleClose = () => {
     setFormData({ fullname: "", username: "", role: "Staff" });
     setError("");
-    setSuccess("");
+    setTempPassword(null);
+    setCopied(false);
     onClose();
   };
 
@@ -112,12 +131,58 @@ const AddAccountModal = ({ open, onClose, onSuccess }) => {
           </TextField>
 
           {error && <Typography color="error" mt={2}>{error}</Typography>}
-          {success && <Typography color="success.main" mt={2}>{success}</Typography>}
+
+          {tempPassword && (
+            <Box
+              sx={{
+                p: 2,
+                borderRadius: 1.5,
+                backgroundColor: "#e8f5e9",
+                border: "1px solid #a5d6a7",
+              }}
+            >
+              <Typography variant="body2" color="success.main" fontWeight={600} mb={1}>
+                Account created successfully
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+                Temporary password — share this with the new user now. It will not be shown again.
+              </Typography>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Box
+                  sx={{
+                    fontFamily: "monospace",
+                    fontSize: "1.1rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.1em",
+                    backgroundColor: "white",
+                    border: "1px solid #c8e6c9",
+                    borderRadius: 1,
+                    px: 1.5,
+                    py: 0.5,
+                    flex: 1,
+                  }}
+                >
+                  {tempPassword}
+                </Box>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<ContentCopyIcon fontSize="small" />}
+                  onClick={handleCopyPassword}
+                  sx={{ textTransform: "none", whiteSpace: "nowrap" }}
+                >
+                  {copied ? "Copied!" : "Copy"}
+                </Button>
+              </Stack>
+            </Box>
+          )}
         </Stack>
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button onClick={handleClose} disabled={loading}>Cancel</Button>
+        <Button onClick={handleClose} disabled={loading}>
+          {tempPassword ? "Close" : "Cancel"}
+        </Button>
         <Button
           variant="contained"
           onClick={handleSave}

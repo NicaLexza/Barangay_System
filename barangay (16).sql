@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 14, 2026 at 12:14 PM
+-- Generation Time: Jun 24, 2026 at 05:28 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -46,7 +46,15 @@ INSERT INTO `activity_logs` (`log_id`, `entity_type`, `entity_id`, `entity_name`
 (2, 'Household', 5, 'Juls Caliao', 'updated', 5, '2026-06-14 14:48:22'),
 (3, 'Eligibility Form', 9, 'households', 'deleted', 5, '2026-06-14 15:39:56'),
 (4, 'Resident', 22, 'James Bond', 'imported', 5, '2026-06-14 15:44:39'),
-(5, 'Resident', 15, 'bruce caliao', 'updated', 5, '2026-06-14 15:44:39');
+(5, 'Resident', 15, 'bruce caliao', 'updated', 5, '2026-06-14 15:44:39'),
+(6, 'Resident', 23, 'bry son', 'added', 5, '2026-06-16 10:10:15'),
+(7, 'Resident', 23, 'bry son', 'updated', 5, '2026-06-17 20:49:16'),
+(8, 'Eligibility Form', 10, 'dasdasd', 'archived', 5, '2026-06-19 19:43:04'),
+(9, 'Eligibility Form', 10, 'dasdasd', 'deleted', 5, '2026-06-19 19:43:19'),
+(10, 'Account', 17, 'mong yaw', 'created', 5, '2026-06-22 16:15:42'),
+(11, 'Account', 18, 'potchi', 'created', 5, '2026-06-22 16:30:25'),
+(12, 'Database', NULL, 'barangay_backup_2026-06-24_194647.sql', 'backup_created', 5, '2026-06-24 19:46:48'),
+(13, 'Database', NULL, 'barangay_backup_2026-06-24_232800.sql', 'backup_created', 5, '2026-06-24 23:28:01');
 
 -- --------------------------------------------------------
 
@@ -70,8 +78,7 @@ INSERT INTO `eligibility_forms` (`form_id`, `form_name`, `status`, `created_by`,
 (4, 'unemployed shytes', 'Disabled', 4, '2026-03-16 15:45:39'),
 (5, 'fuel subsidy ', 'Enabled', 4, '2026-03-16 15:53:34'),
 (6, 'eacakes', 'Disabled', 4, '2026-03-17 18:32:35'),
-(7, 'dasdasd', 'Disabled', 4, '2026-03-17 19:47:55'),
-(10, 'dasdasd', 'Disabled', 5, '2026-06-14 14:23:09');
+(7, 'dasdasd', 'Disabled', 4, '2026-03-17 19:47:55');
 
 -- --------------------------------------------------------
 
@@ -100,7 +107,7 @@ INSERT INTO `eligibility_forms_entries` (`entry_id`, `form_id`, `resident_id`, `
 (26, 5, 1, 0, NULL, '2026-03-16 15:53:34'),
 (27, 5, 9, 0, NULL, '2026-03-16 15:53:34'),
 (28, 5, 2, 0, NULL, '2026-03-16 15:53:34'),
-(29, 5, 14, 0, NULL, '2026-03-16 15:53:34'),
+(29, 5, 14, 1, 18, '2026-06-22 16:31:08'),
 (30, 5, 7, 0, NULL, '2026-03-16 15:53:34'),
 (31, 5, 4, 0, NULL, '2026-03-16 15:53:34'),
 (32, 5, 10, 0, NULL, '2026-03-16 15:53:34'),
@@ -166,7 +173,8 @@ INSERT INTO `residents` (`resident_id`, `f_name`, `m_name`, `l_name`, `suffix`, 
 (19, 'sample', NULL, 'Asis', NULL, 'Male', '2026-03-04', 'Batangas', '750', 'Bohol St', 'Single', NULL, 'Filipino', 0, 0, 1, 0, NULL, 4, '2026-03-07 20:21:56', NULL, NULL),
 (20, 'Julius Cesar', 'Mabagal', 'Caliao', 'Jr', 'Male', '2005-09-27', 'Leyte', '750', 'Bohol', 'Married', 'Network Gingineer', 'Bisaya', 0, 0, 1, 0, NULL, 4, '2026-04-21 18:11:53', NULL, NULL),
 (21, 'Jheric', NULL, 'Esmeli', 'Sr', 'Male', '2026-04-15', 'Toronto', '67', 'york', 'Divorced', 'assassin', 'Filipino', 0, 0, 0, 0, NULL, 4, '2026-04-22 20:45:36', NULL, NULL),
-(22, 'James', NULL, 'Bond', 'Sr', 'Male', '2026-04-15', 'NewYork', '67', 'york', 'Divorced', 'assassin', 'Filipino', 0, 0, 0, 0, NULL, 5, '2026-06-14 15:44:39', NULL, NULL);
+(22, 'James', NULL, 'Bond', 'Sr', 'Male', '2026-04-15', 'NewYork', '67', 'york', 'Divorced', 'assassin', 'Filipino', 0, 0, 0, 0, NULL, 5, '2026-06-14 15:44:39', NULL, NULL),
+(23, 'bry', NULL, 'son', NULL, 'Male', '2026-06-10', 'Manila', '89', 'kopal', 'Married', 'crew', 'Filipino', 0, 0, 1, 1, 5, 5, '2026-06-16 10:10:15', 5, '2026-06-17 12:49:16');
 
 -- --------------------------------------------------------
 
@@ -201,7 +209,9 @@ INSERT INTO `users` (`user_id`, `username`, `password`, `fullname`, `role`, `sta
 (6, 'James', '$2b$10$A8MCfaYXN4rPfwutc.jxK.OTZUqOPOniLQXEoQkJ9f.qU5cN6Nt.e', 'James Smith', 'Staff', 'Active', 4, '2026-03-07 18:12:30', NULL, '2026-04-12 18:04:54', 0),
 (10, 'reid', '$2b$10$Q2aZiIn0uKvRu8lLzuyUO.c7HAeGmjnxMK5CCUkHk0MQlqLpVOCjW', 'James Reid', 'Admin', 'Inactive', 4, '2026-03-07 22:46:30', 4, '2026-04-12 18:04:54', 0),
 (15, 'sample', '$2b$10$p/imSAnE72uXhYb7/wHDGers80g0Zisqw0sJFdcVx3ra2ZLBjGQte', 'sample', 'Staff', 'Active', 4, '2026-04-12 18:32:23', 15, '2026-04-12 18:48:50', 0),
-(16, 'bro', '$2b$10$olGUewUHjaAnkkeOW1PIgewTymMT0NSNDC3bH3zsfk7z9mVa/Jrze', 'bro', 'Staff', 'Active', 4, '2026-04-28 00:44:16', 16, '2026-04-28 00:44:46', 0);
+(16, 'bro', '$2b$10$olGUewUHjaAnkkeOW1PIgewTymMT0NSNDC3bH3zsfk7z9mVa/Jrze', 'bro', 'Staff', 'Active', 4, '2026-04-28 00:44:16', 16, '2026-04-28 00:44:46', 0),
+(17, 'mong', '$2b$10$5BSfOvozi1tVG1gQsJtaAOJodSou7hghdFHA1NM53ka1cuwuS.prq', 'mong yaw', 'Staff', 'Active', 5, '2026-06-22 16:15:42', 17, '2026-06-22 16:16:15', 0),
+(18, 'potchi', '$2b$10$k0t4gDpgX..s.5J4OhvddeSI25kOEImcTU4JsY1VZUhu7tSPPXBH.', 'potchi', 'Staff', 'Active', 5, '2026-06-22 16:30:25', 18, '2026-06-22 16:30:39', 0);
 
 --
 -- Indexes for dumped tables
@@ -257,7 +267,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `eligibility_forms`
@@ -275,13 +285,13 @@ ALTER TABLE `eligibility_forms_entries`
 -- AUTO_INCREMENT for table `residents`
 --
 ALTER TABLE `residents`
-  MODIFY `resident_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+  MODIFY `resident_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- Constraints for dumped tables

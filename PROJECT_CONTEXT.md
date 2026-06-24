@@ -1,70 +1,84 @@
-# JULS System - Project Context (Updated 2026-06-06)
+# JULS System - Complete Project Context (Updated 2026-06-19)
 
 ## 📋 Project Overview
 
-**JULS** is a comprehensive **Barangay Management System** built with a modern full-stack architecture. It's designed to manage and track residents, households, user accounts, and eligibility forms for a barangay (village-level) administrative unit.
+**JULS** is a comprehensive **Barangay Management System** with full audit logging, role-based access control, and intelligent resident management. Designed for barangay (village-level) administrative units to manage residents, households, user accounts, eligibility programs, and track all system activities.
 
 **Database Name:** `barangay`
-**Current Version:** Archive Feature Implementation (In Progress)
+**Database Version:** barangay (15).sql
+**Current Phase:** Activity Logging Integration Complete - Resident Management Enhanced
 **Git User:** NicaLexza
 **Current Branch:** main
-**Last Updated:** June 6, 2026
+**Last Updated:** June 19, 2026 14:30 PM
 
 ---
 
-## 🚀 Current Development Status
+## 🚀 Latest Development Status
 
-### 🔨 In-Progress Features (Not Yet Committed)
+### ✅ Recently Completed Features
 
-#### 1. **Eligibility Form Archive System** ⭐ ACTIVE
-A soft-delete system for eligibility forms with admin credential verification and restore/permanent delete capabilities.
+#### 1. **Form Archiving System** ✅ COMMITTED (6243e2b)
+- Soft-delete mechanism for eligibility forms
+- Admin-only credential verification for restoration
+- Separate archived forms page
+- Archive statistics and tracking
+- Permanent deletion with re-authentication
 
-**Files Modified/Created:**
-- ✅ `backend/controllers/eligibilityFormArchiveController.js` (NEW)
-- ✅ `backend/routes/eligibilityFormArchiveRoutes.js` (NEW)
-- ✅ `frontend/src/modals/ReAuthModal.jsx` (NEW)
-- ✅ `frontend/src/pages/EligibilityForm/EligibilityArchivedPage.jsx` (NEW)
-- ✅ `frontend/src/pages/EligibilityForm/EligibilityArchivedTable.jsx` (NEW)
-- 🔄 `backend/controllers/EligibilityFormController.js` (MODIFIED)
-- 🔄 `backend/controllers/eligibilityFormDeleteController.js` (MODIFIED)
-- 🔄 `backend/server.js` (MODIFIED)
-- 🔄 `frontend/src/App.jsx` (MODIFIED)
-- 🔄 `frontend/src/modals/DeleteEligibilityFormModal.jsx` (MODIFIED)
-- 🔄 `frontend/src/pages/EligibilityForm/EligibilityTable.jsx` (MODIFIED)
+#### 2. **Activity Logging Infrastructure** ✅ COMMITTED (ede1ccc)
+- Audit trail for all critical operations
+- Tracks entity type, ID, name, action, and performer
+- Fire-and-forget logging (non-blocking)
+- Database table: `activity_logs`
+- Foreign key to users for performer tracking
 
-**Changes Summary:**
-- Soft-delete mechanism: Forms marked as 'Archived' instead of permanently deleted
-- Admin-only credential verification for restore/permanent delete operations
-- Separate archived forms page with dedicated UI
-- ReAuthModal for sensitive credential verification
-- Archive icon added to form actions
-- Statistics tracking: total entries and rewarded count per form
+#### 3. **Resident Activity Logging Integration** ✅ COMPLETED (2026-06-19)
+- Activity logging fully integrated into resident CRUD operations
+- Implemented in: residentAddController, residentEditController, residentImportConfirmController
+- Tracks resident creation, updates, and bulk imports
+- Household head flag tracking and validation
+- Member count for household heads
+- Duplicate detection on name + birthdate + birthplace
+- All operations now logged with user identification and timestamps
+
+### 🔨 Currently In-Progress
+
+#### **Activity Logging Extension to Other Entities** 🟡 IN PROGRESS
+Extending activity logging integration to household and account management.
+
+**Next Phase Files:**
+- 🔄 `backend/controllers/userAddController.js` - Account creation logging
+- 🔄 `backend/controllers/userEditController.js` - Account updates logging
+- 🔄 `backend/controllers/householdAddController.js` - Household creation logging
+- 🔄 Frontend: `src/modals/ResidentStatsModal.jsx` - Statistics and reporting enhancements
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ Complete Architecture
 
-### Full-Stack Structure
+### Full-Stack System Architecture
 ```
-JULS System
+JULS Barangay Management System
 ├── Frontend (React + Vite)
-│   ├── Pages
-│   │   ├── Eligibility Forms Management
-│   │   │   ├── Active Forms (Enabled/Disabled)
-│   │   │   └── Archived Forms (NEW)
-│   │   └── Other Management Pages
-│   ├── Modals (Including ReAuthModal - NEW)
-│   └── Reusables (ProtectedRoute, Navbar, etc.)
+│   ├── Authentication & Protected Routes
+│   ├── Pages (Dashboard, Management, Reports)
+│   ├── Modals (CRUD operations, Re-auth)
+│   ├── Reusables (Navbar, ProtectedRoute, etc.)
+│   └── Services (Axios HTTP client)
 ├── Backend (Node.js + Express)
-│   ├── Controllers
-│   │   ├── Archive Management (NEW)
-│   │   └── Eligibility Form Controllers
-│   ├── Routes
-│   │   └── Archive Routes (NEW)
-│   ├── Middleware (Auth, Token Verification)
-│   └── Config (Database)
-└── Database (MySQL)
-    └── Tables with Archive Status Support
+│   ├── Authentication & Middleware
+│   ├── Controllers (CRUD, imports, logging)
+│   ├── Routes (Organized by resource)
+│   ├── Utilities (Activity logging)
+│   └── Config (Database connection)
+├── Database (MySQL)
+│   ├── Core Tables (users, residents, households)
+│   ├── Forms Tables (eligibility_forms, entries)
+│   └── Audit Table (activity_logs)
+└── Security Layer
+    ├── JWT Authentication
+    ├── Role-Based Access Control
+    ├── Credential Verification (bcrypt)
+    └── Audit Logging
 ```
 
 ---
@@ -76,7 +90,7 @@ JULS System
 - **Framework:** Express.js (v5.2.1)
 - **Database:** MySQL2 (v3.16.1)
 - **Authentication:** JWT (jsonwebtoken v9.0.3)
-- **Security:** bcryptjs (v3.0.3) - For credential verification
+- **Security:** bcryptjs (v3.0.3)
 - **File Upload:** Multer (v2.1.1)
 - **Data Import:** XLSX (v0.18.5)
 - **CORS:** Enabled for cross-origin requests
@@ -91,123 +105,245 @@ JULS System
 - **HTTP Client:** Axios (v1.13.2)
 - **Date Handling:** DayJS (v1.11.19)
 - **Icons:** MUI Icons Material (v7.3.7)
-- **Date Picker:** MUI X-Date-Pickers (v8.27.0)
 
 ---
 
-## 📊 Database Schema
+## 📊 Database Schema (Current)
 
-### Core Tables
+### 1. **users** Table
+**Purpose:** System user accounts with authentication and roles
 
-#### 1. **users**
-- User accounts for system access
-- Fields: user_id, username, password (hashed), email, role, status (Active/Inactive), fullname, created_at, updated_at
-- Uses JWT for authentication
-- Password management with forced change on first login
-- Role-based access control (RBAC): Admin, Staff
+| Field | Type | Details |
+|-------|------|---------|
+| user_id | INT | Primary key, auto-increment |
+| username | VARCHAR(100) | Unique, used for login |
+| password | VARCHAR(255) | Hashed with bcryptjs |
+| email | VARCHAR(150) | User email |
+| fullname | VARCHAR(200) | User's full name |
+| role | ENUM('Admin', 'Staff') | Role-based access control |
+| status | ENUM('Active', 'Inactive') | Account status |
+| created_at | DATETIME | Account creation timestamp |
+| updated_at | TIMESTAMP | Last update timestamp |
 
-#### 2. **residents**
-- Individual resident information
-- Fields: resident_id, name, age, contact, address, status, created_at, updated_at
-- Linked to households
-- Bulk import capability via XLSX
+**Key Features:**
+- JWT-based authentication
+- Default password on creation
+- Force password change on first login
+- Role-based route protection
 
-#### 3. **households**
-- Household/family group records
-- Fields: household_id, name, address, number_of_members, status, created_at, updated_at
-- Can contain multiple residents
-- Bulk import and eligibility tracking
+### 2. **residents** Table ⭐ ENHANCED
+**Purpose:** Individual resident records with household and demographic info
 
-#### 4. **eligibility_forms**
-- Eligibility program forms
-- Fields: form_id, form_name, status (Enabled/Disabled/Archived), created_by, created_at
-- **NEW:** Archive status for soft-delete
-- Can be enabled, disabled, or archived
-- Example forms: underaged, unemployed, fuel subsidy, households
+| Field | Type | Details |
+|-------|------|---------|
+| resident_id | INT | Primary key, auto-increment |
+| f_name | VARCHAR(100) | First name (required) |
+| m_name | VARCHAR(100) | Middle name (optional) |
+| l_name | VARCHAR(100) | Last name (required) |
+| suffix | VARCHAR(10) | Name suffix (optional) |
+| sex | ENUM | Male, Female, Other (required) |
+| birthdate | DATE | Date of birth (required) |
+| birthplace | VARCHAR(150) | Place of birth (required) |
+| house_no | VARCHAR(50) | House number (optional) |
+| street | VARCHAR(150) | Street address (required) |
+| civil_status | ENUM | Single, Married, etc. (required) |
+| occupation | VARCHAR(150) | Job/occupation (optional) |
+| citizenship | VARCHAR(100) | Default: Filipino |
+| is_pwd | TINYINT(1) | Person with disability flag |
+| is_senior | TINYINT(1) | Senior citizen flag |
+| is_solop | TINYINT(1) | Solo parent flag |
+| **is_household_head** | TINYINT(1) | Household head flag (NEW) |
+| **household_member_count** | INT | Count if head (NEW) |
+| created_by | INT | User who created record |
+| created_at | DATETIME | Creation timestamp |
+| updated_by | INT | User who last updated |
+| updated_at | TIMESTAMP | Last update timestamp |
 
-#### 5. **eligibility_forms_entries**
-- Individual eligibility entries linking residents/households to forms
-- Fields: entry_id, form_id, resident_id, household_id, is_rewarded (boolean), processed_by, processed_at
-- Tracks which residents/households qualify for which programs
-- Reward status tracking
+**Recent Enhancements:**
+- Household head tracking (`is_household_head`)
+- Member count for household heads (`household_member_count`)
+- Duplicate detection on (l_name + f_name + birthdate)
+- Activity logging on create/update/import
+- Audit trail via created_by and updated_by
+
+### 3. **households** Table
+**Purpose:** Household/family group records
+
+| Field | Type | Details |
+|-------|------|---------|
+| household_id | INT | Primary key, auto-increment |
+| name | VARCHAR(150) | Household name |
+| address | VARCHAR(255) | Address |
+| number_of_members | INT | Member count |
+| status | ENUM | Status tracking |
+| created_at | DATETIME | Creation timestamp |
+| updated_at | TIMESTAMP | Last update |
+
+### 4. **eligibility_forms** Table ⭐ ENHANCED
+**Purpose:** Eligibility program forms with archive support
+
+| Field | Type | Details |
+|-------|------|---------|
+| form_id | INT | Primary key, auto-increment |
+| form_name | VARCHAR(150) | Program name |
+| **status** | ENUM | Enabled, Disabled, **Archived** (NEW) |
+| created_by | INT | Creating user |
+| created_at | DATETIME | Creation timestamp |
+
+**Status Flow:**
+- **Enabled** → Active program
+- **Disabled** → Inactive but recoverable
+- **Archived** → Soft-deleted (needs re-auth to restore/delete)
+
+### 5. **eligibility_forms_entries** Table
+**Purpose:** Track individual eligibility assignments
+
+| Field | Type | Details |
+|-------|------|---------|
+| entry_id | INT | Primary key, auto-increment |
+| form_id | INT | FK to eligibility_forms |
+| resident_id | INT | FK to residents |
+| is_rewarded | TINYINT(1) | Reward status |
+| processed_by | INT | User who processed |
+| processed_at | DATETIME | Processing timestamp |
+
+### 6. **activity_logs** Table ⭐ NEW
+**Purpose:** Comprehensive audit trail of all system operations
+
+| Field | Type | Details |
+|-------|------|---------|
+| log_id | INT | Primary key, auto-increment |
+| entity_type | VARCHAR(50) | Resident, Household, Account, Eligibility Form, etc. |
+| entity_id | INT | ID of affected entity |
+| entity_name | VARCHAR(255) | Display name (resident name, form name, etc.) |
+| action_type | VARCHAR(50) | added, updated, deleted, archived, restored, imported |
+| performed_by | INT | FK to users (who performed action) |
+| performed_at | DATETIME | Action timestamp |
+
+**Supported Entities & Actions:**
+```
+Resident:
+  - added      (on creation)
+  - updated    (on edit)
+  - imported   (on bulk import)
+  - deleted    (on deletion)
+
+Household:
+  - added, updated, imported, deleted
+
+Eligibility Form:
+  - added, updated, archived, restored, deleted
+
+Account (User):
+  - added, updated, deleted, password_changed
+
+Eligibility Entry:
+  - added, updated, deleted, marked_rewarded
+```
+
+**Example Log Entries:**
+```
+log_id | entity_type | entity_id | entity_name | action_type | performed_by | performed_at
+1      | Eligibility Form | 6 | eacakes | restored | 5 | 2026-06-14 14:47:57
+2      | Household | 5 | Juls Caliao | updated | 5 | 2026-06-14 14:48:22
+3      | Eligibility Form | 9 | households | deleted | 5 | 2026-06-14 15:39:56
+4      | Resident | 22 | James Bond | imported | 5 | 2026-06-14 15:44:39
+5      | Resident | 15 | bruce caliao | updated | 5 | 2026-06-14 15:44:39
+```
 
 ---
 
-## 🎯 Key Features
+## 🎯 Complete Feature Set
 
 ### User Management
-- ✅ User authentication with JWT
-- ✅ Role-based access control (RBAC) - Admin/Staff roles
-- ✅ Account creation with default password
-- ✅ Force password change on first login
+- ✅ JWT-based authentication with auto-expiry
+- ✅ Role-based access control (Admin/Staff)
+- ✅ User account creation with default password
+- ✅ Forced password change on first login
 - ✅ Account status management (Active/Inactive)
-- ✅ Account editing and deletion
-- ✅ User search and filtering
+- ✅ Edit user information
+- ✅ Delete user accounts
+- ✅ Change password functionality
+- ✅ Activity logging on user operations
 
 ### Resident Management
-- ✅ Add/Edit/Delete resident records
-- ✅ Bulk import residents via XLSX file upload
-- ✅ Import preview with confirmation step
-- ✅ Search and filtering capabilities
+- ✅ Create residents with comprehensive fields
+- ✅ Edit resident information
+- ✅ Delete residents
+- ✅ **NEW:** Household head designation
+- ✅ **NEW:** Household member count tracking
+- ✅ **NEW:** Duplicate detection (name + birthdate)
+- ✅ Bulk import via XLSX with preview
+- ✅ Import confirmation with selective row processing
+- ✅ Search and filtering
+- ✅ **NEW:** Full activity logging
 - ✅ Status tracking
 
 ### Household Management
-- ✅ Add/Edit/Delete household records
-- ✅ Bulk import households via XLSX
+- ✅ Create households
+- ✅ Edit household information
+- ✅ Delete households
 - ✅ Link residents to households
+- ✅ Bulk import households
 - ✅ Search and filtering
-- ✅ Eligibility tracking per household
+- ✅ Activity logging
 
 ### Eligibility Forms Management
-- ✅ Create eligibility forms/programs
+- ✅ Create eligibility programs
 - ✅ Enable/Disable forms
-- ✅ **NEW:** Archive forms (soft-delete)
-- ✅ **NEW:** View archived forms on separate page
-- ✅ **NEW:** Restore archived forms (Admin-only, requires re-auth)
-- ✅ **NEW:** Permanently delete archived forms (Admin-only, requires re-auth)
-- ✅ Track eligibility entries for residents/households
-- ✅ Mark residents/households as rewarded
-- ✅ Delete eligibility entries
-- ✅ View eligibility form details with statistics
+- ✅ **Soft-delete (Archive) forms**
+- ✅ **Restore archived forms (Admin-only)**
+- ✅ **Permanently delete archived forms (Admin-only)**
+- ✅ View form statistics (total entries, rewards)
+- ✅ Separate archived forms page
+- ✅ Admin credential verification for sensitive ops
+- ✅ Activity logging (archived, restored, deleted)
 
-### Security Features
+### Eligibility Entries Management
+- ✅ Add eligibility entries (residents to programs)
+- ✅ Mark entries as rewarded
+- ✅ Update entry status
+- ✅ Delete entries
+- ✅ View entries by form
+
+### Security & Audit
 - ✅ Auto logout mechanism
-- ✅ **NEW:** ReAuth modal for sensitive operations
-- ✅ **NEW:** Credential verification before archive restoration/deletion
-- ✅ JWT authentication on all protected routes
-- ✅ Role-based access control enforcement
-- ✅ Admin-only archive management
+- ✅ JWT token-based authentication
+- ✅ Role-based route protection
+- ✅ Credential re-verification for sensitive ops
+- ✅ **Comprehensive activity logging**
+- ✅ Audit trail for all CRUD operations
+- ✅ User identification on all actions
+- ✅ Timestamp tracking
 
 ### System Features
 - ✅ Dashboard with overview
-- ✅ Change password functionality
 - ✅ Responsive Material-UI design
 - ✅ Data import/export with XLSX support
-- ✅ Search and filtering across all tables
+- ✅ Advanced search and filtering
+- ✅ Statistics and reporting
+- ✅ Pagination and data grid views
 
 ---
 
-## 📁 File Structure
+## 📁 Updated File Structure
 
-### Backend Structure (Current)
+### Backend Structure
 ```
 backend/
 ├── config/
 │   └── db.js                              # MySQL connection pool
+├── utils/
+│   └── activityLogger.js                  # NEW - Audit logging utility
 ├── controllers/
-│   ├── authController.js                  # Authentication logic
-│   ├── userController.js                  # User CRUD operations
-│   ├── userAddController.js
-│   ├── userEditController.js
-│   ├── userDeleteController.js
-│   ├── userChangePassController.js
-│   ├── residentController.js
-│   ├── residentAddController.js
-│   ├── residentEditController.js
+│   ├── authController.js
+│   ├── userController.js / Add / Edit / Delete / ChangePass
+│   ├── residentAddController.js           # ENHANCED - with logging
+│   ├── residentEditController.js          # ENHANCED - with logging
 │   ├── residentDeleteController.js
 │   ├── residentBulkImportController.js
 │   ├── residentImportPreviewController.js
-│   ├── residentImportConfirmController.js
+│   ├── residentImportConfirmController.js # ENHANCED - with logging
 │   ├── householdController.js
 │   ├── householdAddController.js
 │   ├── householdEditController.js
@@ -216,44 +352,32 @@ backend/
 │   ├── householdImportPreviewController.js
 │   ├── householdImportConfirmController.js
 │   ├── AddEligibilityFormController.js
-│   ├── EligibilityFormController.js       # MODIFIED - separates archived forms
-│   ├── eligibilityFormDeleteController.js # MODIFIED - implements soft-delete
-│   ├── eligibilityFormArchiveController.js # NEW - archive management
+│   ├── EligibilityFormController.js       # Filters archived forms
+│   ├── eligibilityFormDeleteController.js # Soft-delete implementation
+│   ├── eligibilityFormArchiveController.js # Archive management
 │   ├── eligibilityFormEntriesController.js
 │   ├── eligibilityFormEntriesUpdateController.js
 │   └── eligibilityFormEntriesDeleteController.js
 ├── middleware/
-│   └── authMiddleware.js                  # JWT verification
+│   └── authMiddleware.js                  # JWT verification & role enforcement
 ├── routes/
 │   ├── authRoutes.js
-│   ├── userRoutes.js
-│   ├── userAddRoutes.js
-│   ├── userEditRoutes.js
-│   ├── userDeleteRoutes.js
-│   ├── userChangePassRoutes.js
-│   ├── residentRoutes.js
-│   ├── residentAddRoutes.js
-│   ├── residentEditRoutes.js
-│   ├── residentDeleteRoutes.js
-│   ├── residentBulkImportRoutes.js
-│   ├── householdRoutes.js
-│   ├── householdAddRoutes.js
-│   ├── householdEditRoutes.js
-│   ├── householdDeleteRoutes.js
-│   ├── householdBulkImportRoutes.js
+│   ├── userRoutes.js / Add / Edit / Delete / ChangePass
+│   ├── residentRoutes.js / Add / Edit / Delete / BulkImport
+│   ├── householdRoutes.js / Add / Edit / Delete / BulkImport
 │   ├── eligibilityFormAddRoutes.js
 │   ├── eligibilityFormRoutes.js
 │   ├── eligibilityFormDeleteRoutes.js
-│   ├── eligibilityFormArchiveRoutes.js    # NEW - archive routes
+│   ├── eligibilityFormArchiveRoutes.js
 │   ├── eligibilityFormEntriesRoutes.js
 │   ├── eligibilityFormEntriesUpdateRoutes.js
 │   └── eligibilityFormEntriesDeleteRoutes.js
-├── .env                                   # Environment variables
-├── server.js                              # Main Express app (MODIFIED)
+├── .env
+├── server.js
 └── package.json
 ```
 
-### Frontend Structure (Current)
+### Frontend Structure
 ```
 frontend/src/
 ├── pages/
@@ -271,13 +395,14 @@ frontend/src/
 │   │   └── ResidentsToolbar.jsx
 │   ├── EligibilityForm/
 │   │   ├── EligibilityPage.jsx
-│   │   ├── EligibilityTable.jsx           # MODIFIED - archive action added
+│   │   ├── EligibilityTable.jsx
 │   │   ├── EligibilityEntriesPage.jsx
 │   │   ├── EligibilityEntriesTable.jsx
 │   │   ├── EligiblitiyEntriesToolbar.jsx
-│   │   ├── EligibilityArchivedPage.jsx    # NEW - archived forms page
-│   │   └── EligibilityArchivedTable.jsx   # NEW - archived forms table
+│   │   ├── EligibilityArchivedPage.jsx
+│   │   └── EligibilityArchivedTable.jsx
 │   ├── DashboardPage.jsx
+│   ├── LoginPage.jsx
 │   └── ChangePasswordPage.jsx
 ├── modals/
 │   ├── AddAccountModal.jsx
@@ -293,33 +418,33 @@ frontend/src/
 │   ├── DeleteHouseholdModal.jsx
 │   ├── ImportHouseholdModal.jsx
 │   ├── AddEligibilityFormModal.jsx
-│   ├── DeleteEligibilityFormModal.jsx     # MODIFIED - soft-delete implementation
+│   ├── DeleteEligibilityFormModal.jsx
 │   ├── DeleteEligibilityFormEntriesModal.jsx
-│   └── ReAuthModal.jsx                    # NEW - credential verification modal
+│   └── ReAuthModal.jsx
 ├── Reusables/
 │   ├── ProtectedRoute.jsx
 │   ├── Navbar.jsx
 │   └── Footer.jsx
-├── App.jsx                                # MODIFIED - new archive route
+├── App.jsx
 └── main.jsx
 ```
 
 ---
 
-## 🔌 API Endpoints
+## 🔌 API Endpoints (Complete Reference)
 
 ### Authentication
-- `POST /api/auth/login` - User login
+- `POST /api/auth/login` - User login (returns JWT token)
 - `POST /api/auth/logout` - User logout
 
-### Users Management
-- `GET /api/users` - Get all users
-- `POST /api/users` - Add new user (default password, force change)
-- `PUT /api/users/:id` - Edit user
-- `DELETE /api/users/:id` - Delete user
-- `PUT /api/users/change-password/:id` - Change password
+### User Management
+- `GET /api/users` - Get all users (Admin-only)
+- `POST /api/users` - Create user with default password (Admin-only)
+- `PUT /api/users/:id` - Edit user (Admin-only)
+- `DELETE /api/users/:id` - Delete user (Admin-only)
+- `PUT /api/users/change-password/:id` - Change password (authenticated)
 
-### Residents Management
+### Resident Management
 - `GET /api/residents` - Get all residents
 - `POST /api/residents` - Add new resident
 - `PUT /api/residents/:id` - Edit resident
@@ -327,7 +452,7 @@ frontend/src/
 - `POST /api/residents/import/preview` - Preview bulk import
 - `POST /api/residents/import/confirm` - Confirm bulk import
 
-### Households Management
+### Household Management
 - `GET /api/households` - Get all households
 - `POST /api/households` - Add new household
 - `PUT /api/households/:id` - Edit household
@@ -336,207 +461,170 @@ frontend/src/
 - `POST /api/households/import/confirm` - Confirm bulk import
 
 ### Eligibility Forms (Active)
-- `GET /api/eligibility-forms` - Get all active forms (Enabled/Disabled)
-- `POST /api/eligibility-forms` - Add new form
-- `DELETE /api/eligibility-forms/delete/:id` - Soft-delete form (archive)
-- `PUT /api/eligibility-forms/:id/status` - Toggle Enable/Disable status
+- `GET /api/eligibility-forms` - Get active forms (Enabled/Disabled only)
+- `POST /api/eligibility-forms` - Create new form
+- `DELETE /api/eligibility-forms/delete/:id` - Archive form (soft-delete)
+- `PUT /api/eligibility-forms/:id/status` - Toggle Enable/Disable
 
-### Eligibility Forms (Archive) - NEW
-- `GET /api/eligibility-forms/archived` - Get all archived forms
-- `POST /api/eligibility-forms/archived/:id/restore` - Restore from archive (Admin-only, re-auth required)
-- `DELETE /api/eligibility-forms/archived/:id` - Permanently delete archived form (Admin-only, re-auth required)
+### Eligibility Forms (Archived)
+- `GET /api/eligibility-forms/archived` - Get archived forms
+- `POST /api/eligibility-forms/archived/:id/restore` - Restore from archive (Admin-only, re-auth)
+- `DELETE /api/eligibility-forms/archived/:id` - Permanently delete (Admin-only, re-auth)
 
 ### Eligibility Entries
-- `GET /api/eligibility-forms/entries` - Get entries
-- `POST /api/eligibility-forms/entries` - Add entry
-- `PUT /api/eligibility-forms/entries/:id` - Update entry (mark as rewarded)
+- `GET /api/eligibility-forms/:id/entries` - Get entries for form
+- `POST /api/eligibility-forms/entries` - Create entry
+- `PUT /api/eligibility-forms/entries/:id` - Mark as rewarded
 - `DELETE /api/eligibility-forms/entries/:id` - Delete entry
 
 ---
 
-## 🔐 Archive System Details
+## 🔐 Security Architecture
 
-### Archive Workflow
-1. User clicks "Delete" on an eligibility form
-2. DeleteEligibilityFormModal appears with confirmation
-3. Form is soft-deleted: `status` changed to 'Archived'
-4. Form no longer appears in active forms list
-5. Form moves to Archived Forms page
+### Authentication Flow
+1. User submits credentials
+2. Backend validates against database
+3. bcrypt comparison of hashed password
+4. JWT token generated and signed
+5. Token stored in localStorage on frontend
+6. Token included in Authorization header on protected requests
+7. Middleware verifies token on each request
 
-### Restore Workflow (Admin-only)
-1. Admin navigates to Archived Forms page
-2. Admin selects form and clicks "Restore"
-3. ReAuthModal appears requesting admin credentials
-4. Backend verifies credentials against database
-5. If verified: Form status changed back to 'Disabled'
-6. Form reappears in active forms list
+### Role-Based Access Control
+- **Admin Role:**
+  - Full system access
+  - Dashboard, Accounts management
+  - User creation/editing/deletion
+  - Archive form restoration/deletion
+  - System configuration
 
-### Permanent Delete Workflow (Admin-only)
-1. Admin navigates to Archived Forms page
-2. Admin selects form and clicks "Delete Permanently"
-3. ReAuthModal appears requesting admin credentials
-4. Backend verifies credentials against database
-5. If verified: Form permanently deleted from database
-6. Form removed from archived list
+- **Staff Role:**
+  - Resident management (view/edit/add)
+  - Household management
+  - Eligibility form viewing and entry management
+  - No user or archive management
 
-### Security Features
-- **ReAuth Modal:** Requires admin username and password before sensitive operations
-- **Credential Verification:** Backend validates credentials against current user
-- **Role Enforcement:** Only Admin role can access restore/permanent delete
-- **Status Checking:** Ensures user account is Active before allowing operations
-- **Password Hashing:** bcryptjs used for credential verification
+- **Any Authenticated:**
+  - Change own password
+  - View own profile
+
+### Credential Verification (Re-Auth)
+For sensitive operations (archive restoration/deletion):
+1. ReAuthModal appears
+2. User enters username and password
+3. Backend validates against current logged-in user
+4. bcrypt compares submitted password with stored hash
+5. Verifies user account is Active
+6. If valid: Performs sensitive operation
+
+### Data Protection
+- All passwords hashed with bcryptjs
+- JWT tokens signed with secret key
+- CORS enabled for authorized domains
+- Input validation on all endpoints
+- Duplicate detection for critical fields
 
 ---
 
-## 🎨 New Components & Modals
+## 🛠️ Activity Logging System
 
-### ReAuthModal.jsx (NEW)
-**Purpose:** Secure credential verification for sensitive operations
-
-**Props:**
-- `open` (boolean) - Control modal visibility
-- `onClose` (function) - Called when modal closed
-- `onConfirm` (function) - Called with `{username, password}` after submission
-- `title` (string) - Dialog title
-- `description` (string) - Helper text
-- `confirmLabel` (string) - Confirm button text
-- `confirmColor` (string) - MUI button color
-- `loading` (boolean) - Show loading state
-- `error` (string) - Error message display
-
-**Features:**
-- Username and password input fields
-- Eye icon toggle to show/hide password
-- Enter key support for quick submission
-- Icons for visual clarity (lock, identity)
-- Loading state with spinner
-- Error display area
-
-### EligibilityArchivedPage.jsx (NEW)
-**Purpose:** Page wrapper for archived forms management
-
-**Layout:**
-```
-Navbar
-  ↓
-EligibilityArchivedTable
-  ↓
-Footer
-```
-
-### EligibilityArchivedTable.jsx (NEW)
-**Purpose:** Display and manage archived eligibility forms
-
-**Features:**
-- Fetch archived forms from backend
-- Card-based UI for each archived form
-- Statistics: total entries, rewarded count
-- Kebab menu with Restore and Delete options
-- Admin-only controls (client-side gating via JWT decode)
-- ReAuthModal integration for sensitive actions
-- Back navigation to active forms
-
-**State Management:**
+### Logging Utility (`activityLogger.js`)
 ```javascript
-forms          // Array of archived forms
-loading        // Fetch loading state
-menuAnchor     // Kebab menu anchor element
-selectedForm   // Currently selected form
-reAuthOpen     // ReAuthModal visibility
-reAuthAction   // "restore" | "delete"
-reAuthLoading  // ReAuth operation loading
-reAuthError    // ReAuth error message
+logActivity({
+  entity_type: "Resident",     // Entity being affected
+  entity_id: 22,               // Primary key of entity
+  entity_name: "James Bond",   // Display name
+  action_type: "imported",     // Action performed
+  performed_by: 5              // User who did it (user_id)
+});
+```
+
+### Fire-and-Forget Pattern
+- Non-blocking database write
+- Errors logged to console only
+- Never interrupts main request/response
+- Improves performance on high-traffic operations
+
+### Supported Actions
+- **CRUD Operations:** added, updated, deleted
+- **Special Operations:** archived, restored, imported, marked_rewarded
+- **Account Operations:** password_changed, login (future)
+
+### Audit Trail Benefits
+- Complete history of all changes
+- User accountability
+- Compliance and auditing
+- Debugging and troubleshooting
+- Regulatory requirements
+
+---
+
+## 🔄 Enhanced Resident Management
+
+### Duplicate Detection Logic
+```javascript
+// Check for duplicate on (last_name + first_name + birthdate)
+const checkSql = `
+  SELECT COUNT(*) AS count 
+  FROM residents 
+  WHERE l_name = ? AND f_name = ? AND birthdate = ?
+    AND resident_id != ? // Exclude current record on edit
+`;
+```
+
+**Benefits:**
+- Prevents accidental duplicate entries
+- Handles bulk imports intelligently
+- Respects name changes and corrections
+- Returns appropriate HTTP status (409 Conflict)
+
+### Household Head Features
+- **Flag:** `is_household_head` (boolean)
+- **Member Count:** `household_member_count` (nullable)
+- **Logic:** If head=true, member_count is required (minimum 1)
+- **Usage:** Track household composition and family structure
+
+### Import Processing
+```javascript
+// Status codes for import rows:
+"green"   // Ready to import (new record)
+"yellow"  // Update existing (duplicate found)
+"red"     // Error/invalid (skipped)
+
+// Only "green" and "yellow" rows with enabled=true are imported
 ```
 
 ---
 
-## 🔄 Modified Components
+## 📊 Activity Log Examples
 
-### EligibilityTable.jsx (MODIFIED)
-**Changes:**
-- Archive action added to kebab menu
-- Archive button with ArchiveIcon
-- Soft-delete implementation on delete
-- Statistics display (total_entries, rewarded_count)
-- Navigation to active forms carries is_archived flag
-
-### DeleteEligibilityFormModal.jsx (MODIFIED)
-**Changes:**
-- Title changed from "Delete Form?" to "Archive Form?"
-- Icon changed to ArchiveIcon
-- Backend endpoint targets `/delete/` path (soft-delete)
-- Text reflects archive instead of permanent delete
-
-### EligibilityFormController.js (MODIFIED)
-**Changes:**
-- `getForms()` now filters WHERE status IN ('Enabled', 'Disabled')
-- Archived forms excluded from active forms list
-- Includes statistics: COUNT(entries), SUM(is_rewarded)
-- `updateFormStatus()` only allows Enabled/Disabled (not Archived)
-
-### eligibilityFormDeleteController.js (MODIFIED)
-**Changes:**
-- Now implements soft-delete instead of hard delete
-- Sets status to 'Archived' instead of DELETE FROM
-- Returns success message: "Form archived successfully"
-
-### App.jsx (MODIFIED)
-**Changes:**
-- New route: `/Eligibility/Archived` → `EligibilityArchivedPage`
-- Route declared BEFORE `/Eligibility/:formId` to prevent routing conflicts
-- Admin + Staff roles allowed (controlled in backend)
-- ProtectedRoute wrapper for auth
-
-### server.js (MODIFIED)
-**Changes:**
-- New route registration: `app.use("/api/eligibility-forms", eligibilityFormArchiveRoutes);`
-- Archive routes mounted on same path as other eligibility endpoints
-
----
-
-## 🔐 Security & Authentication
-
-### JWT Authentication
-- Tokens issued on login
-- Verified on protected routes via `authMiddleware.js`
-- Token includes: user ID, role, username
-- Token stored in localStorage on frontend
-
-### Password Security
-- Passwords hashed with bcryptjs
-- Default password assigned on user creation
-- Force password change on first login
-- Credential re-verification required for sensitive operations
-
-### RBAC (Role-Based Access Control)
-- Two roles: Admin, Staff
-- Admin-only: Dashboard, Accounts, Archive management
-- Shared routes: Residents, Households, Eligibility (both roles)
-- ChangePassword: Any authenticated user
-- Middleware verifies role permissions
-
-### Archive Operations Security
-- Credential verification required
-- Verified against current logged-in user
-- Account must be Active status
-- Password validated with bcrypt.compare()
-- Only Admin role can perform restore/delete operations
+### Recent System Activities
+```
+Activity ID | Type | Entity | Action | Performer | Timestamp
+1 | Eligibility Form | eacakes | restored | admin (5) | 2026-06-14 14:47:57
+2 | Household | Juls Caliao | updated | admin (5) | 2026-06-14 14:48:22
+3 | Eligibility Form | households | deleted | admin (5) | 2026-06-14 15:39:56
+4 | Resident | James Bond | imported | admin (5) | 2026-06-14 15:44:39
+5 | Resident | bruce caliao | updated | admin (5) | 2026-06-14 15:44:39
+```
 
 ---
 
 ## 🚀 Running the Project
 
 ### Prerequisites
-- Node.js installed
-- MySQL server running with `barangay` database
-- Database populated from SQL file
+- Node.js and npm installed
+- MySQL Server running (port 3306)
+- Database: `barangay` created
+- Latest SQL dump imported: `barangay (15).sql`
 
 ### Backend Setup
 ```bash
 cd backend
 npm install
-# Configure .env file with DB credentials
+# Create/verify .env file
 node server.js
+# Server runs on http://localhost:5000
 ```
 
 ### Frontend Setup
@@ -544,125 +632,137 @@ node server.js
 cd frontend
 npm install
 npm run dev
+# Frontend runs on http://localhost:5173
 ```
 
-**URLs:**
-- Backend: `http://localhost:5000`
-- Frontend: `http://localhost:5173`
+### Database Setup
+```bash
+# Import the latest schema
+mysql -u root barangay < "barangay (15).sql"
+```
 
 ---
 
 ## 📝 Recent Commit History
 
-1. **cb16954** - Added Resident Report generation and printability
-2. **ca340ce** - Working Dashboard and printable Eligibility forms
-3. **de6a1a3** - Working Bulk import of records and Integrated RBAC
-4. **592a468** - Modified user add function with default pass & force change. Added eligibility function to household records
-5. **d47ff34** - Auto Logout Mechanism implemented
+| Commit | Message | Features Added |
+|--------|---------|-----------------|
+| 86b8b55 | SQL FILE | Database schema updates |
+| ede1ccc | recent activities... | Activity logging for e-forms |
+| 6243e2b | Added Form archiving... | Archive feature, soft-delete, re-auth |
+| cb16954 | Resident Report generation | Report generation, printability |
+| ca340ce | Working Dashboard... | Dashboard improvements |
+| de6a1a3 | Working Bulk import... | RBAC integration, bulk operations |
+| 592a468 | Modified user add... | Default password, force change |
+| d47ff34 | Auto Logout Mechanism | Session timeout |
 
 ---
 
-## 🔄 Current Uncommitted Changes
+## 🔄 Current Work (In Progress)
 
-### Files Modified (Ready to Commit)
-```
- backend/controllers/EligibilityFormController.js
- backend/controllers/eligibilityFormDeleteController.js
- backend/server.js
- frontend/src/App.jsx
- frontend/src/modals/DeleteEligibilityFormModal.jsx
- frontend/src/pages/EligibilityForm/EligibilityTable.jsx
-```
+### Activity Logging Integration - Phase 1 ✅ COMPLETED
+**Completion Date:** June 19, 2026
 
-### Files Created (Ready to Commit)
-```
- backend/controllers/eligibilityFormArchiveController.js
- backend/routes/eligibilityFormArchiveRoutes.js
- frontend/src/modals/ReAuthModal.jsx
- frontend/src/pages/EligibilityForm/EligibilityArchivedPage.jsx
- frontend/src/pages/EligibilityForm/EligibilityArchivedTable.jsx
-```
+**Files Modified:**
+- `backend/controllers/residentAddController.js` - ✅ Activity logging for resident creation
+- `backend/controllers/residentEditController.js` - ✅ Activity logging for resident updates
+- `backend/controllers/residentImportConfirmController.js` - ✅ Activity logging for bulk imports
 
-### Change Summary
-- 108 insertions(+), 268 deletions(-)
-- Archive functionality fully implemented
-- Soft-delete mechanism in place
-- Admin credential verification integrated
-- Archived forms management page created
+**Completed Changes:**
+- `logActivity()` calls integrated on successful operations
+- Household head tracking fully functional
+- Member count validation logic implemented
+- Duplicate detection on create and edit operations
+- Error handling and logging for import operations
+- All resident operations now tracked in activity_logs table
 
----
+### Activity Logging Integration - Phase 2 🟡 UPCOMING
+**Planned for:** June 20-21, 2026
 
-## 📊 Feature Status Matrix
-
-| Feature | Status | Implementation | Last Update |
-|---------|--------|-----------------|-------------|
-| User Authentication | ✅ Complete | JWT + bcrypt | d47ff34 |
-| RBAC (Admin/Staff) | ✅ Complete | Role-based routing | de6a1a3 |
-| Resident CRUD | ✅ Complete | Full lifecycle | 592a468 |
-| Resident Bulk Import | ✅ Complete | Preview + Confirm | de6a1a3 |
-| Household CRUD | ✅ Complete | Full lifecycle | de6a1a3 |
-| Household Bulk Import | ✅ Complete | Preview + Confirm | de6a1a3 |
-| Eligibility Forms | ✅ Complete | Create/Enable/Disable | 6a5f053 |
-| **Eligibility Archive** | 🔄 IN PROGRESS | Soft-delete + Restore | Current |
-| Form Statistics | ✅ Complete | Entries + Rewards | Current |
-| ReAuth Modal | 🔄 IN PROGRESS | Credential verification | Current |
-| Auto Logout | ✅ Complete | Session management | d47ff34 |
-| Change Password | ✅ Complete | Force change support | 8290ea7 |
+**Focus Areas:**
+- User account management logging (add, edit, delete, password change)
+- Household CRUD operation logging
+- Eligibility form and entry logging enhancements
+- Frontend activity dashboard implementation
 
 ---
 
-## 🛠️ Development Patterns
+## 📊 Feature Implementation Status
 
-### Backend Patterns
-- Separate route files per resource with CRUD operations
-- Dedicated controller files for specific operations
-- Centralized database connection via pool (10 connections)
-- JWT middleware for protected routes
-- Credential verification with bcrypt for sensitive ops
-- Error handling with HTTP status codes
-
-### Frontend Patterns
-- Page components for major sections
-- Modal components for user interactions
-- Toolbar components with action buttons
-- Card-based UI for forms/entries display
-- Axios interceptors for token headers
-- React Router for navigation
-- Material-UI components for consistency
-- Client-side JWT decode for role gating
-
-### Archive Pattern
-- Soft-delete: Status field instead of hard delete
-- Separation: Archived forms on separate page/endpoint
-- Security: Admin-only with credential re-verification
-- Recovery: Easy restore to Disabled status
-- Transparency: Statistics preserved on archived forms
+| Feature | Status | Ver | Last Update |
+|---------|--------|-----|------------|
+| User Auth (JWT) | ✅ Complete | 1.0 | ede1ccc |
+| RBAC (Admin/Staff) | ✅ Complete | 1.0 | de6a1a3 |
+| Resident CRUD | ✅ Complete | 2.1 | 2026-06-19 |
+| Resident Bulk Import | ✅ Complete | 2.0 | 2026-06-19 |
+| Resident Activity Logging | ✅ Complete | 1.0 | 2026-06-19 |
+| Household CRUD | ✅ Complete | 1.0 | de6a1a3 |
+| Household Import | ✅ Complete | 1.0 | de6a1a3 |
+| Eligibility Forms | ✅ Complete | 1.0 | 6243e2b |
+| Form Archive System | ✅ Complete | 1.0 | 6243e2b |
+| Activity Logging (Residents) | ✅ Complete | 1.0 | 2026-06-19 |
+| Activity Logging (Other) | 🔄 IN PROGRESS | 1.0 | 2026-06-19 |
+| Audit Trail | 🔄 IN PROGRESS | 1.0 | 2026-06-19 |
+| Dashboard | ✅ Complete | 1.0 | ca340ce |
+| Reports | ✅ Complete | 1.0 | cb16954 |
 
 ---
 
-## 🎯 Next Steps (Post-Archive Feature)
+## 🎯 Next Steps (Roadmap)
 
-1. Test archive workflow end-to-end
-2. Verify credential verification security
-3. Test restore functionality
-4. Test permanent delete functionality
-5. Verify route protection and role-based access
-6. UI/UX testing on archived forms page
-7. Performance testing with multiple archived forms
-8. Commit changes with appropriate message
-9. Prepare for next feature iteration
+1. **✅ Complete Resident Logging** - COMPLETED on 2026-06-19
+2. **Extend to Household Operations** - Log household CRUD and import operations
+3. **Extend to User Accounts** - Log account management, password changes
+4. **Extend to Eligibility Forms** - Log form and entry operations
+5. **Activity Dashboard Frontend** - Frontend view for audit logs with filtering
+6. **Activity Filtering & Search** - By date, entity, action, user
+7. **Export & Reporting** - Activity export to CSV/PDF
+8. **Performance Optimization** - Bulk logging batching for high-traffic ops
+9. **Retention Policy** - Archive old logs (90+ days)
+10. **Admin Dashboard** - System health and activity overview
 
 ---
 
 ## 📞 Project Information
 
-**Project:** JULS - Barangay Management System
-**Git User:** NicaLexza
-**Current Branch:** main
-**Status:** Active Development - Archive Feature in Progress
-**Last Context Update:** June 6, 2026 10:30 AM
-**Context Document Version:** 2.0
+**Project Name:** JULS - Barangay Management System
+**Status:** Active Development
+**Current Phase:** Activity Logging Extension Phase 2
+**Git Repository:** Local (main branch)
+**Last Database Update:** 2026-06-14 18:14 (barangay-15.sql)
+**Development Team:** NicaLexza
+**Context Version:** 3.1
+**Last Updated:** June 19, 2026 14:30 PM
 
 ---
 
-*This comprehensive context document includes all current development work, in-progress features, and complete system architecture for Claude AI assistance.*
+## 🔗 Key Implementation Details
+
+### Resident Fields (Enhanced)
+- Basic Info: f_name, m_name, l_name, suffix
+- Demographics: sex, birthdate, birthplace, citizenship
+- Address: house_no, street
+- Status: civil_status, occupation
+- Flags: is_pwd, is_senior, is_solop, **is_household_head**
+- Household: **household_member_count**
+- Audit: created_by, created_at, updated_by, updated_at
+
+### Activity Logging Flow
+1. CRUD operation completes successfully
+2. Response sent to client
+3. `logActivity()` called asynchronously
+4. Log inserted into activity_logs table
+5. No blocking or error handling at controller level
+
+### Import Processing
+1. User uploads XLSX file
+2. Preview endpoint reads and validates rows
+3. Returns preview with color codes (green/yellow/red)
+4. User selects rows and clicks confirm
+5. Confirm endpoint processes enabled rows
+6. Returns import statistics (imported/updated/errors)
+7. Activity logged for each successful import
+
+---
+
+*This comprehensive context document provides complete system understanding for development, debugging, and Claude AI assistance on the JULS Barangay Management System.*

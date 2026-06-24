@@ -17,13 +17,14 @@ import {
   Divider,
 } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import { useGridApiContext } from '@mui/x-data-grid';
 import AddResidentModal from '../../modals/AddResidentModal';
 import AddEligibilityFormModal from '../../modals/AddEligibilityFormModal';
 import ImportResidentModal from '../../modals/ImportResidentModal';
-import { useNavigate, useLocation } from 'react-router-dom';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import ResidentStatsModal from '../../modals/ResidentStatsModal';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
 export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filteredRows, onSearchChange }) {
   const [quickFilterValue, setQuickFilterValue] = useState('');
@@ -40,18 +41,9 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
   const [civilStatuses, setCivilStatuses] = useState([]);
   const [employment, setEmployment] = useState('All');
   const [sectors, setSectors] = useState({ pwd: false, senior: false, solop: false });
-
-  const navigate = useNavigate();
-  const location = useLocation();
-  const isResidentsView = location.pathname === '/Residents' || location.pathname === '/';
-
-  const toggleNavigation = () => {
-    if (isResidentsView) {
-      navigate('/Households');
-    } else {
-      navigate('/Residents');
-    }
-  };
+  const [household, setHousehold] = useState('All');
+  const [dateFrom, setDateFrom] = useState(null);
+  const [dateTo, setDateTo] = useState(null);
 
   const handleQuickFilterChange = (e) => {
     const value = e.target.value;
@@ -63,7 +55,7 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
   const handleFilterClose = () => setAnchorEl(null);
 
   const applyFilters = () => {
-    onApplyFilters({ ageMin, ageMax, gender, civilStatuses, employment, sectors });
+    onApplyFilters({ ageMin, ageMax, gender, civilStatuses, employment, sectors, household, dateFrom, dateTo });
     handleFilterClose();
   };
 
@@ -74,10 +66,15 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
     setCivilStatuses([]);
     setEmployment('All');
     setSectors({ pwd: false, senior: false, solop: false });
+    setHousehold('All');
+    setDateFrom(null);
+    setDateTo(null);
     onApplyFilters({
       ageMin: '', ageMax: '', gender: 'All',
       civilStatuses: [], employment: 'All',
       sectors: { pwd: false, senior: false, solop: false },
+      household: 'All',
+      dateFrom: null, dateTo: null,
     });
     handleFilterClose();
   };
@@ -90,7 +87,7 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
           borderBottom: '1px solid rgba(0, 47, 89, 0.2)',
         }}
       >
-        {/* ✅ Top row — Page Title */}
+        {/* Top row — Page Title */}
         <Box
           sx={{
             px: 2,
@@ -104,85 +101,68 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
           </Typography>
         </Box>
 
-        {/* ✅ Bottom row — Search, Filter, Buttons */}
+        {/* Bottom row — Search, Filter, Buttons */}
         <Box
           sx={{
             display: 'flex',
-            justifyContent: 'space-between',
             alignItems: 'center',
             gap: 1.5,
             padding: '8px 16px',
             flexWrap: 'wrap',
           }}
         >
-          {/* Left side: search + filter + action buttons */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <TextField
-              variant="outlined"
-              size="small"
-              placeholder="Quick search..."
-              value={quickFilterValue}
-              onChange={handleQuickFilterChange}
-              sx={{
-                minWidth: 220,
-                backgroundColor: 'white',
-                '& .MuiOutlinedInput-root': { borderRadius: 1 },
-              }}
-            />
-
-            <IconButton onClick={handleFilterClick} sx={{ color: 'white' }}>
-              <FilterListIcon />
-            </IconButton>
-
-            <Button
-              variant="contained"
-              size="small"
-              sx={{ backgroundColor: '#002f59', '&:hover': { backgroundColor: '#001c38' } }}
-              onClick={() => setOpenModal(true)}
-            >
-              + New Resident
-            </Button>
-
-            <Button
-              variant="contained"
-              size="small"
-              sx={{ backgroundColor: '#002f59', '&:hover': { backgroundColor: '#001c38' } }}
-              onClick={() => setOpenAddEligibilityModal(true)}
-            >
-              + Eligibility Form
-            </Button>
-
-            <Button
-              variant="contained"
-              size="small"
-              sx={{ backgroundColor: '#5c6bc0', '&:hover': { backgroundColor: '#3949ab' } }}
-              onClick={() => setOpenImportModal(true)}
-            >
-              Import
-            </Button>
-
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<BarChartIcon />}
-              sx={{ backgroundColor: '#0369a1', '&:hover': { backgroundColor: '#0c5a8a' } }}
-              onClick={() => setOpenStatsModal(true)}
-            >
-              Statistics
-            </Button>
-          </Box>
-
-          {/* Right side: navigation toggle */}
-          <Button
-            onClick={toggleNavigation}
+          <TextField
+            variant="outlined"
+            size="small"
+            placeholder="Quick search..."
+            value={quickFilterValue}
+            onChange={handleQuickFilterChange}
             sx={{
-              color: 'white',
-              textTransform: 'none',
-              fontWeight: 500,
-              '&:hover': { color: '#fff176' },
+              minWidth: 220,
+              backgroundColor: 'white',
+              '& .MuiOutlinedInput-root': { borderRadius: 1 },
             }}
+          />
+
+          <IconButton onClick={handleFilterClick} sx={{ color: 'white' }}>
+            <FilterListIcon />
+          </IconButton>
+
+          <Button
+            variant="contained"
+            size="small"
+            sx={{ backgroundColor: '#002f59', '&:hover': { backgroundColor: '#001c38' } }}
+            onClick={() => setOpenModal(true)}
           >
-            {isResidentsView ? 'Households' : 'Residents'}
+            + New Resident
+          </Button>
+
+          <Button
+            variant="contained"
+            size="small"
+            sx={{ backgroundColor: '#002f59', '&:hover': { backgroundColor: '#001c38' } }}
+            onClick={() => setOpenAddEligibilityModal(true)}
+          >
+            + Eligibility Form
+          </Button>
+
+          <Button
+            variant="contained"
+            size="small"
+            sx={{ backgroundColor: '#5c6bc0', '&:hover': { backgroundColor: '#3949ab' } }}
+            onClick={() => setOpenImportModal(true)}
+          >
+            Import
+          </Button>
+
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<BarChartIcon />}
+            sx={{ backgroundColor: '#0369a1', '&:hover': { backgroundColor: '#0c5a8a' } }}
+            onClick={() => setOpenStatsModal(true)}
+          >
+            Statistics
           </Button>
         </Box>
       </Box>
@@ -268,6 +248,38 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
                 label="Solo Parent"
               />
             </FormGroup>
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Household</FormLabel>
+            <RadioGroup row value={household} onChange={(e) => setHousehold(e.target.value)}>
+              <FormControlLabel value="All"     control={<Radio />} label="All" />
+              <FormControlLabel value="Heads"   control={<Radio />} label="Heads Only" />
+              <FormControlLabel value="Regular" control={<Radio />} label="Regular" />
+            </RadioGroup>
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Date Registered</FormLabel>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <Stack direction="row" spacing={1}>
+                <DatePicker
+                  label="From"
+                  value={dateFrom}
+                  onChange={(newValue) => setDateFrom(newValue)}
+                  slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
+                  format="MM/DD/YYYY"
+                />
+                <DatePicker
+                  label="To"
+                  value={dateTo}
+                  onChange={(newValue) => setDateTo(newValue)}
+                  slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
+                  format="MM/DD/YYYY"
+                  minDate={dateFrom || undefined}
+                />
+              </Stack>
+            </LocalizationProvider>
           </FormControl>
 
           <Divider />

@@ -39,13 +39,23 @@ const confirmImportResidents = (req, res) => {
   };
 
   for (const row of toProcess) {
+    // Normalize household fields from CSV
+    const isHead = row.household_head
+      ? ["1", "true", "yes"].includes(String(row.household_head).toLowerCase())
+      : false;
+    const memberCount = isHead
+      ? parseInt(row.member_count) >= 1
+        ? parseInt(row.member_count)
+        : 1
+      : null;
+
     if (row.status === "green") {
       const insertSql = `
         INSERT INTO residents (
           f_name, m_name, l_name, suffix, sex, birthdate, birthplace,
           house_no, street, civil_status, occupation, citizenship,
-          is_pwd, is_senior, is_solop, created_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          is_pwd, is_senior, is_solop, is_household_head, household_member_count, created_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       db.query(
@@ -66,9 +76,10 @@ const confirmImportResidents = (req, res) => {
           row.is_pwd ? 1 : 0,
           row.is_senior ? 1 : 0,
           row.is_solop ? 1 : 0,
+          isHead ? 1 : 0,
+          memberCount,
           created_by,
         ],
-        // ✅ renamed to (err, result) so insertId is accessible
         (err, result) => {
           if (err) {
             errorRows.push({
@@ -78,7 +89,6 @@ const confirmImportResidents = (req, res) => {
           } else {
             imported++;
 
-            // ✅ inside callback, after confirming success
             logActivity({
               entity_type:  "Resident",
               entity_id:    result.insertId,
@@ -99,6 +109,7 @@ const confirmImportResidents = (req, res) => {
           sex = ?, birthplace = ?, house_no = ?, street = ?,
           civil_status = ?, occupation = ?, citizenship = ?,
           is_pwd = ?, is_senior = ?, is_solop = ?,
+          is_household_head = ?, household_member_count = ?,
           updated_by = ?
         WHERE resident_id = ?
       `;
@@ -120,10 +131,11 @@ const confirmImportResidents = (req, res) => {
           row.is_pwd ? 1 : 0,
           row.is_senior ? 1 : 0,
           row.is_solop ? 1 : 0,
+          isHead ? 1 : 0,
+          memberCount,
           created_by,
           row.existing_id,
         ],
-        // ✅ inside callback, after confirming success
         (err) => {
           if (err) {
             errorRows.push({
@@ -133,7 +145,6 @@ const confirmImportResidents = (req, res) => {
           } else {
             updated++;
 
-            // ✅ inside the else block so it only logs on success
             logActivity({
               entity_type:  "Resident",
               entity_id:    row.existing_id,

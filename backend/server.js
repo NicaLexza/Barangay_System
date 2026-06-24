@@ -21,12 +21,6 @@ const residentEditRoutes = require("./routes/residentEditRoutes");
 const residentDeleteRoutes = require("./routes/residentDeleteRoutes");
 const residentBulkImportRoutes = require("./routes/residentBulkImportRoutes");
 
-const householdRoutes = require("./routes/householdRoutes");
-const householdAddRoutes = require("./routes/householdAddRoutes");
-const householdEditRoutes = require("./routes/householdEditRoutes");
-const householdDeleteRoutes = require("./routes/householdDeleteRoutes");
-const householdBulkImportRoutes = require("./routes/householdBulkImportRoutes");
-
 const eligibilityFormAddRoutes = require("./routes/EligibilityFormAddRoutes");
 const eligibilityFormRoutes = require("./routes/eligibilityFormRoutes");
 const eligibilityFormDeleteRoutes = require("./routes/eligibilityFormDeleteRoutes");
@@ -37,6 +31,7 @@ const eligibilityFormEntriesUpdateRoutes = require("./routes/eligibilityFormEntr
 const eligibilityFormEntriesDeleteRoutes = require("./routes/eligibilityFormEntriesDeleteRoutes");
 
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const backupRoutes = require("./routes/backupRoutes");
 
 
 // use routes
@@ -54,12 +49,6 @@ app.use("/api/residents", residentEditRoutes);
 app.use("/api/residents", residentDeleteRoutes);
 app.use("/api/residents", residentBulkImportRoutes);
 
-app.use("/api/households", householdRoutes);
-app.use("/api/households", householdAddRoutes);
-app.use("/api/households", householdEditRoutes);
-app.use("/api/households", householdDeleteRoutes);
-app.use("/api/households", householdBulkImportRoutes);
-
 app.use("/api/eligibility-forms", eligibilityFormArchiveRoutes);
 app.use("/api/eligibility-forms", eligibilityFormAddRoutes);
 app.use("/api/eligibility-forms", eligibilityFormRoutes);
@@ -70,6 +59,7 @@ app.use("/api/eligibility-forms", eligibilityFormEntriesUpdateRoutes);
 app.use("/api/eligibility-forms", eligibilityFormEntriesDeleteRoutes);
 
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/backup", backupRoutes);
 
 // start server
 app.listen(5000, () => {

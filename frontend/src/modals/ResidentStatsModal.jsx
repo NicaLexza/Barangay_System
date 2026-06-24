@@ -169,6 +169,23 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
       if (sectors.includes("SP")) solopCount++;
     });
 
+    // 8. Household heads — top 10 by member count
+    const headRows = filteredRows.filter((r) => r.is_household_head === 1);
+    const householdHeadsCount = headRows.length;
+    const topHeads = [...headRows]
+      .sort((a, b) => (b.household_member_count || 0) - (a.household_member_count || 0))
+      .slice(0, 10)
+      .map((r) => {
+        const fullName = (r.fullName || "").trim();
+        const parts = fullName.split(" ").filter(Boolean);
+        const surname = parts.length > 0 ? parts[parts.length - 1] : fullName;
+        return {
+          surname,
+          fullName,
+          memberCount: r.household_member_count || 1,
+        };
+      });
+
     return {
       total,
       ageBuckets,
@@ -181,6 +198,8 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
       pwdCount,
       seniorCount,
       solopCount,
+      householdHeadsCount,
+      topHeads,
     };
   }, [filteredRows]);
 
@@ -189,7 +208,7 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
     if (!window.Chart) return;
 
     const { ageBuckets, sexMap, streetMap, civilMap, employed, unemployed, citizenMap,
-            pwdCount, seniorCount, solopCount, total } = stats;
+            pwdCount, seniorCount, solopCount, total, topHeads } = stats;
 
     // ── 1. Age — Donut ────────────────────────────────────────────────────────
     {
@@ -398,6 +417,46 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
         },
       });
     }
+
+    // ── 8. Household Heads — Top 10 by Member Count — Horizontal Bar ─────────
+    {
+      const labels = topHeads.map((h) => h.surname);
+      const data   = topHeads.map((h) => h.memberCount);
+      buildChart("chart-household-heads", {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            label: "Members",
+            data,
+            backgroundColor: NAVY,
+            borderWidth: 0,
+            borderRadius: 4,
+          }],
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                title: (items) => {
+                  const idx = items[0]?.dataIndex ?? 0;
+                  return topHeads[idx]?.fullName || "";
+                },
+                label: (ctx) => ` ${ctx.parsed.x} member${ctx.parsed.x === 1 ? "" : "s"}`,
+              },
+            },
+          },
+          scales: {
+            x: { beginAtZero: true, ticks: { precision: 0, font: { size: 11 } }, grid: { color: "rgba(0,0,0,0.05)" } },
+            y: { ticks: { font: { size: 11 } }, grid: { display: false } },
+          },
+        },
+      });
+    }
   };
 
   useEffect(() => {
@@ -458,6 +517,9 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
 
   const streetLegendLocal = streetEntriesLocal.map(([label, value]) => ({ label, value, color: NAVY }));
   const citizenLegendLocal = citizenEntriesLocal.map(([label, value], i) => ({ label, value, color: COLORS_6[i] ?? "#888" }));
+
+  const headsLegendLocal = stats.topHeads.slice(0, 5).map((h) => ({ label: h.surname, value: h.memberCount, color: NAVY }))
+    .concat(stats.topHeads.length > 5 ? [{ label: `+${stats.topHeads.length - 5} more`, color: "#cbd5e1", value: null }] : []);
 
   const html = `<!DOCTYPE html>
 <html>
@@ -532,6 +594,7 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
     <div class="pill"><div class="pill-val" style="color:#7c3aed">${stats.pwdCount}</div><div class="pill-lbl">PWD</div></div>
     <div class="pill"><div class="pill-val" style="color:#0369a1">${stats.seniorCount}</div><div class="pill-lbl">Senior Citizen</div></div>
     <div class="pill"><div class="pill-val" style="color:#16a34a">${stats.solopCount}</div><div class="pill-lbl">Solo Parent</div></div>
+    <div class="pill"><div class="pill-val" style="color:#1d4ed8">${stats.householdHeadsCount}</div><div class="pill-lbl">Household Heads</div></div>
   </div>
 
   <div class="row3 row3-col">
@@ -558,6 +621,10 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
 
   <div class="row3 row3-col1">
     ${buildChartBlock("Citizenship distribution", "chart-citizenship", citizenLegendLocal)}
+  </div>
+
+  <div class="row3 row3-col1">
+    ${buildChartBlock("Household heads by member count (top 10)", "chart-household-heads", headsLegendLocal)}
   </div>
 
   <div class="print-footer">
@@ -599,6 +666,9 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
 
   const citizenEntries = Object.entries(stats.citizenMap).sort((a, b) => b[1] - a[1]).slice(0, 8);
   const citizenLegend = citizenEntries.map(([label, value], i) => ({ label, value, color: COLORS_6[i] ?? "#888" }));
+
+  const headsLegend = stats.topHeads.slice(0, 5).map((h) => ({ label: h.surname, value: h.memberCount, color: NAVY }))
+    .concat(stats.topHeads.length > 5 ? [{ label: `+${stats.topHeads.length - 5} more`, color: "#cbd5e1", value: null }] : []);
 
   return (
     <Dialog
@@ -675,6 +745,7 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
           <StatPill label="PWD"            value={stats.pwdCount}    color="#7c3aed" />
           <StatPill label="Senior Citizen" value={stats.seniorCount} color="#0369a1" />
           <StatPill label="Solo Parent"    value={stats.solopCount}  color="#16a34a" />
+          <StatPill label="Household Heads" value={stats.householdHeadsCount} color="#1d4ed8" />
         </Box>
 
         {/* Row 1 */}
@@ -704,12 +775,22 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
         </Box>
 
         {/* Row 4 */}
-        <Box>
+        <Box sx={{ mb: 2 }}>
           <ChartPanel
             title="Citizenship distribution"
             chartId="chart-citizenship"
             wrapperHeight={Math.max(120, Math.min(citizenEntries.length, 8) * 38 + 60)}
             legend={citizenLegend}
+          />
+        </Box>
+
+        {/* Row 5 */}
+        <Box>
+          <ChartPanel
+            title="Household heads by member count (top 10)"
+            chartId="chart-household-heads"
+            wrapperHeight={Math.max(200, Math.min(stats.topHeads.length, 10) * 38 + 60)}
+            legend={headsLegend}
           />
         </Box>
       </DialogContent>

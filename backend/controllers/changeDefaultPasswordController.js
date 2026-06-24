@@ -1,6 +1,7 @@
 // controllers/changeDefaultPasswordController.js
 const db = require("../config/db");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const changeDefaultPassword = async (req, res) => {
   const { password, confirmPassword } = req.body;
@@ -46,7 +47,27 @@ const changeDefaultPassword = async (req, res) => {
     db.query(updateSql, [hashedPassword, userId, userId], (err) => {
       if (err) return res.status(500).json({ message: "Database error", err });
 
-      res.status(200).json({ message: "Password changed successfully" });
+      // 7. Issue a fresh token with must_change_password = 0.
+      //    The token the frontend is still holding was signed at login with
+      //    must_change_password = 1 baked in — without reissuing here,
+      //    ProtectedRoute keeps reading that stale claim and bounces the
+      //    user straight back to /ChangePassword even though the DB is
+      //    already updated.
+      const newToken = jwt.sign(
+        {
+          id: req.user.id,
+          username: req.user.username,
+          role: req.user.role,
+          must_change_password: 0,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "8h" }
+      );
+
+      res.status(200).json({
+        message: "Password changed successfully",
+        token: newToken,
+      });
     });
   });
 };

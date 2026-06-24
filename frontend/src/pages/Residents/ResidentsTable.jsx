@@ -1,14 +1,16 @@
 // ResidentsTable.jsx
 import { useState, useEffect } from 'react';
 import { DataGrid } from '@mui/x-data-grid';
-import { Box, IconButton, Popper, Paper, Typography } from '@mui/material';
+import { Box, IconButton, Popper, Paper, Typography, Chip } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ResidentsToolbar from './ResidentsToolbar';
 import EditResidentModal from '../../modals/EditResidentModal';
 import DeleteConfirmModal from '../../modals/DeleteResidentModal';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import axios from 'axios';
+import dayjs from 'dayjs';
 
 const ResidentsTable = () => {
   const [rows, setRows] = useState([]);
@@ -19,7 +21,6 @@ const ResidentsTable = () => {
   const [infoAnchorEl, setInfoAnchorEl] = useState(null);
   const [searchValue, setSearchValue] = useState('');
   
-  
   // Filter state
   const [filters, setFilters] = useState({
     ageMin: '',
@@ -28,9 +29,12 @@ const ResidentsTable = () => {
     civilStatuses: [],
     employment: 'All',
     sectors: { pwd: false, senior: false, solop: false },
+    household: 'All',
+    dateFrom: null,
+    dateTo: null,
   });
 
-  //Info Anchor
+  // Info Anchor
   const handleInfoEnter = (event, row) => {
     setSelectedRow(row);
     setInfoAnchorEl(event.currentTarget);
@@ -42,7 +46,7 @@ const ResidentsTable = () => {
 
   const infoOpen = Boolean(infoAnchorEl);
 
-  //Age calcution
+  // Age calculation
   const calculateAge = (birthDateStr) => {
     if (!birthDateStr) return "—";
     const birth = new Date(birthDateStr);
@@ -57,7 +61,35 @@ const ResidentsTable = () => {
 
   const columns = [
     { field: "no", headerName: "No.", width: 70, sortable: false },
-    { field: "fullName", headerName: "Full Name", width: 220 },
+    {
+      field: "fullName",
+      headerName: "Full Name",
+      width: 240,
+      renderCell: (params) => {
+        const row = params.row;
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, height: '100%' }}>
+            <Typography variant="body2" noWrap>{row.fullName}</Typography>
+            {row.is_household_head === 1 && (
+              <Chip
+                icon={<PeopleAltIcon sx={{ fontSize: '12px !important' }} />}
+                label={row.household_member_count ?? 1}
+                size="small"
+                sx={{
+                  height: 20,
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  backgroundColor: '#e3f2fd',
+                  color: '#1565c0',
+                  '& .MuiChip-icon': { color: '#1565c0' },
+                  flexShrink: 0,
+                }}
+              />
+            )}
+          </Box>
+        );
+      },
+    },
     {
       field: "age",
       headerName: "Age",
@@ -88,7 +120,6 @@ const ResidentsTable = () => {
               size="small"
               color="primary"
               onClick={() => {
-                console.log("Opening Edit for ID:", row.id);
                 setSelectedRow(row);
                 setEditOpen(true);
               }}
@@ -100,7 +131,6 @@ const ResidentsTable = () => {
               size="small"
               color="error"
               onClick={() => {
-                console.log("Opening Delete for ID:", row.id);
                 setSelectedRow(row);
                 setDeleteOpen(true);
               }}
@@ -108,10 +138,13 @@ const ResidentsTable = () => {
               <DeleteIcon fontSize="small" />
             </IconButton>
 
-            <IconButton size="small" onMouseEnter={(e) => handleInfoEnter(e, row)}
-              onMouseLeave={() => handleInfoLeave()}>
-                <InfoOutlinedIcon fontSize="small" />
-              </IconButton>
+            <IconButton
+              size="small"
+              onMouseEnter={(e) => handleInfoEnter(e, row)}
+              onMouseLeave={() => handleInfoLeave()}
+            >
+              <InfoOutlinedIcon fontSize="small" />
+            </IconButton>
           </Box>
         );
       },
@@ -127,36 +160,31 @@ const ResidentsTable = () => {
           return;
         }
 
-        console.log('Fetching residents with token:', token.substring(0, 10) + '...');
-
         const response = await axios.get('http://localhost:5000/api/residents', {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        console.log('Raw response:', response.data);
-
-        const fetchedRows = response.data.map((resident, index) => {
-          console.log('Resident row:', resident);
-          return {
-            id: resident.resident_id || index + 1,
-            no: index + 1,
-            fullName: resident.fullName || '',
-            sex: resident.sex || '',
-            birthdate: resident.birthdate || '',
-            birthplace: resident.birthplace || '',
-            address: resident.address || '',
-            civilStatus: resident.civilStatus || resident.civil_status || '',
-            occupation: resident.occupation || '',
-            citizenship: resident.citizenship || '',
-            specialSector: resident.specialSector || 'None',
-            created_by: resident.created_by,
-            created_at: resident.created_at,
-            created_by_name: resident.created_by_name,
-            updated_by: resident.updated_by,
-            updated_at: resident.updated_at,
-            updated_by_name: resident.updated_by_name,
-          };
-        });
+        const fetchedRows = response.data.map((resident, index) => ({
+          id: resident.resident_id || index + 1,
+          no: index + 1,
+          fullName: resident.fullName || '',
+          sex: resident.sex || '',
+          birthdate: resident.birthdate || '',
+          birthplace: resident.birthplace || '',
+          address: resident.address || '',
+          civilStatus: resident.civilStatus || resident.civil_status || '',
+          occupation: resident.occupation || '',
+          citizenship: resident.citizenship || '',
+          specialSector: resident.specialSector || 'None',
+          is_household_head: resident.is_household_head ?? 0,
+          household_member_count: resident.household_member_count ?? null,
+          created_by: resident.created_by,
+          created_at: resident.created_at,
+          created_by_name: resident.created_by_name,
+          updated_by: resident.updated_by,
+          updated_at: resident.updated_at,
+          updated_by_name: resident.updated_by_name,
+        }));
 
         setRows(fetchedRows);
       } catch (error) {
@@ -177,28 +205,27 @@ const ResidentsTable = () => {
 
   // Handle filter updates
   const handleApplyFilters = (newFilters) => {
-    console.log('Applying filters:', newFilters);
     setFilters(newFilters);
   };
 
   // Filter rows based on active filters
   const filteredRows = rows.filter((row) => {
-
     // Search filter
     if (searchValue) {
-    const search = searchValue.toLowerCase();
-    const matchesSearch =
-      row.fullName?.toLowerCase().includes(search) ||
-      row.sex?.toLowerCase().includes(search) ||
-      row.birthplace?.toLowerCase().includes(search) ||
-      row.address?.toLowerCase().includes(search) ||
-      row.civilStatus?.toLowerCase().includes(search) ||
-      row.occupation?.toLowerCase().includes(search) ||
-      row.citizenship?.toLowerCase().includes(search) ||
-      row.specialSector?.toLowerCase().includes(search);
+      const search = searchValue.toLowerCase();
+      const matchesSearch =
+        row.fullName?.toLowerCase().includes(search) ||
+        row.sex?.toLowerCase().includes(search) ||
+        row.birthplace?.toLowerCase().includes(search) ||
+        row.address?.toLowerCase().includes(search) ||
+        row.civilStatus?.toLowerCase().includes(search) ||
+        row.occupation?.toLowerCase().includes(search) ||
+        row.citizenship?.toLowerCase().includes(search) ||
+        row.specialSector?.toLowerCase().includes(search);
 
-    if (!matchesSearch) return false;
-  }
+      if (!matchesSearch) return false;
+    }
+
     // Split specialSector string for exact matching
     const sectorArray = row.specialSector?.split(',').map(s => s.trim()) || [];
     
@@ -223,6 +250,18 @@ const ResidentsTable = () => {
       if (filters.employment === 'Employed' && !row.occupation) return false;
       if (filters.employment === 'Unemployed' && row.occupation) return false;
     }
+
+    // Household filter
+    if (filters.household === 'Heads' && row.is_household_head !== 1) return false;
+    if (filters.household === 'Regular' && row.is_household_head === 1) return false;
+
+    // Date Registered filter (based on created_at)
+    if (filters.dateFrom) {
+      if (!row.created_at || dayjs(row.created_at).isBefore(dayjs(filters.dateFrom).startOf('day'))) return false;
+    }
+    if (filters.dateTo) {
+      if (!row.created_at || dayjs(row.created_at).isAfter(dayjs(filters.dateTo).endOf('day'))) return false;
+    }
     
     return true;
   });
@@ -235,22 +274,23 @@ const ResidentsTable = () => {
         getRowId={(row) => row.id}
         hideFooter
         showToolbar
-        sx={{ flex: 1, minHeight: 0 }} 
+        sx={{ flex: 1, minHeight: 0 }}
         slots={{
-          toolbar: ResidentsToolbar,  
+          toolbar: ResidentsToolbar,
         }}
         slotProps={{
           toolbar: {
             onAddSuccess: () => setRefreshKey((prev) => prev + 1),
-            onApplyFilters: handleApplyFilters, filteredRows, 
+            onApplyFilters: handleApplyFilters,
+            filteredRows,
             onSearchChange: (value) => setSearchValue(value),
           },
         }}
       />
 
       {/* Info popper shown on hover */}
-      <Popper open={infoOpen} anchorEl={infoAnchorEl} placement="left-start"  sx={{ zIndex: 9999 }}>
-        <Paper elevation={3} sx={{ p: 1, maxWidth: 220, }}>
+      <Popper open={infoOpen} anchorEl={infoAnchorEl} placement="left-start" sx={{ zIndex: 9999 }}>
+        <Paper elevation={3} sx={{ p: 1, maxWidth: 220 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>INFO</Typography>
           <Typography variant="body2">Created by : {selectedRow?.created_by_name || 'N/A'}</Typography>
           <Typography variant="body2">Created at : {selectedRow?.created_at || 'N/A'}</Typography>

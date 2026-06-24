@@ -27,8 +27,8 @@ const updateResident = (req, res) => {
     `;
 
     db.query(
-      checkSql, 
-      [l_name, l_name, f_name, f_name, birthdate, birthdate, resident_id], 
+      checkSql,
+      [l_name, l_name, f_name, f_name, birthdate, birthdate, resident_id],
       (err, results) => {
         if (err) {
           console.error("Duplicate check error:", err);
@@ -71,6 +71,17 @@ const updateResident = (req, res) => {
     if (data.is_pwd !== undefined) { fields.push("is_pwd = ?"); values.push(data.is_pwd ? 1 : 0); }
     if (data.is_senior !== undefined) { fields.push("is_senior = ?"); values.push(data.is_senior ? 1 : 0); }
     if (data.is_solop !== undefined) { fields.push("is_solop = ?"); values.push(data.is_solop ? 1 : 0); }
+    if (data.is_household_head !== undefined) {
+      fields.push("is_household_head = ?");
+      values.push(data.is_household_head ? 1 : 0);
+      // If toggling head OFF, clear the member count
+      fields.push("household_member_count = ?");
+      values.push(data.is_household_head ? (data.household_member_count || 1) : null);
+    } else if (data.household_member_count !== undefined) {
+      // Head status unchanged but count was updated
+      fields.push("household_member_count = ?");
+      values.push(data.household_member_count || null);
+    }
 
     fields.push("updated_by = ?");
     values.push(updated_by);
@@ -85,7 +96,7 @@ const updateResident = (req, res) => {
       if (result.affectedRows === 0) return res.status(404).json({ message: "Resident not found" });
 
       res.json({ message: "Resident updated successfully" });
-      
+
       logActivity({
         entity_type:  "Resident",
         entity_id:    resident_id,

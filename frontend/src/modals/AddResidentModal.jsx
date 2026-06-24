@@ -37,6 +37,8 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
     is_pwd: false,
     is_senior: false,
     is_solop: false,
+    is_household_head: false,
+    household_member_count: 1,
   });
 
   const [loading, setLoading] = useState(false);
@@ -45,6 +47,16 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
+    if (name === "is_household_head") {
+      setFormData((prev) => ({
+        ...prev,
+        is_household_head: checked,
+        household_member_count: checked ? 1 : 1, // reset to 1 when toggled
+      }));
+      return;
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -59,9 +71,13 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
     setError("");
     setSuccess("");
 
-    // Validation
     if (!formData.f_name || !formData.l_name || !formData.sex || !formData.birthdate || !formData.birthplace || !formData.civil_status || !formData.street) {
       setError("Please fill all required fields (marked with *)");
+      return;
+    }
+
+    if (formData.is_household_head && (!formData.household_member_count || formData.household_member_count < 1)) {
+      setError("Household member count must be at least 1.");
       return;
     }
 
@@ -77,6 +93,7 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
       const payload = {
         ...formData,
         birthdate: formData.birthdate ? dayjs(formData.birthdate).format("YYYY-MM-DD") : null,
+        household_member_count: formData.is_household_head ? Number(formData.household_member_count) : null,
       };
 
       const res = await axios.post("http://localhost:5000/api/residents/add", payload, {
@@ -104,9 +121,10 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
         is_pwd: false,
         is_senior: false,
         is_solop: false,
+        is_household_head: false,
+        household_member_count: 1,
       });
 
-      // Refresh table
       onSuccess?.();
     } catch (err) {
       console.error("Add resident error:", err);
@@ -122,16 +140,16 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
         Add New Resident
       </DialogTitle>
 
-      <DialogContent sx={{ 
-        px: 4, 
+      <DialogContent sx={{
+        px: 4,
         py: 3,
         backgroundImage: "url('BLOGO.png')",
         backgroundSize: "800px 600px",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
-        backgroundColor: "rgba(248, 251, 255, 0.85)", 
+        backgroundColor: "rgba(248, 251, 255, 0.85)",
         backgroundBlendMode: "lighten",
-       }}>
+      }}>
         <Stack spacing={2.5}>
           <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 1 }}>
             Personal Information
@@ -280,6 +298,33 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
               label="Solo Parent"
             />
           </FormGroup>
+
+          <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 2 }}>
+            Household
+          </Typography>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <FormControlLabel
+              control={
+                <Checkbox
+                  name="is_household_head"
+                  checked={formData.is_household_head}
+                  onChange={handleChange}
+                />
+              }
+              label="Household Head"
+            />
+            {formData.is_household_head && (
+              <TextField
+                label="Member Count *"
+                name="household_member_count"
+                type="number"
+                value={formData.household_member_count}
+                onChange={handleChange}
+                inputProps={{ min: 1 }}
+                sx={{ width: 160 }}
+              />
+            )}
+          </Stack>
 
           {error && <Typography color="error" mt={2}>{error}</Typography>}
           {success && <Typography color="success.main" mt={2}>{success}</Typography>}

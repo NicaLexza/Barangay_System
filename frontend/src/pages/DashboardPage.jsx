@@ -4,6 +4,7 @@ import {
   Box, Grid, Typography, Divider,
   Table, TableHead, TableBody, TableRow, TableCell,
   List, ListItem, ListItemText, Skeleton, Tooltip, Chip,
+  Button, CircularProgress,
 } from "@mui/material";
 import PeopleAltIcon      from "@mui/icons-material/PeopleAlt";
 import HomeIcon           from "@mui/icons-material/Home";
@@ -18,6 +19,7 @@ import WcIcon             from "@mui/icons-material/Wc";
 import TrendingUpIcon     from "@mui/icons-material/TrendingUp";
 import PeopleOutlineIcon  from "@mui/icons-material/PeopleOutline";
 import HomeOutlinedIcon   from "@mui/icons-material/HomeOutlined";
+import BackupIcon         from "@mui/icons-material/Backup";
 import axios from "axios";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -48,6 +50,7 @@ const ACT_COLORS = {
   "Household:updated":        "#15803d",
   "Account:created":          "#7c3aed",
   "Eligibility Form:created": "#dc2626",
+  "Database:backup_created":  "#0891b2",
 };
 
 const RECORD_TYPE_STYLES = {
@@ -178,6 +181,7 @@ const ActivityRow = ({ item, last }) => {
     archived: "archived",
     restored: "restored",
     deleted:  "deleted permanently",
+    backup_created: "backed up",
   };
   const verb = verbMap[item.action_type] ?? item.action_type;
   return (
@@ -209,10 +213,11 @@ const ActivityRow = ({ item, last }) => {
 
 // ─── Dashboard page ───────────────────────────────────────────────────────────
 const Dashboard = () => {
-  const [stats,    setStats]    = useState(null);
-  const [activity, setActivity] = useState([]);
-  const [loadS,    setLoadS]    = useState(true);
-  const [loadA,    setLoadA]    = useState(true);
+  const [stats,     setStats]     = useState(null);
+  const [activity,  setActivity]  = useState([]);
+  const [loadS,     setLoadS]     = useState(true);
+  const [loadA,     setLoadA]     = useState(true);
+  const [backingUp, setBackingUp] = useState(false);
 
   const adminName = localStorage.getItem("username") ?? "Admin";
   const today     = dayjs().format("dddd, MMMM D, YYYY");
@@ -240,6 +245,49 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => { fetchStats(); fetchActivity(); }, [fetchStats, fetchActivity]);
+
+  // Streams the .sql dump straight to a browser download — no copy is ever
+  // saved server-side or in this app.
+  const handleBackup = async () => {
+    setBackingUp(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get("http://localhost:5000/api/backup/download", {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: "blob",
+      });
+
+      const filename = `barangay_backup_${dayjs().format("YYYY-MM-DD_HHmmss")}.sql`;
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      // Refresh the feed so the new "Database backed up" entry shows up immediately
+      fetchActivity();
+    } catch (err) {
+      console.error("Backup error:", err);
+      // With responseType: 'blob', error bodies come back as a Blob too —
+      // not parsed JSON — so the message has to be read back out manually.
+      let message = "Failed to generate backup. Please try again.";
+      if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const parsed = JSON.parse(text);
+          message = parsed.message || message;
+        } catch {
+          // Response wasn't JSON — fall back to the default message above.
+        }
+      }
+      alert(message);
+    } finally {
+      setBackingUp(false);
+    }
+  };
 
   const counts  = stats?.counts          ?? {};
   const ageDist = stats?.ageDistribution ?? {};
@@ -273,7 +321,7 @@ const Dashboard = () => {
       trendPositive: true,
     },
     {
-      Icon: HomeIcon, label: "Households",
+      Icon: HomeIcon, label: "Household Heads",
       value: counts.total_households, accent: true,
       trend: counts.households_this_month > 0 ? `+${counts.households_this_month} this month` : null,
       trendPositive: true,
@@ -315,13 +363,35 @@ const Dashboard = () => {
                 Welcome back, {adminName}
               </Typography>
             </Box>
-            <Box sx={{
-              backgroundColor: WHITE, border: `1px solid ${BORDER}`,
-              borderRadius: "8px", px: 2, py: 1,
-            }}>
-              <Typography sx={{ fontSize: "0.78rem", color: INK_2, fontWeight: 500 }}>
-                {today}
-              </Typography>
+
+            <Box display="flex" alignItems="center" gap={1.5}>
+              <Box sx={{
+                backgroundColor: WHITE, border: `1px solid ${BORDER}`,
+                borderRadius: "8px", px: 2, py: 1,
+              }}>
+                <Typography sx={{ fontSize: "0.78rem", color: INK_2, fontWeight: 500 }}>
+                  {today}
+                </Typography>
+              </Box>
+
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={backingUp ? <CircularProgress size={14} color="inherit" /> : <BackupIcon sx={{ fontSize: 16 }} />}
+                onClick={handleBackup}
+                disabled={backingUp}
+                sx={{
+                  textTransform: "none",
+                  fontWeight: 600,
+                  borderColor: NAVY,
+                  color: NAVY,
+                  fontSize: "0.78rem",
+                  backgroundColor: WHITE,
+                  "&:hover": { backgroundColor: NAVY_LIGHT },
+                }}
+              >
+                {backingUp ? "Backing up..." : "Backup Database"}
+              </Button>
             </Box>
           </Box>
 
@@ -626,6 +696,7 @@ const Dashboard = () => {
                       { color: "#2563eb", label: "Resident"  },
                       { color: "#16a34a", label: "Household" },
                       { color: "#7c3aed", label: "Account"   },
+                      { color: "#0891b2", label: "Backup"    },
                     ].map(({ color, label }) => (
                       <Tooltip key={label} title={label} placement="bottom">
                         <Box sx={{

@@ -19,6 +19,8 @@ const getAllResidents = (req, res) => {
       r.civil_status AS civilStatus,
       r.occupation,
       r.citizenship,
+      r.is_household_head,
+      r.household_member_count,
       DATE_FORMAT(r.created_at, '%Y-%m-%d %H:%i:%s') AS created_at,
       r.created_by,
       cu.Fullname AS created_by_name,
@@ -53,7 +55,7 @@ const getAllResidents = (req, res) => {
   });
 };
 
-// === NEW FUNCTION: Fetch one resident by ID (raw fields) ===
+// Fetch one resident by ID (raw fields for edit modal)
 const getResident = (req, res) => {
   const { id } = req.params;
 
@@ -74,7 +76,9 @@ const getResident = (req, res) => {
       citizenship,
       is_pwd,
       is_senior,
-      is_solop
+      is_solop,
+      is_household_head,
+      household_member_count
     FROM residents
     WHERE resident_id = ?
   `;
@@ -89,7 +93,6 @@ const getResident = (req, res) => {
       return res.status(404).json({ message: "Resident not found" });
     }
 
-    // Return the raw row directly (no concatenation)
     res.json(results[0]);
   });
 };

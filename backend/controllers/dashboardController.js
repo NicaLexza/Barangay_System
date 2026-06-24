@@ -12,9 +12,10 @@ const getDashboardStats = (req, res) => {
         (SELECT COUNT(*) FROM residents)  AS total_residents,
         (SELECT COUNT(*) FROM residents
           WHERE created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')) AS residents_this_month,
-        (SELECT COUNT(*) FROM households) AS total_households,
-        (SELECT COUNT(*) FROM households
-          WHERE created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')) AS households_this_month,
+        (SELECT COUNT(*) FROM residents WHERE is_household_head = 1) AS total_households,
+        (SELECT COUNT(*) FROM residents
+          WHERE is_household_head = 1
+          AND created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')) AS households_this_month,
         (SELECT COUNT(*) FROM users WHERE status = 'Active')          AS active_users,
         (SELECT COUNT(*) FROM eligibility_forms WHERE status = 'Enabled') AS active_forms,
         (SELECT COUNT(*) FROM eligibility_forms)                          AS total_forms
@@ -45,35 +46,18 @@ const getDashboardStats = (req, res) => {
       FROM residents
     `,
 
-    // Combined residents + households, most recent 10
+    // Recently added residents only (households table removed)
     recentRecords: `
-      SELECT name, type, id, created_at FROM (
-        (
-          SELECT
-            TRIM(CONCAT_WS(' ',
-              NULLIF(f_name, ''), NULLIF(m_name, ''),
-              NULLIF(l_name, ''), NULLIF(suffix, '')
-            ))                       AS name,
-            'Resident'               AS type,
-            resident_id              AS id,
-            created_at
-          FROM residents
-          WHERE created_at IS NOT NULL
-        )
-        UNION ALL
-        (
-          SELECT
-            TRIM(CONCAT_WS(' ',
-              NULLIF(f_name, ''), NULLIF(m_name, ''),
-              NULLIF(l_name, ''), NULLIF(suffix, '')
-            ))                       AS name,
-            'Household'              AS type,
-            household_id             AS id,
-            created_at
-          FROM households
-          WHERE created_at IS NOT NULL
-        )
-      ) combined
+      SELECT
+        TRIM(CONCAT_WS(' ',
+          NULLIF(f_name, ''), NULLIF(m_name, ''),
+          NULLIF(l_name, ''), NULLIF(suffix, '')
+        ))          AS name,
+        'Resident'  AS type,
+        resident_id AS id,
+        created_at
+      FROM residents
+      WHERE created_at IS NOT NULL
       ORDER BY created_at DESC
       LIMIT 10
     `,

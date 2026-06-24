@@ -39,11 +39,18 @@ const ChangePasswordPage = () => {
     try {
       const token = localStorage.getItem("token");
 
-      await axios.put(
+      const res = await axios.put(
         "http://localhost:5000/api/auth/change-default-password",
         { password, confirmPassword },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      // The backend reissues a fresh token with must_change_password = 0.
+      // Store it before navigating — otherwise ProtectedRoute reads the
+      // old, stale token and immediately redirects back to this page.
+      if (res.data.token) {
+        localStorage.setItem("token", res.data.token);
+      }
 
       // navigate to the correct page after password change
       const role = localStorage.getItem("role");

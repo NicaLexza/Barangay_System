@@ -20,7 +20,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 
-const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {  // â† change prop to residentId
+const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {
   const [formData, setFormData] = useState({
     f_name: "",
     m_name: "",
@@ -37,6 +37,8 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {  // â†
     is_pwd: false,
     is_senior: false,
     is_solop: false,
+    is_household_head: false,
+    household_member_count: 1,
   });
 
   const [loading, setLoading] = useState(false);
@@ -59,7 +61,6 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {  // â†
           });
 
           const data = res.data;
-          console.log("Fetched resident for edit:", data); // debug
 
           setFormData({
             f_name: data.f_name || "",
@@ -77,6 +78,8 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {  // â†
             is_pwd: !!data.is_pwd,
             is_senior: !!data.is_senior,
             is_solop: !!data.is_solop,
+            is_household_head: !!data.is_household_head,
+            household_member_count: data.household_member_count ?? 1,
           });
         } catch (err) {
           console.error("Fetch single resident error:", err);
@@ -90,6 +93,16 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {  // â†
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
+    if (name === "is_household_head") {
+      setFormData((prev) => ({
+        ...prev,
+        is_household_head: checked,
+        household_member_count: checked ? (prev.household_member_count || 1) : 1,
+      }));
+      return;
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -109,6 +122,11 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {  // â†
       return;
     }
 
+    if (formData.is_household_head && (!formData.household_member_count || formData.household_member_count < 1)) {
+      setError("Household member count must be at least 1.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -122,6 +140,7 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {  // â†
         ...formData,
         birthdate: formData.birthdate ? dayjs(formData.birthdate).format("YYYY-MM-DD") : null,
         resident_id: residentId,
+        household_member_count: formData.is_household_head ? Number(formData.household_member_count) : null,
       };
 
       const res = await axios.put("http://localhost:5000/api/residents/update", payload, {
@@ -145,15 +164,15 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {  // â†
       </DialogTitle>
 
       <DialogContent sx={{
-    px: 4,
-    py: 3,
-    backgroundImage: "url('BLOGO.png')", 
-    backgroundSize: "800px 600px",
-    backgroundPosition: "center",
-    backgroundRepeat: "no-repeat",
-    backgroundColor: "rgba(248, 251, 255, 0.85)", 
-    backgroundBlendMode: "lighten",
-  }}>
+        px: 4,
+        py: 3,
+        backgroundImage: "url('BLOGO.png')",
+        backgroundSize: "800px 600px",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        backgroundColor: "rgba(248, 251, 255, 0.85)",
+        backgroundBlendMode: "lighten",
+      }}>
         <Stack spacing={2.5}>
           <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 1 }}>
             Personal Information
@@ -304,6 +323,33 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {  // â†
               label="Solo Parent"
             />
           </FormGroup>
+
+          <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 2 }}>
+            Household
+          </Typography>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <FormControlLabel
+              control={
+                <Checkbox
+                  name="is_household_head"
+                  checked={formData.is_household_head}
+                  onChange={handleChange}
+                />
+              }
+              label="Household Head"
+            />
+            {formData.is_household_head && (
+              <TextField
+                label="Member Count *"
+                name="household_member_count"
+                type="number"
+                value={formData.household_member_count}
+                onChange={handleChange}
+                inputProps={{ min: 1 }}
+                sx={{ width: 160 }}
+              />
+            )}
+          </Stack>
 
           {error && <Typography color="error" mt={2}>{error}</Typography>}
           {success && <Typography color="success.main" mt={2}>{success}</Typography>}
