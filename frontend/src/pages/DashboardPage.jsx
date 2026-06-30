@@ -1,5 +1,5 @@
 // pages/DashboardPage.jsx
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Box, Grid, Typography, Divider,
   Table, TableHead, TableBody, TableRow, TableCell,
@@ -20,11 +20,13 @@ import TrendingUpIcon     from "@mui/icons-material/TrendingUp";
 import PeopleOutlineIcon  from "@mui/icons-material/PeopleOutline";
 import HomeOutlinedIcon   from "@mui/icons-material/HomeOutlined";
 import BackupIcon         from "@mui/icons-material/Backup";
+import RestoreIcon        from "@mui/icons-material/Restore";
 import axios from "axios";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import Navbar from "../Reusables/Navbar.jsx";
 import Footer from "../Reusables/Footer.jsx";
+import ReAuthModal from "../modals/ReAuthModal.jsx";
 
 dayjs.extend(relativeTime);
 
@@ -51,6 +53,7 @@ const ACT_COLORS = {
   "Account:created":          "#7c3aed",
   "Eligibility Form:created": "#dc2626",
   "Database:backup_created":  "#0891b2",
+  "Database:restored":        "#0891b2",
 };
 
 const RECORD_TYPE_STYLES = {
@@ -219,6 +222,13 @@ const Dashboard = () => {
   const [loadA,     setLoadA]     = useState(true);
   const [backingUp, setBackingUp] = useState(false);
 
+  // Restore flow state
+  const [restoreFile,   setRestoreFile]   = useState(null);
+  const [reAuthOpen,    setReAuthOpen]    = useState(false);
+  const [reAuthLoading, setReAuthLoading] = useState(false);
+  const [reAuthError,   setReAuthError]   = useState("");
+  const fileInputRef = useRef(null);
+
   const adminName = localStorage.getItem("username") ?? "Admin";
   const today     = dayjs().format("dddd, MMMM D, YYYY");
 
@@ -267,12 +277,9 @@ const Dashboard = () => {
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      // Refresh the feed so the new "Database backed up" entry shows up immediately
       fetchActivity();
     } catch (err) {
       console.error("Backup error:", err);
-      // With responseType: 'blob', error bodies come back as a Blob too —
-      // not parsed JSON — so the message has to be read back out manually.
       let message = "Failed to generate backup. Please try again.";
       if (err.response?.data instanceof Blob) {
         try {
@@ -286,6 +293,52 @@ const Dashboard = () => {
       alert(message);
     } finally {
       setBackingUp(false);
+    }
+  };
+
+  // File picked — don't restore yet, just stage it and demand re-auth first.
+  const handleRestoreFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setRestoreFile(file);
+      setReAuthError("");
+      setReAuthOpen(true);
+    }
+    e.target.value = ""; // allow re-selecting the same file later
+  };
+
+  const handleRestoreClose = () => {
+    if (reAuthLoading) return;
+    setReAuthOpen(false);
+    setRestoreFile(null);
+    setReAuthError("");
+  };
+
+  const handleRestoreConfirm = async ({ username, password }) => {
+    if (!restoreFile) return;
+    setReAuthLoading(true);
+    setReAuthError("");
+
+    try {
+      const token = localStorage.getItem("token");
+      const form = new FormData();
+      form.append("file", restoreFile);
+      form.append("username", username);
+      form.append("password", password);
+
+      await axios.post("http://localhost:5000/api/backup/restore", form, {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
+      });
+
+      // Every table just changed — including users, whose passwords/roles
+      // may now differ from what's in this session's token. Force a clean
+      // re-login rather than trusting stale local state.
+      localStorage.clear();
+      window.location.href = "/";
+    } catch (err) {
+      setReAuthError(err.response?.data?.message || "Restore failed. Please try again.");
+    } finally {
+      setReAuthLoading(false);
     }
   };
 
@@ -391,6 +444,31 @@ const Dashboard = () => {
                 }}
               >
                 {backingUp ? "Backing up..." : "Backup Database"}
+              </Button>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".sql"
+                style={{ display: "none" }}
+                onChange={handleRestoreFileChange}
+              />
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<RestoreIcon sx={{ fontSize: 16 }} />}
+                onClick={() => fileInputRef.current?.click()}
+                sx={{
+                  textTransform: "none",
+                  fontWeight: 600,
+                  borderColor: "#dc2626",
+                  color: "#dc2626",
+                  fontSize: "0.78rem",
+                  backgroundColor: WHITE,
+                  "&:hover": { backgroundColor: "#fef2f2" },
+                }}
+              >
+                Restore Database
               </Button>
             </Box>
           </Box>
@@ -749,6 +827,19 @@ const Dashboard = () => {
           <Box pb={3} />
         </Box>
       </Box>
+
+      {/* Restore re-auth — destructive action, requires re-entering admin credentials */}
+      <ReAuthModal
+        open={reAuthOpen}
+        onClose={handleRestoreClose}
+        onConfirm={handleRestoreConfirm}
+        loading={reAuthLoading}
+        error={reAuthError}
+        title="Confirm Database Restore"
+        description={`This will completely overwrite ALL current data — residents, accounts, eligibility forms, everything — with the contents of "${restoreFile?.name}". This cannot be undone. Enter your admin credentials to proceed.`}
+        confirmLabel="Restore Database"
+        confirmColor="error"
+      />
     </>
   );
 };
