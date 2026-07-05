@@ -2,7 +2,7 @@
 import { useState } from "react";
 import axios from "axios";
 import {
-  TextField, Button, Typography, Box, Grid,
+  TextField, Button, Typography, Box,
   InputAdornment, IconButton,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
@@ -79,9 +79,11 @@ const ChangePasswordPage = () => {
         overflow: "hidden",
       }}
     >
-      <Grid
-        container
+      <Box
         sx={{
+          display: "flex",
+          flexDirection: { xs: "column", md: "row" },
+          width: "100%",
           maxWidth: "900px",
           minHeight: "400px",
           boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
@@ -90,8 +92,7 @@ const ChangePasswordPage = () => {
         }}
       >
         {/* Left side — Form */}
-        <Grid
-          item xs={12} md={6}
+        <Box
           sx={{
             display: "flex",
             flexDirection: "column",
@@ -99,6 +100,7 @@ const ChangePasswordPage = () => {
             p: 4,
             backgroundColor: "white",
             borderRadius: "10px",
+            width: { xs: "100%", md: "50%" },
             borderRight: { md: ".5px solid #1e3f5a" },
             borderBottom: { xs: "3px solid #1e3f5a" },
             borderLeft: { xs: "3px solid #1e3f5a" },
@@ -107,7 +109,7 @@ const ChangePasswordPage = () => {
         >
           <Typography
             variant="h4"
-            sx={{ textAlign: "center", mb: 1, fontWeight: "bold", color: "#1976d2" }}
+            sx={{ textAlign: "center", mb: 1, fontWeight: "bold", color: "#002f59" }}
           >
             Change Password
           </Typography>
@@ -213,11 +215,10 @@ const ChangePasswordPage = () => {
           >
             {loading ? "Saving..." : "Set New Password"}
           </Button>
-        </Grid>
+        </Box>
 
         {/* Right side — Logo */}
-        <Grid
-          item xs={12} md={6}
+        <Box
           sx={{
             display: "flex",
             alignItems: "center",
@@ -226,6 +227,7 @@ const ChangePasswordPage = () => {
             backgroundColor: "#ffffff",
             minHeight: { xs: "300px", md: "auto" },
             borderRadius: "10px",
+            width: { xs: "100%", md: "50%" },
             borderLeft: { md: ".5px solid #1e3f5a" },
             borderRight: { md: "3px solid #1e3f5a" },
             borderBottom: { xs: "3px solid #1e3f5a" },
@@ -238,8 +240,8 @@ const ChangePasswordPage = () => {
             alt="Barangay Logo"
             sx={{ width: "100%", maxWidth: "280px", height: "auto" }}
           />
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
     </Box>
   );
 };

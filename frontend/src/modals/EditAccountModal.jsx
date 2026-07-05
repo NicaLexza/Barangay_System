@@ -10,8 +10,10 @@ import {
   Stack,
   MenuItem,
   Typography,
+  Box,
 } from "@mui/material";
 import axios from "axios";
+import ModalLogoBadge from "../Reusables/ModalLogoBadge.jsx";
 
 const EditAccountModal = ({ open, onClose, onSuccess, userId }) => {
 
@@ -105,16 +107,7 @@ const EditAccountModal = ({ open, onClose, onSuccess, userId }) => {
         Edit Account
       </DialogTitle>
 
-      <DialogContent sx={{
-        px: 4,
-        py: 3,
-        backgroundImage: "url('BLOGO.png')",
-        backgroundSize: "500px 300px",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        backgroundColor: "rgba(248, 251, 255, 0.85)",
-        backgroundBlendMode: "lighten",
-       }}>
+      <DialogContent sx={{ px: 4, py: 3 }}>
         <Stack spacing={2.5}>
           <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 1 }}>
             Account Information
@@ -171,16 +164,19 @@ const EditAccountModal = ({ open, onClose, onSuccess, userId }) => {
         </Stack>
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button onClick={onClose} disabled={loading}>Cancel</Button>
-        <Button
-          variant="contained"
-          onClick={handleUpdate}
-          disabled={loading}
-          sx={{ backgroundColor: "#002f59" }}
-        >
-          {loading ? "Saving..." : "Update Account"}
-        </Button>
+      <DialogActions sx={{ px: 3, pb: 3, justifyContent: "space-between", alignItems: "center" }}>
+        <ModalLogoBadge />
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button onClick={onClose} disabled={loading}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleUpdate}
+            disabled={loading}
+            sx={{ backgroundColor: "#002f59" }}
+          >
+            {loading ? "Saving..." : "Update Account"}
+          </Button>
+        </Box>
       </DialogActions>
     </Dialog>
   );

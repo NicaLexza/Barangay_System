@@ -1,7 +1,7 @@
 // EligibilityArchivedTable.jsx
 import React, { useState, useEffect } from "react";
 import {
-  Typography, Box, Grid, Card, CardContent, CardActionArea,
+  Typography, Box, Card, CardContent, CardActionArea,
   IconButton, Menu, MenuItem, Chip, Divider, CircularProgress,
   Button,
 } from "@mui/material";
@@ -141,7 +141,7 @@ const EligibilityArchivedTable = () => {
   };
 
   return (
-    <Box sx={{ px: 4, py: 3, minHeight: "80vh" }}>
+    <Box sx={{ px: 4, py: 3, height: "100%", overflowY: "auto" }}>
 
       {/* Header */}
       <Box sx={{ mb: 3, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
@@ -183,14 +183,17 @@ const EligibilityArchivedTable = () => {
           </Typography>
         </Box>
       ) : (
-        <Grid container spacing={3}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
           {forms.map((form) => {
             const total = form.total_entries ?? 0;
             const rewarded = form.rewarded_count ?? 0;
             const notRewarded = total - rewarded;
 
             return (
-              <Grid item xs={12} sm={6} md={4} key={form.form_id}>
+              <Box
+                key={form.form_id}
+                sx={{ width: { xs: "100%", sm: "calc(50% - 12px)", md: "calc(33.333% - 16px)" } }}
+              >
                 <Card
                   elevation={1}
                   sx={{
@@ -285,10 +288,10 @@ const EligibilityArchivedTable = () => {
                     </CardContent>
                   </CardActionArea>
                 </Card>
-              </Grid>
+              </Box>
             );
           })}
-        </Grid>
+        </Box>
       )}
 
       {/* Admin Kebab Menu */}

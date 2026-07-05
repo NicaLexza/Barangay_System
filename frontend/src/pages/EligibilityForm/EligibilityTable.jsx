@@ -1,7 +1,7 @@
 // EligibilityTable.jsx 
 import React, { useState, useEffect } from "react";
 import {
-  Typography, Box, Grid, Card, CardContent, CardActionArea,
+  Typography, Box, Card, CardContent, CardActionArea,
   IconButton, Menu, MenuItem, Chip, Divider, CircularProgress,
   Button,
 } from "@mui/material";
@@ -88,41 +88,39 @@ const EligibilityTable = () => {
   };
 
   return (
-    <Box sx={{ px: 4, py: 3, minHeight: "80vh", width: "100%" }}>
-
-      {/* View Archived button — fixed to top-right of viewport */}
-      <Button
-        variant="outlined"
-        size="small"
-        startIcon={<ArchiveIcon />}
-        onClick={() => navigate("/Eligibility/Archived")}
-        sx={{
-          position: "fixed",
-          top: 72,
-          right: 24,
-          zIndex: 1200,
-          textTransform: "none",
-          borderColor: "#78716c",
-          color: "#57534e",
-          fontWeight: 500,
-          backgroundColor: "#fff",
-          "&:hover": {
-            borderColor: "#57534e",
-            backgroundColor: "#f5f5f4",
-          },
-        }}
-      >
-        View Archived
-      </Button>
+    <Box sx={{ px: 4, py: 3, height: "100%", overflowY: "auto" }}>
 
       {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight="bold" color="#002f59">
-          Eligibility Forms
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Manage and view all eligibility forms
-        </Typography>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 3 }}>
+        <Box>
+          <Typography variant="h5" fontWeight="bold" color="#002f59">
+            Eligibility Forms
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Manage and view all eligibility forms
+          </Typography>
+        </Box>
+
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<ArchiveIcon />}
+          onClick={() => navigate("/Eligibility/Archived")}
+          sx={{
+            textTransform: "none",
+            borderColor: "#78716c",
+            color: "#57534e",
+            fontWeight: 500,
+            backgroundColor: "#fff",
+            flexShrink: 0,
+            "&:hover": {
+              borderColor: "#57534e",
+              backgroundColor: "#f5f5f4",
+            },
+          }}
+        >
+          View Archived
+        </Button>
       </Box>
 
       {/* Content */}
@@ -135,7 +133,7 @@ const EligibilityTable = () => {
           <Typography color="text.secondary">No eligibility forms found.</Typography>
         </Box>
       ) : (
-        <Grid container spacing={3}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
           {forms.map((form) => {
             const total = form.total_entries ?? 0;
             const rewarded = form.rewarded_count ?? 0;
@@ -143,7 +141,10 @@ const EligibilityTable = () => {
             const isEnabled = form.status === "Enabled";
 
             return (
-              <Grid item xs={12} sm={6} md={4} key={form.form_id}>
+              <Box
+                key={form.form_id}
+                sx={{ width: { xs: "100%", sm: "calc(50% - 12px)", md: "calc(33.333% - 16px)" } }}
+              >
                 <Card
                   elevation={2}
                   sx={{
@@ -235,10 +236,10 @@ const EligibilityTable = () => {
                     </CardContent>
                   </CardActionArea>
                 </Card>
-              </Grid>
+              </Box>
             );
           })}
-        </Grid>
+        </Box>
       )}
 
       {/* Kebab Menu */}

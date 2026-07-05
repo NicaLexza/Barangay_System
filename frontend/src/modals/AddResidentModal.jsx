@@ -13,12 +13,14 @@ import {
   Checkbox,
   FormGroup,
   Typography,
+  Box,
 } from "@mui/material";
 import axios from "axios";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
+import ModalLogoBadge from "../Reusables/ModalLogoBadge.jsx";
 
 const AddResidentModal = ({ open, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -140,16 +142,7 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
         Add New Resident
       </DialogTitle>
 
-      <DialogContent sx={{
-        px: 4,
-        py: 3,
-        backgroundImage: "url('BLOGO.png')",
-        backgroundSize: "800px 600px",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        backgroundColor: "rgba(248, 251, 255, 0.85)",
-        backgroundBlendMode: "lighten",
-      }}>
+      <DialogContent sx={{ px: 4, py: 3 }}>
         <Stack spacing={2.5}>
           <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 1 }}>
             Personal Information
@@ -331,16 +324,19 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
         </Stack>
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button onClick={onClose} disabled={loading}>Cancel</Button>
-        <Button
-          variant="contained"
-          onClick={handleSave}
-          disabled={loading}
-          sx={{ backgroundColor: "#002f59" }}
-        >
-          {loading ? "Saving..." : "Add Resident"}
-        </Button>
+      <DialogActions sx={{ px: 3, pb: 3, justifyContent: "space-between", alignItems: "center" }}>
+        <ModalLogoBadge />
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button onClick={onClose} disabled={loading}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            disabled={loading}
+            sx={{ backgroundColor: "#002f59" }}
+          >
+            {loading ? "Saving..." : "Add Resident"}
+          </Button>
+        </Box>
       </DialogActions>
     </Dialog>
   );

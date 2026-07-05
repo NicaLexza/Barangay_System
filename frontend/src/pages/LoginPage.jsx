@@ -1,7 +1,7 @@
 // LoginPage.jsx
 import { useState } from "react";
 import axios from "axios";
-import { TextField, Button, Typography, Box, Grid, InputAdornment, IconButton } from "@mui/material";
+import { TextField, Button, Typography, Box, InputAdornment, IconButton } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
@@ -62,9 +62,11 @@ const Login = () => {
         overflow: "hidden",
       }}
     >
-      <Grid 
-        container 
-        sx={{ 
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", md: "row" },
+          width: "100%",
           maxWidth: "900px",
           minHeight: "400px",
           boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
@@ -73,10 +75,7 @@ const Login = () => {
         }}
       >
         {/* Left side: Login Form */}
-        <Grid
-          item
-          xs={12}
-          md={6}
+        <Box
           sx={{
             display: "flex",
             flexDirection: "column",
@@ -84,6 +83,7 @@ const Login = () => {
             p: 4,
             backgroundColor: "white",
             borderRadius: "10px",
+            width: { xs: "100%", md: "50%" },
             borderRight: { md: ".5px solid #1e3f5a" },
             borderBottom: { xs: "3px solid #1e3f5a"},
             borderLeft: { xs: "3px solid #1e3f5a"},
@@ -96,7 +96,7 @@ const Login = () => {
               textAlign: "center",
               mb: 4,
               fontWeight: "bold",
-              color: "#1976d2",
+              color: "#002f59",
             }}
           >
             Login
@@ -206,13 +206,10 @@ const Login = () => {
           >
             Login
           </Button>
-        </Grid>
+        </Box>
 
         {/* Right side: Logo Area */}
-        <Grid
-          item
-          xs={12}
-          md={6}
+        <Box
           sx={{
             display: "flex",
             alignItems: "center",
@@ -221,6 +218,7 @@ const Login = () => {
             backgroundColor: "#ffffff",
             minHeight: { xs: "300px", md: "auto" },
             borderRadius: "10px",
+            width: { xs: "100%", md: "50%" },
             borderLeft: { md: ".5px solid #1e3f5a" },
             borderRight: { md: "3px solid #1e3f5a" },
             borderBottom: { xs: "3px solid #1e3f5a"},
@@ -237,8 +235,8 @@ const Login = () => {
               height: "auto",
             }}
           />
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
     </Box>
   );
 };

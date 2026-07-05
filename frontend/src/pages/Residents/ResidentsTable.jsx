@@ -1,7 +1,7 @@
 // ResidentsTable.jsx
 import { useState, useEffect } from 'react';
 import { DataGrid } from '@mui/x-data-grid';
-import { Box, IconButton, Popper, Paper, Typography, Chip } from '@mui/material';
+import { Box, IconButton, Typography, Chip } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ResidentsToolbar from './ResidentsToolbar';
@@ -9,6 +9,7 @@ import EditResidentModal from '../../modals/EditResidentModal';
 import DeleteConfirmModal from '../../modals/DeleteResidentModal';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
+import InfoPopper from '../../Reusables/InfoPopper.jsx';
 import axios from 'axios';
 import dayjs from 'dayjs';
 
@@ -289,15 +290,16 @@ const ResidentsTable = () => {
       />
 
       {/* Info popper shown on hover */}
-      <Popper open={infoOpen} anchorEl={infoAnchorEl} placement="left-start" sx={{ zIndex: 9999 }}>
-        <Paper elevation={3} sx={{ p: 1, maxWidth: 220 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>INFO</Typography>
-          <Typography variant="body2">Created by : {selectedRow?.created_by_name || 'N/A'}</Typography>
-          <Typography variant="body2">Created at : {selectedRow?.created_at || 'N/A'}</Typography>
-          <Typography variant="body2">Updated by : {selectedRow?.updated_by_name || 'N/A'}</Typography>
-          <Typography variant="body2">Updated at : {selectedRow?.updated_at || 'N/A'}</Typography>
-        </Paper>
-      </Popper>
+      <InfoPopper
+        open={infoOpen}
+        anchorEl={infoAnchorEl}
+        fields={[
+          { label: "Created by", value: selectedRow?.created_by_name },
+          { label: "Created at", value: selectedRow?.created_at },
+          { label: "Updated by", value: selectedRow?.updated_by_name },
+          { label: "Updated at", value: selectedRow?.updated_at },
+        ]}
+      />
 
       {/* Edit Modal */}
       <EditResidentModal

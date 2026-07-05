@@ -1,8 +1,8 @@
-import { Typography } from "@mui/material";
 import React from "react";
 import Navbar from "../../Reusables/Navbar.jsx";
 import Footer from "../../Reusables/Footer.jsx";
 import EligibilityTable from "./EligibilityTable.jsx";
+import PageLayout from "../../Reusables/PageLayout.jsx";
 
 
 function Eligibility() {
@@ -10,7 +10,9 @@ function Eligibility() {
   return (
     <>
     <Navbar/>
-    <EligibilityTable/>
+    <PageLayout>
+      <EligibilityTable/>
+    </PageLayout>
     <Footer/>
     </>
   )

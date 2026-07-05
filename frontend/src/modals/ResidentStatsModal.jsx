@@ -19,6 +19,7 @@ import PrintIcon from "@mui/icons-material/Print";
 
 // ── Color palettes (hardcoded — Chart.js cannot read CSS vars) ──────────────
 const NAVY        = "#002f59";
+const AGE_COLORS  = ["#1e3a5f", "#1d5096", "#2563eb", "#60a5fa", "#bfdbfe"]; // matches DashboardPage.jsx exactly
 const COLORS_6    = ["#002f59", "#1d5096", "#2563eb", "#60a5fa", "#93c5fd", "#bfdbfe"];
 const COLORS_PIE  = ["#1d4ed8", "#be185d", "#047857", "#92400e", "#6d28d9", "#0f766e"];
 const COLORS_SECTOR = ["#7c3aed", "#0369a1", "#16a34a"];
@@ -127,14 +128,22 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
   const stats = useMemo(() => {
     const total = filteredRows.length;
 
-    // 1. Age distribution
-    const ageBuckets = { "Minor (0–17)": 0, "Adult (18–59)": 0, "Senior (60+)": 0 };
+    // 1. Age distribution — matches DashboardPage.jsx's 5-bucket taxonomy exactly
+    const ageBuckets = {
+      "Minor (0–17)": 0,
+      "Young Adult (18–30)": 0,
+      "Adult (31–45)": 0,
+      "Mature (46–60)": 0,
+      "Elderly (60+)": 0,
+    };
     filteredRows.forEach((r) => {
       const age = calculateAge(r.birthdate);
       if (age === null) return;
       if (age <= 17) ageBuckets["Minor (0–17)"]++;
-      else if (age <= 59) ageBuckets["Adult (18–59)"]++;
-      else ageBuckets["Senior (60+)"]++;
+      else if (age <= 30) ageBuckets["Young Adult (18–30)"]++;
+      else if (age <= 45) ageBuckets["Adult (31–45)"]++;
+      else if (age <= 60) ageBuckets["Mature (46–60)"]++;
+      else ageBuckets["Elderly (60+)"]++;
     });
 
     // 2. Sex distribution
@@ -218,7 +227,7 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
         type: "doughnut",
         data: {
           labels,
-          datasets: [{ data, backgroundColor: ["#1d5096", "#2563eb", "#60a5fa"], borderWidth: 2, borderColor: "#fff" }],
+          datasets: [{ data, backgroundColor: AGE_COLORS, borderWidth: 2, borderColor: "#fff" }],
         },
         options: {
           responsive: true,
@@ -642,9 +651,11 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
 };
   // ── Legend data derived from stats ────────────────────────────────────────
   const ageLegend = [
-    { label: "Minor (0–17)", color: "#1d5096", value: stats.ageBuckets["Minor (0–17)"] },
-    { label: "Adult (18–59)", color: "#2563eb", value: stats.ageBuckets["Adult (18–59)"] },
-    { label: "Senior (60+)", color: "#60a5fa", value: stats.ageBuckets["Senior (60+)"] },
+    { label: "Minor (0–17)",        color: AGE_COLORS[0], value: stats.ageBuckets["Minor (0–17)"] },
+    { label: "Young Adult (18–30)", color: AGE_COLORS[1], value: stats.ageBuckets["Young Adult (18–30)"] },
+    { label: "Adult (31–45)",       color: AGE_COLORS[2], value: stats.ageBuckets["Adult (31–45)"] },
+    { label: "Mature (46–60)",      color: AGE_COLORS[3], value: stats.ageBuckets["Mature (46–60)"] },
+    { label: "Elderly (60+)",       color: AGE_COLORS[4], value: stats.ageBuckets["Elderly (60+)"] },
   ];
 
   const sexLegend = Object.entries(stats.sexMap).map(([label, value], i) => ({

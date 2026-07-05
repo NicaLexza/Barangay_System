@@ -2,11 +2,12 @@
 import React, { useState } from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, TextField, Stack, Typography,
+  Button, TextField, Stack, Typography, Box,
 } from "@mui/material";
 import axios from "axios";
+import ModalLogoBadge from "../Reusables/ModalLogoBadge.jsx";
 
-const AddEligibilityFormModal = ({ open, onClose, onSuccess, filteredRows, type = "resident" }) => {
+const AddEligibilityFormModal = ({ open, onClose, onSuccess, filteredRows }) => {
   const [formData, setFormData] = useState({ form_name: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -37,12 +38,9 @@ const AddEligibilityFormModal = ({ open, onClose, onSuccess, filteredRows, type 
 
       const ids = filteredRows.map((row) => row.id);
 
-      // ✅ send the right key depending on which page triggered the modal
       const payload = {
         form_name: formData.form_name,
-        ...(type === "household"
-          ? { household_ids: ids }
-          : { resident_ids: ids }),
+        resident_ids: ids,
       };
 
       const res = await axios.post(
@@ -95,16 +93,19 @@ const AddEligibilityFormModal = ({ open, onClose, onSuccess, filteredRows, type 
         </Stack>
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button onClick={handleClose} disabled={loading}>Cancel</Button>
-        <Button
-          variant="contained"
-          onClick={handleSave}
-          disabled={loading}
-          sx={{ backgroundColor: "#002f59" }}
-        >
-          {loading ? "Creating..." : "Create Form"}
-        </Button>
+      <DialogActions sx={{ px: 3, pb: 3, justifyContent: "space-between", alignItems: "center" }}>
+        <ModalLogoBadge />
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button onClick={handleClose} disabled={loading}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            disabled={loading}
+            sx={{ backgroundColor: "#002f59" }}
+          >
+            {loading ? "Creating..." : "Create Form"}
+          </Button>
+        </Box>
       </DialogActions>
     </Dialog>
   );

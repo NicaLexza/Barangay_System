@@ -9,8 +9,10 @@ import {
   TextField,
   Stack,
   Typography,
+  Box,
 } from "@mui/material";
 import axios from "axios";
+import ModalLogoBadge from "../Reusables/ModalLogoBadge.jsx";
 
 const ChangePasswordModal = ({ open, onClose, userId, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -117,16 +119,19 @@ const ChangePasswordModal = ({ open, onClose, userId, onSuccess }) => {
         </Stack>
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button onClick={handleClose} disabled={loading}>Cancel</Button>
-        <Button
-          variant="contained"
-          onClick={handleSave}
-          disabled={loading}
-          sx={{ backgroundColor: "#002f59" }}
-        >
-          {loading ? "Saving..." : "Change Password"}
-        </Button>
+      <DialogActions sx={{ px: 3, pb: 3, justifyContent: "space-between", alignItems: "center" }}>
+        <ModalLogoBadge />
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button onClick={handleClose} disabled={loading}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            disabled={loading}
+            sx={{ backgroundColor: "#002f59" }}
+          >
+            {loading ? "Saving..." : "Change Password"}
+          </Button>
+        </Box>
       </DialogActions>
     </Dialog>
   );

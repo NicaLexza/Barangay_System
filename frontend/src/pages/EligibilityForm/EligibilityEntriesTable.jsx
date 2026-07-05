@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
-import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, useLocation } from "react-router-dom";
 import { DataGrid } from "@mui/x-data-grid";
 import {
-  Box, IconButton, Popper, Paper, Typography,
+  Box, IconButton,
   Select, MenuItem, FormControl,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -10,12 +10,11 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import axios from "axios";
 import DeleteEligibilityFormEntriesModal from "../../modals/DeleteEligibilityFormEntriesModal";
 import EligibilityEntriesToolbar from "./EligiblitiyEntriesToolbar";
+import InfoPopper from "../../Reusables/InfoPopper.jsx";
 
 const EligibilityEntriesTable = () => {
   const { formId } = useParams();
   const { state } = useLocation();
-  const navigate = useNavigate();
-  const printRef = useRef(null);
 
   const isDisabled = state?.is_disabled ?? false;
 
@@ -432,13 +431,14 @@ const EligibilityEntriesTable = () => {
       />
 
       {/* Info Popper */}
-      <Popper open={infoOpen} anchorEl={infoAnchorEl} placement="left-start" disablePortal>
-        <Paper elevation={3} sx={{ p: 1, maxWidth: 220 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 0.5 }}>INFO</Typography>
-          <Typography variant="body2">Processed by: {selectedRow?.processed_by_name || "N/A"}</Typography>
-          <Typography variant="body2">Processed at: {selectedRow?.processed_at || "N/A"}</Typography>
-        </Paper>
-      </Popper>
+      <InfoPopper
+        open={infoOpen}
+        anchorEl={infoAnchorEl}
+        fields={[
+          { label: "Processed by", value: selectedRow?.processed_by_name },
+          { label: "Processed at", value: selectedRow?.processed_at },
+        ]}
+      />
 
       {/* Delete Modal */}
       <DeleteEligibilityFormEntriesModal

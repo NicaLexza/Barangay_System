@@ -1,7 +1,7 @@
 // AccountsTable.jsx
 import { useState, useEffect } from 'react';
 import { DataGrid } from '@mui/x-data-grid';
-import { Box, IconButton, Popper, Paper, Typography } from '@mui/material';
+import { Box, IconButton } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import KeyIcon from '@mui/icons-material/Key';
@@ -10,6 +10,7 @@ import EditAccountModal from '../../modals/EditAccountModal';
 import ChangePasswordModal from '../../modals/ChangePasswordModal';
 import AccountsToolbar from './AccountsToolbar';
 import DeleteConfirmModal from '../../modals/DeleteAccountModal';
+import InfoPopper from '../../Reusables/InfoPopper.jsx';
 import axios from 'axios';
 
 const UsersTable = () => {
@@ -177,6 +178,7 @@ const UsersTable = () => {
         rows={filteredRows}
         columns={columns}
         getRowId={(row) => row.id}
+        loading={loading}
         hideFooter
         showToolbar
         sx={{ flex: 1, minHeight: 0 }}  // ✅
@@ -191,15 +193,16 @@ const UsersTable = () => {
       />
 
       {/* Info Popper */}
-      <Popper open={infoOpen} anchorEl={infoAnchorEl} placement="left-start" disablePortal>
-        <Paper elevation={3} sx={{ p: 1, maxWidth: 220 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>INFO</Typography>
-          <Typography variant="body2">Created by: {selectedRow?.created_by_name || 'N/A'}</Typography>
-          <Typography variant="body2">Created at: {selectedRow?.created_at || 'N/A'}</Typography>
-          <Typography variant="body2">Updated by: {selectedRow?.updated_by_name || 'N/A'}</Typography>
-          <Typography variant="body2">Updated at: {selectedRow?.updated_at || 'N/A'}</Typography>
-        </Paper>
-      </Popper>
+      <InfoPopper
+        open={infoOpen}
+        anchorEl={infoAnchorEl}
+        fields={[
+          { label: "Created by", value: selectedRow?.created_by_name },
+          { label: "Created at", value: selectedRow?.created_at },
+          { label: "Updated by", value: selectedRow?.updated_by_name },
+          { label: "Updated at", value: selectedRow?.updated_at },
+        ]}
+      />
 
       {/* Edit & Delete Modals (uncomment when ready) */}
       <EditAccountModal
