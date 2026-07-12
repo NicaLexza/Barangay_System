@@ -25,7 +25,11 @@ const STATUS_COLORS = {
 };
 
 const StatusDot = ({ row }) => {
-  const color = !row.enabled ? "#bdbdbd" : (STATUS_COLORS[row.status] || "#bdbdbd");
+  // Grey only means "manually excluded via the eye icon" — that toggle is
+  // only ever clickable on green/yellow rows (see isFixed below), so red
+  // (exact duplicate) and error rows always keep their own status color.
+  const manuallyExcluded = !row.enabled && (row.status === "green" || row.status === "yellow");
+  const color = manuallyExcluded ? "#bdbdbd" : (STATUS_COLORS[row.status] || "#bdbdbd");
   return (
     <Tooltip title={row.statusReason || row.status} placement="right">
       <Box sx={{ width: 11, height: 11, borderRadius: "50%", backgroundColor: color, flexShrink: 0 }} />
@@ -164,6 +168,14 @@ const ImportResidentModal = ({ open, onClose, onSuccess }) => {
     {
       field: "is_solop", headerName: "Solo Parent", width: 95,
       valueGetter: (value) => (value ? "Yes" : "No"),
+    },
+    {
+      field: "is_household_head", headerName: "Household Head", width: 130,
+      valueGetter: (value) => (value ? "Yes" : "No"),
+    },
+    {
+      field: "household_member_count", headerName: "Member Count", width: 110,
+      valueGetter: (value) => (value ?? "—"),
     },
     {
       field: "_actions", headerName: "Actions", width: 90, sortable: false, disableColumnMenu: true,
@@ -331,7 +343,13 @@ const ImportResidentModal = ({ open, onClose, onSuccess }) => {
                 params.row.status !== "error"
               }
               getRowClassName={(params) => {
-                if (!params.row.enabled) return "row-disabled";
+                // Same rule as StatusDot: grey is "manually excluded," which
+                // is only ever possible for green/yellow rows — red and
+                // error rows keep their own color regardless of `enabled`.
+                const manuallyExcluded =
+                  !params.row.enabled &&
+                  (params.row.status === "green" || params.row.status === "yellow");
+                if (manuallyExcluded) return "row-disabled";
                 return `row-${params.row.status}`;
               }}
               sx={{

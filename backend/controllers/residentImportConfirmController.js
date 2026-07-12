@@ -39,16 +39,6 @@ const confirmImportResidents = (req, res) => {
   };
 
   for (const row of toProcess) {
-    // Normalize household fields from CSV
-    const isHead = row.household_head
-      ? ["1", "true", "yes"].includes(String(row.household_head).toLowerCase())
-      : false;
-    const memberCount = isHead
-      ? parseInt(row.member_count) >= 1
-        ? parseInt(row.member_count)
-        : 1
-      : null;
-
     if (row.status === "green") {
       const insertSql = `
         INSERT INTO residents (
@@ -76,8 +66,8 @@ const confirmImportResidents = (req, res) => {
           row.is_pwd ? 1 : 0,
           row.is_senior ? 1 : 0,
           row.is_solop ? 1 : 0,
-          isHead ? 1 : 0,
-          memberCount,
+          row.is_household_head ? 1 : 0,
+          row.household_member_count,
           created_by,
         ],
         (err, result) => {
@@ -131,8 +121,8 @@ const confirmImportResidents = (req, res) => {
           row.is_pwd ? 1 : 0,
           row.is_senior ? 1 : 0,
           row.is_solop ? 1 : 0,
-          isHead ? 1 : 0,
-          memberCount,
+          row.is_household_head ? 1 : 0,
+          row.household_member_count,
           created_by,
           row.existing_id,
         ],

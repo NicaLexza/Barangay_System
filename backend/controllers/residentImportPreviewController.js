@@ -21,6 +21,9 @@ const COLUMN_MAP = {
   "Is Person with Disability (PWD)?":  "is_pwd",
   "Is Senior Citizen?":                "is_senior",
   "Is Solo Parent?":                   "is_solop",
+  "Are you the Household Head?":       "is_household_head",
+  "Are you the Household Head ":       "is_household_head", // fallback — current form export has a trailing space and no "?"
+  "Household Member Count":            "household_member_count",
 };
 
 const REQUIRED_FIELDS = ["f_name", "l_name", "sex", "birthdate", "birthplace", "street", "civil_status"];
@@ -29,6 +32,7 @@ const REQUIRED_FIELDS = ["f_name", "l_name", "sex", "birthdate", "birthplace", "
 const NON_CONSTANT_FIELDS = [
   "m_name", "suffix", "sex", "birthplace", "house_no", "street",
   "civil_status", "occupation", "citizenship", "is_pwd", "is_senior", "is_solop",
+  "is_household_head", "household_member_count",
 ];
 
 const parseYesNo = (value) => {
@@ -67,7 +71,7 @@ const normalizeBool = (v) => (v ? 1 : 0);
 
 const rowsMatch = (incoming, existing) => {
   for (const field of NON_CONSTANT_FIELDS) {
-    if (field === "is_pwd" || field === "is_senior" || field === "is_solop") {
+    if (field === "is_pwd" || field === "is_senior" || field === "is_solop" || field === "is_household_head") {
       if (normalizeBool(incoming[field]) !== normalizeBool(existing[field])) return false;
     } else {
       if (normalizeStr(incoming[field]) !== normalizeStr(existing[field])) return false;
@@ -117,6 +121,10 @@ const previewImportResidents = (req, res) => {
     row.is_pwd       = parseYesNo(row.is_pwd);
     row.is_senior    = parseYesNo(row.is_senior);
     row.is_solop     = parseYesNo(row.is_solop);
+    row.is_household_head = parseYesNo(row.is_household_head);
+    row.household_member_count = row.is_household_head
+      ? (parseInt(row.household_member_count, 10) || 1)
+      : null;
     row._id          = `row_${index}`;
     row._rowNumber   = index + 2;
 
