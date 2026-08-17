@@ -4,8 +4,8 @@
 
 JULS is a barangay management system for handling resident records, user accounts, eligibility forms, eligibility entries, dashboard statistics, and database backup/restore operations. The application is split into a React + Vite frontend and a Node.js + Express backend backed by MySQL.
 
-- Updated: 2026-06-30
-- Database file: barangay (16).sql
+- Updated: 2026-07-18
+- Database file: barangay.sql
 - Backend port: 5000
 - Frontend dev server: 5173
 
@@ -15,14 +15,24 @@ JULS is a barangay management system for handling resident records, user account
 
 The project is currently running as a functional full-stack system with the following capabilities:
 
-- Authentication and role-based access control
+- JWT-based authentication with forced password-change handling
+- Role-based frontend route protection for Admin and Staff users
 - Admin/staff user management
 - Resident CRUD and bulk import workflows
-- Eligibility form management with archive/restore flow
-- Eligibility entry management
+- Eligibility form management with archive/restore/delete flow
+- Eligibility entry management and archived-form views
 - Dashboard statistics and recent activity feed
 - Database backup and restore support
 - Activity logging for key operations
+
+## Recent Implementation Updates
+
+Recent refinements in the current codebase include:
+
+- Protected routes now enforce token presence, JWT expiration checks, forced password-change redirects, and role-based access control in the React frontend.
+- The application distinguishes admin-only pages such as Dashboard and Accounts from shared admin/staff pages such as Residents and Eligibility.
+- Eligibility routes include a dedicated archived forms view, with route ordering set so /Eligibility/Archived is not interpreted as a form ID.
+- Resident import flows use preview and confirmation steps before committing changes to the database.
 
 ---
 
@@ -267,4 +277,4 @@ When making changes, assume the current system is already using:
 - Separate backend controllers and routes per module
 - React components organized by feature under frontend/src/pages
 
-This context should be treated as the current working state of the system as of 2026-06-30.
+This context should be treated as the current working state of the system as of 2026-07-18.

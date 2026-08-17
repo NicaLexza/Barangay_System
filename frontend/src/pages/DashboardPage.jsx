@@ -18,6 +18,8 @@ import {
   Chip,
   Button,
   CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import HomeIcon from "@mui/icons-material/Home";
@@ -76,6 +78,13 @@ const RECORD_TYPE_STYLES = {
 
 const pct = (n, total) =>
   total > 0 ? Math.round((Number(n) / Number(total)) * 100) : 0;
+
+// Turns the backend's { residents, accounts, eligibility_forms, eligibility_entries }
+// shape into one readable sentence, reused for both backup and restore snackbars.
+const formatCountsSummary = (counts) => {
+  if (!counts) return null;
+  return `${counts.residents} residents, ${counts.accounts} accounts, ${counts.eligibility_forms} eligibility forms, and ${counts.eligibility_entries} entries`;
+};
 
 const thinScroll = {
   overflowY: "auto",
@@ -351,7 +360,13 @@ const Dashboard = () => {
   const [activity, setActivity] = useState([]);
   const [loadS, setLoadS] = useState(true);
   const [loadA, setLoadA] = useState(true);
-  const [backingUp, setBackingUp] = useState(false);
+
+  // Backup re-auth flow state — mirrors the restore flow below. Backup now
+  // requires the same credential confirmation restore already required,
+  // instead of firing straight off the button click.
+  const [backupReAuthOpen, setBackupReAuthOpen] = useState(false);
+  const [backupReAuthLoading, setBackupReAuthLoading] = useState(false);
+  const [backupReAuthError, setBackupReAuthError] = useState("");
 
   // Restore flow state
   const [restoreFile, setRestoreFile] = useState(null);
@@ -359,6 +374,10 @@ const Dashboard = () => {
   const [reAuthLoading, setReAuthLoading] = useState(false);
   const [reAuthError, setReAuthError] = useState("");
   const fileInputRef = useRef(null);
+
+  // Shared result feedback for both backup and restore
+  const [snackbar, setSnackbar] = useState({ open: false, severity: "success", message: "" });
+  const closeSnackbar = () => setSnackbar((prev) => ({ ...prev, open: false }));
 
   const adminName = localStorage.getItem("username") ?? "Admin";
   const today = dayjs().format("dddd, MMMM D, YYYY");
@@ -402,31 +421,90 @@ const Dashboard = () => {
     fetchActivity();
   }, [fetchStats, fetchActivity]);
 
-  // Streams the .sql dump straight to a browser download — no copy is ever
-  // saved server-side or in this app.
-  const handleBackup = async () => {
-    setBackingUp(true);
+  // ── Backup — now gated behind re-auth ─────────────────────────────────────
+  const handleBackupReAuthClose = () => {
+    if (backupReAuthLoading) return;
+    setBackupReAuthOpen(false);
+    setBackupReAuthError("");
+  };
+
+const handleBackupConfirm = async ({ username, password }) => {
+    setBackupReAuthLoading(true);
+    setBackupReAuthError("");
+
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get(
+
+      const summaryRes = await axios.post(
+        "http://localhost:5000/api/backup/summary",
+        { username, password },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      const counts = summaryRes.data.counts;
+
+      const downloadRes = await axios.post(
         "http://localhost:5000/api/backup/download",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          responseType: "blob",
-        },
+        { username, password },
+        { headers: { Authorization: `Bearer ${token}` }, responseType: "blob" },
       );
 
       const filename = `barangay_backup_${dayjs().format("YYYY-MM-DD_HHmmss")}.sql`;
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      const blob = new Blob([downloadRes.data], { type: "application/sql" });
 
+      setBackupReAuthOpen(false);
       fetchActivity();
+
+      // showSaveFilePicker's promise only resolves AFTER the user actually
+      // finishes the native save dialog — a real completion signal, unlike
+      // an <a download> click which hands off to the browser instantly with
+      // no way to know what happens next. Chrome/Edge/Opera desktop only;
+      // Firefox and Safari don't implement it (Firefox has declined to).
+      if (window.showSaveFilePicker) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: filename,
+            types: [{ description: "SQL backup", accept: { "application/sql": [".sql"] } }],
+          });
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+
+          setSnackbar({
+            open: true,
+            severity: "success",
+            message: `Backup saved — ${formatCountsSummary(counts)} backed up.`,
+          });
+        } catch (saveErr) {
+          // AbortError = user clicked Cancel on the save dialog. That's not
+          // a failure, just don't claim anything was saved.
+          if (saveErr.name !== "AbortError") {
+            console.error("Save error:", saveErr);
+            setSnackbar({
+              open: true,
+              severity: "error",
+              message: "Backup was generated but could not be saved to disk.",
+            });
+          }
+        }
+      } else {
+        // Fallback for Firefox/Safari/mobile — no completion signal exists
+        // here at all, so the message is worded to not claim the save is
+        // done, only that it was handed off to the browser's downloader.
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+
+        setSnackbar({
+          open: true,
+          severity: "success",
+          message: `Backup download started — ${formatCountsSummary(counts)} included. Check your browser's downloads to confirm it finished saving.`,
+        });
+      }
     } catch (err) {
       console.error("Backup error:", err);
       let message = "Failed to generate backup. Please try again.";
@@ -438,14 +516,16 @@ const Dashboard = () => {
         } catch {
           // Response wasn't JSON — fall back to the default message above.
         }
+      } else if (err.response?.data?.message) {
+        message = err.response.data.message;
       }
-      alert(message);
+      setBackupReAuthError(message);
     } finally {
-      setBackingUp(false);
+      setBackupReAuthLoading(false);
     }
   };
 
-  // File picked — don't restore yet, just stage it and demand re-auth first.
+  // ── Restore ─────────────────────────────────────────────────────────────
   const handleRestoreFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -463,7 +543,7 @@ const Dashboard = () => {
     setReAuthError("");
   };
 
-  const handleRestoreConfirm = async ({ username, password }) => {
+const handleRestoreConfirm = async ({ username, password }) => {
     if (!restoreFile) return;
     setReAuthLoading(true);
     setReAuthError("");
@@ -475,16 +555,38 @@ const Dashboard = () => {
       form.append("username", username);
       form.append("password", password);
 
-      await axios.post("http://localhost:5000/api/backup/restore", form, {
+      const res = await axios.post("http://localhost:5000/api/backup/restore", form, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
       });
 
-      // Every table just changed — including users, whose passwords/roles
-      // may now differ from what's in this session's token. Force a clean
-      // re-login rather than trusting stale local state.
+      const { counts, mismatches } = res.data;
+      const hasMismatches = mismatches && mismatches.length > 0;
+
+      let message;
+      if (hasMismatches) {
+        const detail = mismatches
+          .map((m) => `${m.table}: ${m.actual} of ${m.expected} expected`)
+          .join("; ");
+        message = `Restore completed with differences — ${detail}. Some records may not have been restored; consider re-uploading the backup file.`;
+      } else {
+        message = counts
+          ? `Database restored successfully — ${formatCountsSummary(counts)} restored.`
+          : "Database restored successfully.";
+      }
+
+      // Stash in sessionStorage (not localStorage — that's about to be
+      // wiped below) so LoginPage can show this AFTER the redirect lands.
+      sessionStorage.setItem(
+        "postRestoreNotice",
+        JSON.stringify({
+          severity: hasMismatches ? "warning" : "success",
+          message,
+        }),
+      );
+
       localStorage.clear();
       window.location.href = "/";
     } catch (err) {
@@ -663,15 +765,8 @@ const Dashboard = () => {
               <Button
                 variant="outlined"
                 size="small"
-                startIcon={
-                  backingUp ? (
-                    <CircularProgress size={14} color="inherit" />
-                  ) : (
-                    <BackupIcon sx={{ fontSize: 16 }} />
-                  )
-                }
-                onClick={handleBackup}
-                disabled={backingUp}
+                startIcon={<BackupIcon sx={{ fontSize: 16 }} />}
+                onClick={() => setBackupReAuthOpen(true)}
                 sx={{
                   textTransform: "none",
                   fontWeight: 600,
@@ -682,7 +777,7 @@ const Dashboard = () => {
                   "&:hover": { backgroundColor: NAVY_LIGHT },
                 }}
               >
-                {backingUp ? "Backing up..." : "Backup Database"}
+                Backup Database
               </Button>
 
               <input
@@ -1348,6 +1443,19 @@ const Dashboard = () => {
         </Box>
       </Box>
 
+      {/* Backup re-auth — same credential-confirmation pattern as restore */}
+      <ReAuthModal
+        open={backupReAuthOpen}
+        onClose={handleBackupReAuthClose}
+        onConfirm={handleBackupConfirm}
+        loading={backupReAuthLoading}
+        error={backupReAuthError}
+        title="Confirm Database Backup"
+        description="Enter your admin credentials to generate and download a full database backup."
+        confirmLabel="Backup Database"
+        confirmColor="primary"
+      />
+
       {/* Restore re-auth — destructive action, requires re-entering admin credentials */}
       <ReAuthModal
         open={reAuthOpen}
@@ -1360,6 +1468,24 @@ const Dashboard = () => {
         confirmLabel="Restore Database"
         confirmColor="error"
       />
+
+      {/* Result feedback for backup (restore's feedback is shown on LoginPage
+          after the redirect — see postRestoreNotice in sessionStorage) */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={7000}
+        onClose={closeSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={closeSnackbar}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ maxWidth: 480 }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 };

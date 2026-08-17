@@ -3,11 +3,9 @@ const { spawn } = require("child_process");
 const bcrypt = require("bcryptjs");
 const db = require("../config/db");
 const { logActivity } = require("../utils/activityLogger");
+const { getTableCounts } = require("../utils/tableCounts");
+const { parseExpectedCounts } = require("../utils/parseBackupCounts");
 
-// mysql (the import/restore client) usually sits in the same bin folder as
-// mysqldump — e.g. C:\xampp\mysql\bin\mysql.exe — so MYSQLDUMP_PATH being
-// set doesn't automatically cover this one. Override via MYSQL_PATH in .env
-// if it's not on PATH.
 const MYSQL_PATH  = process.env.MYSQL_PATH || "mysql";
 const DB_HOST     = process.env.DB_HOST || "localhost";
 const DB_USER     = process.env.DB_USER || "root";
@@ -28,8 +26,6 @@ const restoreDatabase = (req, res) => {
     return res.status(400).json({ message: "No backup file uploaded." });
   }
 
-  // Re-auth: credentials must match the currently logged-in admin — same
-  // pattern already used for restoring/deleting archived eligibility forms.
   const fetchSql = "SELECT * FROM users WHERE username = ? AND user_id = ?";
   db.query(fetchSql, [username, req.user.id], async (err, results) => {
     if (err) return res.status(500).json({ message: "Database error", err });
@@ -47,8 +43,12 @@ const restoreDatabase = (req, res) => {
       return res.status(403).json({ message: "Account is inactive." });
     }
 
-    // Credentials confirmed — pipe the uploaded .sql straight into the
-    // mysql client's stdin. Never written to disk.
+    // Read what the FILE itself claims to contain, before we run it. This
+    // is the baseline we'll compare the post-restore database against —
+    // catches truncated/incomplete files that run cleanly (exit code 0)
+    // but never actually contained all the rows they should have.
+    const expectedCounts = parseExpectedCounts(req.file.buffer.toString("utf8"));
+
     const args = ["-h", DB_HOST, "-u", DB_USER];
     if (DB_PASSWORD) args.push(`-p${DB_PASSWORD}`);
     args.push(DB_NAME);
@@ -80,17 +80,50 @@ const restoreDatabase = (req, res) => {
         return;
       }
 
-      res.status(200).json({ message: "Database restored successfully." });
+      // mysql exited cleanly — but that only means the script ran without
+      // a hard SQL error. Compare what actually landed against what the
+      // file claimed to catch silent gaps (e.g. a truncated upload).
+      getTableCounts((countErr, counts) => {
+        if (countErr) {
+          res.status(200).json({
+            message: "Database restored successfully.",
+            counts: null,
+            expectedCounts,
+            mismatches: [],
+          });
+        } else {
+          const TABLE_LABELS = {
+            residents: "Residents",
+            accounts: "Accounts",
+            eligibility_forms: "Eligibility Forms",
+            eligibility_entries: "Eligibility Entries",
+          };
 
-      // Logged AFTER the restore completes, not before — see the note in
-      // the controller's header comment. This entry becomes the first new
-      // row in the now-restored activity_logs table.
-      logActivity({
-        entity_type:  "Database",
-        entity_id:    null,
-        entity_name:  req.file.originalname,
-        action_type:  "restored",
-        performed_by: req.user.id,
+          const mismatches = Object.keys(expectedCounts)
+            .filter((key) => counts[key] !== expectedCounts[key])
+            .map((key) => ({
+              table: TABLE_LABELS[key] || key,
+              expected: expectedCounts[key],
+              actual: counts[key],
+            }));
+
+          res.status(200).json({
+            message: mismatches.length > 0
+              ? "Database restored with differences from the backup file."
+              : "Database restored successfully.",
+            counts,
+            expectedCounts,
+            mismatches,
+          });
+        }
+
+        logActivity({
+          entity_type:  "Database",
+          entity_id:    null,
+          entity_name:  req.file.originalname,
+          action_type:  "restored",
+          performed_by: req.user.id,
+        });
       });
     });
 

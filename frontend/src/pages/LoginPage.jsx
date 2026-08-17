@@ -1,7 +1,10 @@
 // LoginPage.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
-import { TextField, Button, Typography, Box, InputAdornment, IconButton } from "@mui/material";
+import {
+  TextField, Button, Typography, Box, InputAdornment, IconButton,
+  Snackbar, Alert,
+} from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
@@ -15,6 +18,27 @@ const Login = () => {
   const [usernameFocused, setUsernameFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const navigate = useNavigate();
+
+  // Picks up the "database restored" result left behind by DashboardPage
+  // right before it force-navigated here. sessionStorage survives the full
+  // page reload that localStorage.clear() + window.location.href triggers,
+  // which is why the message couldn't just live in React state.
+  const [notice, setNotice] = useState({ open: false, severity: "success", message: "" });
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem("postRestoreNotice");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setNotice({ open: true, severity: parsed.severity || "success", message: parsed.message });
+      } catch {
+        // Malformed value — ignore rather than show a broken toast.
+      }
+      sessionStorage.removeItem("postRestoreNotice");
+    }
+  }, []);
+
+  const closeNotice = () => setNotice((prev) => ({ ...prev, open: false }));
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -237,6 +261,22 @@ const Login = () => {
           />
         </Box>
       </Box>
+
+      <Snackbar
+        open={notice.open}
+        autoHideDuration={7000}
+        onClose={closeNotice}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={closeNotice}
+          severity={notice.severity}
+          variant="filled"
+          sx={{ maxWidth: 480 }}
+        >
+          {notice.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
