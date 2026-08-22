@@ -20,6 +20,7 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
+  Collapse,
 } from "@mui/material";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import HomeIcon from "@mui/icons-material/Home";
@@ -36,6 +37,8 @@ import PeopleOutlineIcon from "@mui/icons-material/PeopleOutline";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import BackupIcon from "@mui/icons-material/Backup";
 import RestoreIcon from "@mui/icons-material/Restore";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import axios from "axios";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -67,13 +70,15 @@ const ACT_COLORS = {
   "Household:updated": "#15803d",
   "Account:created": "#7c3aed",
   "Eligibility Form:created": "#dc2626",
+  "Eligibility Form:enabled": "#16a34a",
+  "Eligibility Form:disabled": "#64748b",
   "Database:backup_created": "#0891b2",
   "Database:restored": "#0891b2",
 };
 
 const RECORD_TYPE_STYLES = {
   Resident: { color: "#1d4ed8", bg: "#eff6ff", Icon: PeopleOutlineIcon },
-  Household: { color: "#16a34a", bg: "#f0fdf4", Icon: HomeOutlinedIcon },
+  Head: { color: "#16a34a", bg: "#f0fdf4", Icon: HomeOutlinedIcon },
 };
 
 const pct = (n, total) =>
@@ -141,15 +146,15 @@ const StatCard = ({
       position: "relative",
       "&::before": accent
         ? {
-            content: '""',
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "4px",
-            height: "100%",
-            backgroundColor: NAVY,
-            borderRadius: "12px 0 0 12px",
-          }
+          content: '""',
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "4px",
+          height: "100%",
+          backgroundColor: NAVY,
+          borderRadius: "12px 0 0 12px",
+        }
         : {},
     }}
   >
@@ -281,8 +286,10 @@ const Dot = ({ color }) => (
 );
 
 const ActivityRow = ({ item, last }) => {
+  const [expanded, setExpanded] = useState(false);
   const key = `${item.entity_type}:${item.action_type}`;
   const color = ACT_COLORS[key] ?? INK_3;
+  
   const verbMap = {
     added: "added",
     created: "created",
@@ -292,62 +299,157 @@ const ActivityRow = ({ item, last }) => {
     restored: "restored",
     deleted: "deleted permanently",
     backup_created: "backed up",
+    enabled: "Enabled",
+    disabled: "Disabled",
   };
+  
   const verb = verbMap[item.action_type] ?? item.action_type;
+  
+  let changes = [];
+  if (item.changes) {
+    try {
+      changes = JSON.parse(item.changes);
+    } catch (e) {
+      console.error("Failed to parse changes:", e);
+    }
+  }
+
+  const hasChanges = changes.length > 0;
+
   return (
     <>
       <ListItem
         alignItems="flex-start"
         disablePadding
-        sx={{ py: 1.25, gap: 1.25, display: "flex" }}
+        sx={{ py: 1.25, gap: 1.25, display: "flex", flexDirection: "column" }}
       >
-        <Dot color={color} />
-        <ListItemText
-          disableTypography
-          primary={
-            <Box
-              display="flex"
-              justifyContent="space-between"
-              alignItems="flex-start"
-              gap={1}
-            >
-              <Box minWidth={0}>
-                <Typography
-                  sx={{
-                    fontSize: "0.8rem",
-                    fontWeight: 600,
-                    color: INK,
-                    lineHeight: 1.35,
-                  }}
-                  noWrap
-                >
-                  {item.entity_name}
-                </Typography>
-                <Typography sx={{ fontSize: "0.7rem", color: INK_3, mt: 0.25 }}>
-                  {item.entity_type} {verb}
-                  {item.performed_by ? ` · ${item.performed_by}` : ""}
-                </Typography>
-              </Box>
-              <Tooltip
-                title={dayjs(item.action_time).format("MMM D, YYYY h:mm A")}
-                placement="left"
+        <Box display="flex" width="100%" gap={1.25}>
+          <Dot color={color} />
+          <ListItemText
+            disableTypography
+            sx={{ m: 0 }}
+            primary={
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                alignItems="flex-start"
+                gap={1}
               >
-                <Typography
-                  sx={{
-                    fontSize: "0.68rem",
-                    color: INK_3,
-                    whiteSpace: "nowrap",
-                    cursor: "default",
-                    mt: "1px",
-                    flexShrink: 0,
-                  }}
+                <Box minWidth={0}>
+                  <Typography
+                    sx={{
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
+                      color: INK,
+                      lineHeight: 1.35,
+                    }}
+                    noWrap
+                  >
+                    {item.entity_name}
+                  </Typography>
+                  <Box display="flex" alignItems="center" gap={0.5} mt={0.25}>
+                    <Typography sx={{ fontSize: "0.7rem", color: INK_3 }}>
+                      {item.entity_type} {verb}
+                      {item.performed_by ? ` · ${item.performed_by}` : ""}
+                    </Typography>
+                    {hasChanges && (
+                      <Box
+                        onClick={() => setExpanded(!expanded)}
+                        sx={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          color: color,
+                          cursor: "pointer",
+                          ml: 0.5,
+                          "&:hover": { opacity: 0.8 }
+                        }}
+                      >
+                        <Typography sx={{ fontSize: "0.65rem", fontWeight: 600 }}>
+                          {expanded ? "HIDE DETAILS" : "SHOW DETAILS"}
+                        </Typography>
+                        {expanded ? (
+                          <KeyboardArrowUpIcon sx={{ fontSize: 14 }} />
+                        ) : (
+                          <KeyboardArrowDownIcon sx={{ fontSize: 14 }} />
+                        )}
+                      </Box>
+                    )}
+                  </Box>
+                </Box>
+                <Tooltip
+                  title={dayjs(item.action_time).format("MMM D, YYYY h:mm A")}
+                  placement="left"
                 >
-                  {dayjs(item.action_time).fromNow()}
-                </Typography>
-              </Tooltip>
+                  <Typography
+                    sx={{
+                      fontSize: "0.68rem",
+                      color: INK_3,
+                      whiteSpace: "nowrap",
+                      cursor: "default",
+                      mt: "1px",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {dayjs(item.action_time).fromNow()}
+                  </Typography>
+                </Tooltip>
+              </Box>
+            }
+          />
+        </Box>
+        
+        {/* Expanded Changes Section */}
+        {hasChanges && (
+          <Collapse in={expanded} timeout="auto" unmountOnExit sx={{ width: "100%", pl: 2.75 }}>
+            <Box
+              sx={{
+                mt: 0.5,
+                p: 1.25,
+                backgroundColor: SURFACE,
+                border: `1px solid ${BORDER}`,
+                borderRadius: "6px",
+              }}
+            >
+              {changes.map((c, idx) => (
+                <Box 
+                  key={idx} 
+                  display="flex" 
+                  alignItems="baseline" 
+                  gap={1}
+                  sx={{ mb: idx !== changes.length - 1 ? 0.5 : 0 }}
+                >
+                  <Typography sx={{ fontSize: "0.7rem", fontWeight: 600, color: INK_2, minWidth: 80 }}>
+                    {c.field}
+                  </Typography>
+                  <Box display="flex" alignItems="center" gap={1} flex={1} minWidth={0}>
+                    <Typography 
+                      sx={{ 
+                        fontSize: "0.7rem", 
+                        color: INK_3,
+                        textDecoration: "line-through",
+                        opacity: 0.7
+                      }}
+                      noWrap
+                    >
+                      {c.from || "(empty)"}
+                    </Typography>
+                    <Typography sx={{ fontSize: "0.7rem", color: INK_3 }}>→</Typography>
+                    <Typography 
+                      sx={{ 
+                        fontSize: "0.7rem", 
+                        color: INK,
+                        fontWeight: 500
+                      }}
+                      noWrap
+                    >
+                      {c.to || "(empty)"}
+                    </Typography>
+                  </Box>
+                </Box>
+              ))}
             </Box>
-          }
-        />
+          </Collapse>
+        )}
       </ListItem>
       {!last && <Divider sx={{ borderColor: BORDER }} />}
     </>
@@ -428,7 +530,7 @@ const Dashboard = () => {
     setBackupReAuthError("");
   };
 
-const handleBackupConfirm = async ({ username, password }) => {
+  const handleBackupConfirm = async ({ username, password }) => {
     setBackupReAuthLoading(true);
     setBackupReAuthError("");
 
@@ -543,7 +645,7 @@ const handleBackupConfirm = async ({ username, password }) => {
     setReAuthError("");
   };
 
-const handleRestoreConfirm = async ({ username, password }) => {
+  const handleRestoreConfirm = async ({ username, password }) => {
     if (!restoreFile) return;
     setReAuthLoading(true);
     setReAuthError("");
@@ -947,131 +1049,131 @@ const handleRestoreConfirm = async ({ username, password }) => {
                   <SectionLabel>Special Sectors</SectionLabel>
                   {loadS
                     ? Array.from({ length: 3 }).map((_, i) => (
-                        <Box
-                          key={i}
-                          display="flex"
-                          justifyContent="space-between"
-                          py={1.1}
-                        >
-                          <Skeleton width={120} height={15} />
-                          <Skeleton width={36} height={15} />
-                        </Box>
-                      ))
+                      <Box
+                        key={i}
+                        display="flex"
+                        justifyContent="space-between"
+                        py={1.1}
+                      >
+                        <Skeleton width={120} height={15} />
+                        <Skeleton width={36} height={15} />
+                      </Box>
+                    ))
                     : sectorRows.map(({ Icon, label, key, color }, i) => {
-                        const count = Number(sectors[key] ?? 0);
-                        const p = pct(count, totalR);
-                        return (
-                          <Box key={key}>
+                      const count = Number(sectors[key] ?? 0);
+                      const p = pct(count, totalR);
+                      return (
+                        <Box key={key}>
+                          <Box
+                            display="flex"
+                            justifyContent="space-between"
+                            alignItems="center"
+                            py={1.1}
+                          >
                             <Box
                               display="flex"
-                              justifyContent="space-between"
                               alignItems="center"
-                              py={1.1}
+                              gap={0.75}
                             >
                               <Box
-                                display="flex"
-                                alignItems="center"
-                                gap={0.75}
+                                sx={{
+                                  width: 26,
+                                  height: 26,
+                                  borderRadius: "6px",
+                                  backgroundColor: `${color}18`,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
                               >
-                                <Box
-                                  sx={{
-                                    width: 26,
-                                    height: 26,
-                                    borderRadius: "6px",
-                                    backgroundColor: `${color}18`,
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                  }}
-                                >
-                                  <Icon sx={{ fontSize: 14, color }} />
-                                </Box>
-                                <Typography
-                                  sx={{
-                                    fontSize: "0.76rem",
-                                    color: INK_2,
-                                    fontWeight: 500,
-                                  }}
-                                >
-                                  {label}
-                                </Typography>
+                                <Icon sx={{ fontSize: 14, color }} />
                               </Box>
-                              <Box
-                                display="flex"
-                                alignItems="baseline"
-                                gap={0.5}
+                              <Typography
+                                sx={{
+                                  fontSize: "0.76rem",
+                                  color: INK_2,
+                                  fontWeight: 500,
+                                }}
                               >
-                                <Typography
-                                  sx={{
-                                    fontSize: "1rem",
-                                    fontWeight: 700,
-                                    color: INK,
-                                    fontVariantNumeric: "tabular-nums",
-                                  }}
-                                >
-                                  {count}
-                                </Typography>
-                                <Typography
-                                  sx={{ fontSize: "0.66rem", color: INK_3 }}
-                                >
-                                  {p}%
-                                </Typography>
-                              </Box>
+                                {label}
+                              </Typography>
                             </Box>
-                            {i < sectorRows.length - 1 && (
-                              <Divider sx={{ borderColor: BORDER }} />
-                            )}
+                            <Box
+                              display="flex"
+                              alignItems="baseline"
+                              gap={0.5}
+                            >
+                              <Typography
+                                sx={{
+                                  fontSize: "1rem",
+                                  fontWeight: 700,
+                                  color: INK,
+                                  fontVariantNumeric: "tabular-nums",
+                                }}
+                              >
+                                {count}
+                              </Typography>
+                              <Typography
+                                sx={{ fontSize: "0.66rem", color: INK_3 }}
+                              >
+                                {p}%
+                              </Typography>
+                            </Box>
                           </Box>
-                        );
-                      })}
+                          {i < sectorRows.length - 1 && (
+                            <Divider sx={{ borderColor: BORDER }} />
+                          )}
+                        </Box>
+                      );
+                    })}
 
                   <Divider sx={{ borderColor: BORDER, my: 1.5 }} />
                   <SectionLabel sx={{ mb: 1 }}>Civil Status</SectionLabel>
                   <Box display="flex" flexWrap="wrap" gap={0.6}>
                     {loadS
                       ? Array.from({ length: 4 }).map((_, i) => (
-                          <Skeleton
-                            key={i}
-                            width={72}
-                            height={24}
-                            sx={{ borderRadius: "5px" }}
-                          />
-                        ))
+                        <Skeleton
+                          key={i}
+                          width={72}
+                          height={24}
+                          sx={{ borderRadius: "5px" }}
+                        />
+                      ))
                       : civil.map((c) => (
-                          <Box
-                            key={c.civil_status}
+                        <Box
+                          key={c.civil_status}
+                          sx={{
+                            px: 1,
+                            py: 0.35,
+                            border: `1px solid ${BORDER}`,
+                            borderRadius: "5px",
+                            backgroundColor: SURFACE,
+                            display: "flex",
+                            gap: 0.6,
+                            alignItems: "baseline",
+                          }}
+                        >
+                          <Typography
                             sx={{
-                              px: 1,
-                              py: 0.35,
-                              border: `1px solid ${BORDER}`,
-                              borderRadius: "5px",
-                              backgroundColor: SURFACE,
-                              display: "flex",
-                              gap: 0.6,
-                              alignItems: "baseline",
+                              fontSize: "0.7rem",
+                              color: INK_2,
+                              fontWeight: 500,
                             }}
                           >
-                            <Typography
-                              sx={{
-                                fontSize: "0.7rem",
-                                color: INK_2,
-                                fontWeight: 500,
-                              }}
-                            >
-                              {c.civil_status}
-                            </Typography>
-                            <Typography
-                              sx={{
-                                fontSize: "0.7rem",
-                                fontWeight: 700,
-                                color: INK,
-                                fontVariantNumeric: "tabular-nums",
-                              }}
-                            >
-                              {c.count}
-                            </Typography>
-                          </Box>
-                        ))}
+                            {c.civil_status}
+                          </Typography>
+                          <Typography
+                            sx={{
+                              fontSize: "0.7rem",
+                              fontWeight: 700,
+                              color: INK,
+                              fontVariantNumeric: "tabular-nums",
+                            }}
+                          >
+                            {c.count}
+                          </Typography>
+                        </Box>
+                      ))}
                   </Box>
                 </Box>
               </Box>

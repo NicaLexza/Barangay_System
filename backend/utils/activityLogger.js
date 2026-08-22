@@ -13,14 +13,15 @@ const db = require("../config/db");
  * @param {string} opts.action_type   e.g. 'added', 'updated', 'deleted', 'archived', 'restored', 'imported'
  * @param {number} [opts.performed_by] user_id from req.user.id
  */
-const logActivity = ({ entity_type, entity_id = null, entity_name = null, action_type, performed_by = null }) => {
+const logActivity = ({ entity_type, entity_id = null, entity_name = null, action_type, performed_by = null, changes = null }) => {
+  const changesJson = changes ? JSON.stringify(changes) : null;
   const sql = `
     INSERT INTO activity_logs
-      (entity_type, entity_id, entity_name, action_type, performed_by)
-    VALUES (?, ?, ?, ?, ?)
+      (entity_type, entity_id, entity_name, action_type, performed_by, changes)
+    VALUES (?, ?, ?, ?, ?, ?)
   `;
 
-  db.query(sql, [entity_type, entity_id, entity_name, action_type, performed_by], (err) => {
+  db.query(sql, [entity_type, entity_id, entity_name, action_type, performed_by, changesJson], (err) => {
     if (err) console.error("[activityLogger] Failed to log activity:", err.message);
   });
 };

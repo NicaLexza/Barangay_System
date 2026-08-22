@@ -1,6 +1,7 @@
 // userEditController.js
 
 const db = require("../config/db");
+const { logActivity } = require("../utils/activityLogger");
 
 const updateUser = (req, res) => {
   const { user_id, ...data } = req.body;
@@ -62,9 +63,24 @@ const updateUser = (req, res) => {
     db.query(sql, values, (err, results) => {
       if (err)                          return res.status(500).json({ message: "Update failed", error: err.message });
       if (results.affectedRows === 0)   return res.status(404).json({ message: "User not found" });
+      
+      // Fetch the updated username to log it
+      db.query("SELECT username FROM users WHERE user_id = ?", [user_id], (err, resUser) => {
+        const entity_name = !err && resUser.length > 0 ? resUser[0].username : "User";
+        logActivity({
+          entity_type: "Account",
+          entity_id: user_id,
+          entity_name,
+          action_type: "updated",
+          performed_by: updated_by
+        });
+      });
+      
       res.json({ message: "User updated successfully" });
     });
   }
 };
+
+module.exports = { updateUser };
 
 module.exports = { updateUser };

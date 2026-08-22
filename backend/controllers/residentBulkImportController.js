@@ -1,6 +1,7 @@
 // controllers/residentBulkImportController.js
 const db = require("../config/db");
 const xlsx = require("xlsx");
+const { logActivity } = require("../utils/activityLogger");
 
 // Column mapping from Google Form export headers to DB fields
 const COLUMN_MAP = {
@@ -200,7 +201,7 @@ const bulkImportResidents = (req, res) => {
           row.is_pwd, row.is_senior, row.is_solop,
           created_by,
         ],
-        (err2) => {
+        (err2, result) => {
           if (err2) {
             errorRows.push({
               row: row._rowNumber,
@@ -209,6 +210,13 @@ const bulkImportResidents = (req, res) => {
             });
           } else {
             imported++;
+            logActivity({
+              entity_type: "Resident",
+              entity_id: result.insertId,
+              entity_name: `${row.f_name} ${row.l_name}`,
+              action_type: "imported",
+              performed_by: created_by
+            });
           }
           processed++;
           checkDone();

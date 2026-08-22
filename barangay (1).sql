@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 12, 2026 at 07:57 PM
+-- Generation Time: Aug 22, 2026 at 02:13 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -34,51 +34,75 @@ CREATE TABLE `activity_logs` (
   `entity_name` varchar(255) DEFAULT NULL,
   `action_type` varchar(50) NOT NULL,
   `performed_by` int(11) DEFAULT NULL,
-  `performed_at` datetime DEFAULT current_timestamp()
+  `performed_at` datetime DEFAULT current_timestamp(),
+  `changes` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `activity_logs`
 --
 
-INSERT INTO `activity_logs` (`log_id`, `entity_type`, `entity_id`, `entity_name`, `action_type`, `performed_by`, `performed_at`) VALUES
-(1, 'Eligibility Form', 6, 'eacakes', 'restored', 5, '2026-06-14 14:47:57'),
-(2, 'Household', 5, 'Juls Caliao', 'updated', 5, '2026-06-14 14:48:22'),
-(3, 'Eligibility Form', 9, 'households', 'deleted', 5, '2026-06-14 15:39:56'),
-(4, 'Resident', 22, 'James Bond', 'imported', 5, '2026-06-14 15:44:39'),
-(5, 'Resident', 15, 'bruce caliao', 'updated', 5, '2026-06-14 15:44:39'),
-(6, 'Resident', 23, 'bry son', 'added', 5, '2026-06-16 10:10:15'),
-(7, 'Resident', 23, 'bry son', 'updated', 5, '2026-06-17 20:49:16'),
-(8, 'Eligibility Form', 10, 'dasdasd', 'archived', 5, '2026-06-19 19:43:04'),
-(9, 'Eligibility Form', 10, 'dasdasd', 'deleted', 5, '2026-06-19 19:43:19'),
-(10, 'Account', 17, 'mong yaw', 'created', 5, '2026-06-22 16:15:42'),
-(11, 'Account', 18, 'potchi', 'created', 5, '2026-06-22 16:30:25'),
-(12, 'Database', NULL, 'barangay_backup_2026-06-24_194647.sql', 'backup_created', 5, '2026-06-24 19:46:48'),
-(13, 'Database', NULL, 'barangay_backup_2026-06-24_232800.sql', 'backup_created', 5, '2026-06-24 23:28:01'),
-(14, 'Database', NULL, 'barangay_backup_2026-06-28_201259.sql', 'restored', 5, '2026-06-29 21:13:32'),
-(15, 'Account', 19, 'cosme ', 'created', 5, '2026-07-02 15:39:15'),
-(16, 'Eligibility Form', 7, 'dasdasd', 'archived', 5, '2026-07-03 19:49:32'),
-(17, 'Eligibility Form', 6, 'eacakes', 'archived', 5, '2026-07-03 19:49:34'),
-(18, 'Eligibility Form', 5, 'fuel subsidy ', 'archived', 5, '2026-07-03 19:49:39'),
-(19, 'Eligibility Form', 4, 'unemployed shytes', 'archived', 5, '2026-07-03 19:49:47'),
-(20, 'Eligibility Form', 7, 'dasdasd', 'restored', 5, '2026-07-03 19:50:17'),
-(21, 'Eligibility Form', 6, 'eacakes', 'restored', 5, '2026-07-03 19:50:22'),
-(22, 'Eligibility Form', 5, 'fuel subsidy ', 'restored', 5, '2026-07-03 19:50:26'),
-(23, 'Eligibility Form', 6, 'eacakes', 'archived', 5, '2026-07-03 19:51:00'),
-(24, 'Eligibility Form', 7, 'dasdasd', 'archived', 5, '2026-07-03 19:55:56'),
-(25, 'Eligibility Form', 7, 'dasdasd', 'restored', 5, '2026-07-04 13:54:26'),
-(26, 'Eligibility Form', 6, 'eacakes', 'restored', 5, '2026-07-04 13:54:30'),
-(27, 'Eligibility Form', 6, 'eacakes', 'archived', 5, '2026-07-04 13:54:37'),
-(28, 'Eligibility Form', 13, 'sa', 'archived', 5, '2026-07-05 01:46:17'),
-(29, 'Eligibility Form', 13, 'sa', 'deleted', 5, '2026-07-05 01:46:25'),
-(30, 'Eligibility Form', 15, 'sa', 'created', 5, '2026-07-05 01:52:15'),
-(31, 'Eligibility Form', 11, 'household', 'archived', 5, '2026-07-05 02:08:14'),
-(32, 'Eligibility Form', 12, 'd', 'archived', 5, '2026-07-05 02:08:26'),
-(33, 'Resident', 24, 'Julius Cesar Caliao', 'imported', 5, '2026-07-06 11:04:07'),
-(34, 'Resident', 25, 'Leo Nidas', 'imported', 5, '2026-07-06 11:04:07'),
-(35, 'Eligibility Form', 15, 'sa', 'archived', 5, '2026-07-08 00:30:56'),
-(36, 'Resident', 26, 'dasdasd dasdasd', 'added', 5, '2026-07-08 00:54:00'),
-(37, 'Resident', 27, 'sadsaasda sdasd', 'added', 5, '2026-07-08 01:00:50');
+INSERT INTO `activity_logs` (`log_id`, `entity_type`, `entity_id`, `entity_name`, `action_type`, `performed_by`, `performed_at`, `changes`) VALUES
+(1, 'Eligibility Form', 6, 'eacakes', 'restored', 5, '2026-06-14 14:47:57', NULL),
+(2, 'Household', 5, 'Juls Caliao', 'updated', 5, '2026-06-14 14:48:22', NULL),
+(3, 'Eligibility Form', 9, 'households', 'deleted', 5, '2026-06-14 15:39:56', NULL),
+(4, 'Resident', 22, 'James Bond', 'imported', 5, '2026-06-14 15:44:39', NULL),
+(5, 'Resident', 15, 'bruce caliao', 'updated', 5, '2026-06-14 15:44:39', NULL),
+(6, 'Resident', 23, 'bry son', 'added', 5, '2026-06-16 10:10:15', NULL),
+(7, 'Resident', 23, 'bry son', 'updated', 5, '2026-06-17 20:49:16', NULL),
+(8, 'Eligibility Form', 10, 'dasdasd', 'archived', 5, '2026-06-19 19:43:04', NULL),
+(9, 'Eligibility Form', 10, 'dasdasd', 'deleted', 5, '2026-06-19 19:43:19', NULL),
+(10, 'Account', 17, 'mong yaw', 'created', 5, '2026-06-22 16:15:42', NULL),
+(11, 'Account', 18, 'potchi', 'created', 5, '2026-06-22 16:30:25', NULL),
+(12, 'Database', NULL, 'barangay_backup_2026-06-24_194647.sql', 'backup_created', 5, '2026-06-24 19:46:48', NULL),
+(13, 'Database', NULL, 'barangay_backup_2026-06-24_232800.sql', 'backup_created', 5, '2026-06-24 23:28:01', NULL),
+(14, 'Database', NULL, 'barangay_backup_2026-06-28_201259.sql', 'restored', 5, '2026-06-29 21:13:32', NULL),
+(15, 'Account', 19, 'cosme ', 'created', 5, '2026-07-02 15:39:15', NULL),
+(16, 'Eligibility Form', 7, 'dasdasd', 'archived', 5, '2026-07-03 19:49:32', NULL),
+(17, 'Eligibility Form', 6, 'eacakes', 'archived', 5, '2026-07-03 19:49:34', NULL),
+(18, 'Eligibility Form', 5, 'fuel subsidy ', 'archived', 5, '2026-07-03 19:49:39', NULL),
+(19, 'Eligibility Form', 4, 'unemployed shytes', 'archived', 5, '2026-07-03 19:49:47', NULL),
+(20, 'Eligibility Form', 7, 'dasdasd', 'restored', 5, '2026-07-03 19:50:17', NULL),
+(21, 'Eligibility Form', 6, 'eacakes', 'restored', 5, '2026-07-03 19:50:22', NULL),
+(22, 'Eligibility Form', 5, 'fuel subsidy ', 'restored', 5, '2026-07-03 19:50:26', NULL),
+(23, 'Eligibility Form', 6, 'eacakes', 'archived', 5, '2026-07-03 19:51:00', NULL),
+(24, 'Eligibility Form', 7, 'dasdasd', 'archived', 5, '2026-07-03 19:55:56', NULL),
+(25, 'Eligibility Form', 7, 'dasdasd', 'restored', 5, '2026-07-04 13:54:26', NULL),
+(26, 'Eligibility Form', 6, 'eacakes', 'restored', 5, '2026-07-04 13:54:30', NULL),
+(27, 'Eligibility Form', 6, 'eacakes', 'archived', 5, '2026-07-04 13:54:37', NULL),
+(28, 'Eligibility Form', 13, 'sa', 'archived', 5, '2026-07-05 01:46:17', NULL),
+(29, 'Eligibility Form', 13, 'sa', 'deleted', 5, '2026-07-05 01:46:25', NULL),
+(30, 'Eligibility Form', 15, 'sa', 'created', 5, '2026-07-05 01:52:15', NULL),
+(31, 'Eligibility Form', 11, 'household', 'archived', 5, '2026-07-05 02:08:14', NULL),
+(32, 'Eligibility Form', 12, 'd', 'archived', 5, '2026-07-05 02:08:26', NULL),
+(33, 'Resident', 24, 'Julius Cesar Caliao', 'imported', 5, '2026-07-06 11:04:07', NULL),
+(34, 'Resident', 25, 'Leo Nidas', 'imported', 5, '2026-07-06 11:04:07', NULL),
+(35, 'Eligibility Form', 15, 'sa', 'archived', 5, '2026-07-08 00:30:56', NULL),
+(36, 'Resident', 26, 'dasdasd dasdasd', 'added', 5, '2026-07-08 00:54:00', NULL),
+(37, 'Resident', 27, 'sadsaasda sdasd', 'added', 5, '2026-07-08 01:00:50', NULL),
+(38, 'Database', NULL, 'barangay_backup_2026-07-18_162607.sql', 'restored', 5, '2026-07-18 16:48:13', NULL),
+(39, 'Resident', 28, 'Julius Cesar Kamilan', 'imported', 5, '2026-07-18 16:48:58', NULL),
+(40, 'Database', NULL, 'barangay_backup_2026-07-18_165423.sql', 'backup_created', 5, '2026-07-18 16:54:23', NULL),
+(41, 'Database', NULL, 'barangay_backup_2026-07-18_165442.sql', 'backup_created', 5, '2026-07-18 16:54:42', NULL),
+(42, 'Database', NULL, 'barangay_backup_2026-07-18_165526.sql', 'restored', 5, '2026-07-18 17:02:47', NULL),
+(43, 'Database', NULL, 'barangay_backup_2026-08-20_140333.sql', 'restored', 5, '2026-08-20 14:04:16', NULL),
+(44, 'Database', NULL, 'barangay_backup_2026-08-20_141603.sql', 'backup_created', 5, '2026-08-20 14:16:03', NULL),
+(45, 'Resident', 29, 'lala lulu', 'added', 5, '2026-08-20 14:19:52', NULL),
+(46, 'Resident', 6, 'Elena Chino', 'updated', 5, '2026-08-21 18:16:22', NULL),
+(47, 'Resident', 19, 'sample Bautista', 'updated', 5, '2026-08-21 19:32:29', '[{\"field\":\"Last Name\",\"from\":\"Asis\",\"to\":\"Bautista\"},{\"field\":\"Birthdate\",\"from\":\"2026-03-03\",\"to\":\"2026-03-04\"}]'),
+(48, 'Resident', 19, 'sample Bautista', 'deleted', 5, '2026-08-21 19:32:48', NULL),
+(49, 'Account', 16, 'bro', 'updated', 5, '2026-08-21 19:33:15', NULL),
+(50, 'Account', 16, 'bro', 'updated', 5, '2026-08-21 19:35:16', NULL),
+(51, 'Eligibility Form', 14, 'heads', 'updated', 5, '2026-08-21 19:35:51', NULL),
+(52, 'Eligibility Form', 14, 'heads', 'updated', 5, '2026-08-21 19:39:02', NULL),
+(53, 'Eligibility Form', 14, 'heads', 'archived', 5, '2026-08-21 19:39:10', NULL),
+(54, 'Eligibility Form', 15, 'sa', 'restored', 5, '2026-08-21 19:41:01', NULL),
+(55, 'Eligibility Form', 15, 'sa', 'enabled', 5, '2026-08-21 19:41:09', NULL),
+(56, 'Eligibility Form', 15, 'sa', 'disabled', 5, '2026-08-21 19:41:17', NULL),
+(57, 'Resident', 22, 'James Bondo', 'updated', 5, '2026-08-21 19:41:47', '[{\"field\":\"Last Name\",\"from\":\"Bond\",\"to\":\"Bondo\"},{\"field\":\"Birthdate\",\"from\":\"2026-04-14\",\"to\":\"2026-04-15\"},{\"field\":\"Civil Status\",\"from\":\"Divorced\",\"to\":\"Married\"},{\"field\":\"PWD\",\"from\":\"No\",\"to\":\"Yes\"}]'),
+(58, 'Eligibility Form', 15, 'sa', 'enabled', 5, '2026-08-21 19:45:21', NULL),
+(59, 'Eligibility Form', 15, 'sa', 'disabled', 5, '2026-08-21 19:45:25', NULL),
+(60, 'Resident', 22, 'James Bondo', 'deleted', 5, '2026-08-21 19:46:23', NULL);
 
 -- --------------------------------------------------------
 
@@ -105,8 +129,8 @@ INSERT INTO `eligibility_forms` (`form_id`, `form_name`, `status`, `created_by`,
 (7, 'dasdasd', 'Disabled', 4, '2026-03-17 19:47:55'),
 (11, 'household', 'Archived', 5, '2026-07-05 01:39:43'),
 (12, 'd', 'Archived', 5, '2026-07-05 01:40:05'),
-(14, 'heads', 'Enabled', 5, '2026-07-05 01:45:12'),
-(15, 'sa', 'Archived', 5, '2026-07-05 01:52:15');
+(14, 'heads', 'Archived', 5, '2026-07-05 01:45:12'),
+(15, 'sa', 'Disabled', 5, '2026-07-05 01:52:15');
 
 -- --------------------------------------------------------
 
@@ -130,7 +154,6 @@ CREATE TABLE `eligibility_forms_entries` (
 INSERT INTO `eligibility_forms_entries` (`entry_id`, `form_id`, `resident_id`, `is_rewarded`, `processed_by`, `processed_at`) VALUES
 (21, 4, 14, 0, NULL, '2026-03-16 15:45:39'),
 (23, 5, 6, 1, 4, '2026-03-17 18:18:37'),
-(24, 5, 19, 1, 5, '2026-06-14 14:47:39'),
 (25, 5, 15, 0, NULL, '2026-03-16 15:53:34'),
 (26, 5, 1, 0, NULL, '2026-03-16 15:53:34'),
 (27, 5, 9, 0, NULL, '2026-03-16 15:53:34'),
@@ -152,8 +175,6 @@ INSERT INTO `eligibility_forms_entries` (`entry_id`, `form_id`, `resident_id`, `
 (45, 7, 10, 0, NULL, NULL),
 (70, 14, 23, 1, 5, '2026-07-05 01:45:43'),
 (71, 15, 6, 1, 5, '2026-07-05 02:05:27'),
-(72, 15, 19, 0, 5, '2026-07-05 02:18:00'),
-(73, 15, 22, 0, NULL, NULL),
 (74, 15, 15, 0, NULL, NULL),
 (75, 15, 1, 0, NULL, NULL),
 (76, 15, 20, 0, NULL, NULL),
@@ -207,7 +228,7 @@ INSERT INTO `residents` (`resident_id`, `f_name`, `m_name`, `l_name`, `suffix`, 
 (1, 'Julius', 'Mabagal', 'Caliao', NULL, 'Male', '2005-09-27', 'Manila', '15', 'Bohol', 'Married', 'Drug Dealer ', 'Filipino', 0, 1, 1, 0, NULL, 4, '2026-01-30 16:37:11', NULL, '2026-02-09 07:51:32'),
 (2, 'Maria', 'Santos', 'Cruz', NULL, 'Female', '1978-03-15', 'Opol', '42', 'Rizal', 'Married', 'Teacher', 'Filipino', 0, 0, 0, 0, NULL, 2, '2026-02-02 13:48:27', NULL, '2026-02-09 07:52:01'),
 (4, 'Ana', 'Lopez', 'Mendoza', NULL, 'Female', '1990-11-08', 'Nueva Ecija', '63', 'Bonifacio', 'Single', 'Nurse', 'Filipino', 0, 0, 0, 0, NULL, 4, '2026-02-02 13:48:27', NULL, '2026-02-09 07:54:08'),
-(6, 'Elena', 'Ramos', 'Aquino', NULL, 'Female', '1967-12-03', 'Manila', '89', 'bohol', 'Divorced', 'Vendor', 'Filipino', 1, 1, 1, 0, NULL, 2, '2026-02-02 13:48:27', 5, '2026-06-08 11:57:49'),
+(6, 'Elena', 'Ramos', 'Chino', NULL, 'Female', '1967-12-03', 'Manila', '89', 'bohol', 'Divorced', 'Vendor', 'Filipino', 1, 1, 1, 0, NULL, 2, '2026-02-02 13:48:27', 5, '2026-08-21 10:16:22'),
 (7, 'Jose', 'Bautista', 'Hernandez', NULL, 'Male', '1985-09-12', 'Nueva Ecija', '56', 'Aguinaldo', 'Married', 'Carpenter', 'Filipino', 0, 0, 0, 0, NULL, 3, '2026-02-02 13:57:21', NULL, '2026-02-09 07:54:08'),
 (9, 'Pedro', 'Flores', 'Castillo', 'III', 'Male', '1995-01-30', 'Opol', '78', 'Lapu-Lapu', 'Single', 'Security Guard', 'Filipino', 0, 0, 0, 0, NULL, 5, '2026-02-02 13:57:21', NULL, '2026-02-09 07:54:08'),
 (10, 'Rosa', 'Diaz', 'Morales', NULL, 'Female', '1988-06-14', 'Opol', '21', 'Magsaysay', 'Married', 'Barangay Health Worker', 'Filipino', 0, 0, 0, 0, NULL, 2, '2026-02-02 13:57:21', NULL, '2026-02-09 07:55:32'),
@@ -215,15 +236,14 @@ INSERT INTO `residents` (`resident_id`, `f_name`, `m_name`, `l_name`, `suffix`, 
 (14, 'John ', NULL, 'Doe', 'Jr.', 'Male', '2021-02-06', 'Manila', '79', 'Boston', 'Divorced', NULL, 'Filipino', 0, 0, 1, 0, NULL, 4, '2026-02-06 17:47:21', NULL, '2026-02-09 07:55:32'),
 (15, 'bruce', NULL, 'caliao', NULL, 'Female', '2005-09-27', 'Manila', '21', 'Bohol', 'Married', 'Criminal', 'Filipino', 1, 0, 0, 0, NULL, 4, '2026-02-09 16:22:39', 5, '2026-06-14 07:44:39'),
 (17, 'sample', 'sample', 'sample', NULL, 'Male', '2005-09-27', 'japan', '21', 'sample', 'Single', 'sample', 'Filipino', 1, 1, 0, 0, NULL, 4, '2026-02-12 15:35:22', 4, '2026-02-12 07:35:36'),
-(19, 'sample', NULL, 'Asis', NULL, 'Male', '2026-03-04', 'Batangas', '750', 'Bohol St', 'Single', NULL, 'Filipino', 0, 0, 1, 0, NULL, 4, '2026-03-07 20:21:56', NULL, NULL),
 (20, 'Julius Cesar', 'Mabagal', 'Caliao', 'Jr', 'Male', '2005-09-27', 'Leyte', '750', 'Bohol', 'Married', 'Network Gingineer', 'Bisaya', 0, 0, 1, 0, NULL, 4, '2026-04-21 18:11:53', NULL, NULL),
 (21, 'Jheric', NULL, 'Esmeli', 'Sr', 'Male', '2026-04-15', 'Toronto', '67', 'york', 'Divorced', 'assassin', 'Filipino', 0, 0, 0, 0, NULL, 4, '2026-04-22 20:45:36', NULL, NULL),
-(22, 'James', NULL, 'Bond', 'Sr', 'Male', '2026-04-15', 'NewYork', '67', 'york', 'Divorced', 'assassin', 'Filipino', 0, 0, 0, 0, NULL, 5, '2026-06-14 15:44:39', NULL, NULL),
 (23, 'bry', NULL, 'son', NULL, 'Male', '2026-06-10', 'Manila', '89', 'kopal', 'Married', 'crew', 'Filipino', 0, 0, 1, 1, 5, 5, '2026-06-16 10:10:15', 5, '2026-06-17 12:49:16'),
 (24, 'Julius Cesar', 'Mabagal', 'Caliao', 'II', 'Male', '1960-07-05', 'New York, Makati', '15A', 'Madrid', 'Divorced', 'Yearner', 'Bisaya', 0, 1, 1, 0, NULL, 5, '2026-07-06 11:04:07', NULL, NULL),
 (25, 'Leo', NULL, 'Nidas', NULL, 'Male', '2005-09-27', 'Greece', '300', 'BC', 'Married', 'Spartan', 'Bisaya', 0, 0, 0, 1, 5, 5, '2026-07-06 11:04:07', NULL, NULL),
 (26, 'dasdasd', 'sqdasda', 'dasdasd', NULL, 'Male', '2005-09-27', 'asdsa', '123', 'sad', 'Single', NULL, 'Filipino', 0, 0, 0, 0, NULL, 5, '2026-07-08 00:54:00', NULL, NULL),
-(27, 'sadsaasda', 's', 'sdasd', NULL, 'Male', '2055-09-27', 'sad', '11', 'sdsa', 'Single', NULL, 'Filipino', 0, 0, 0, 0, NULL, 5, '2026-07-08 01:00:50', NULL, NULL);
+(28, 'Julius Cesar', 'C.', 'Kamilan', 'II', 'Male', '1960-07-05', 'New York, Makati', '15A', 'Madrid', 'Married', 'Yearner', 'Bisaya', 0, 1, 1, 0, NULL, 5, '2026-07-18 16:48:58', NULL, NULL),
+(29, 'lala', 'lele', 'lulu', NULL, 'Male', '2005-09-27', 'Luzon', '750-6A', 'Bohol', 'Divorced', NULL, 'Filipino', 0, 0, 1, 1, 5, 5, '2026-08-20 14:19:52', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -258,7 +278,7 @@ INSERT INTO `users` (`user_id`, `username`, `password`, `fullname`, `role`, `sta
 (6, 'James', '$2b$10$A8MCfaYXN4rPfwutc.jxK.OTZUqOPOniLQXEoQkJ9f.qU5cN6Nt.e', 'James Smith', 'Staff', 'Active', 4, '2026-03-07 18:12:30', NULL, '2026-04-12 18:04:54', 0),
 (10, 'reid', '$2b$10$Q2aZiIn0uKvRu8lLzuyUO.c7HAeGmjnxMK5CCUkHk0MQlqLpVOCjW', 'James Reid', 'Admin', 'Inactive', 4, '2026-03-07 22:46:30', 4, '2026-04-12 18:04:54', 0),
 (15, 'sample', '$2b$10$p/imSAnE72uXhYb7/wHDGers80g0Zisqw0sJFdcVx3ra2ZLBjGQte', 'sample', 'Staff', 'Active', 4, '2026-04-12 18:32:23', 15, '2026-04-12 18:48:50', 0),
-(16, 'bro', '$2b$10$olGUewUHjaAnkkeOW1PIgewTymMT0NSNDC3bH3zsfk7z9mVa/Jrze', 'bro', 'Staff', 'Active', 4, '2026-04-28 00:44:16', 16, '2026-04-28 00:44:46', 0),
+(16, 'bro', '$2b$10$6.uAsYlW6wfTVMVtnhnuwe6nAPHeXohyHI3nrNXoFAhalcW6JKNhu', 'bru', 'Staff', 'Active', 4, '2026-04-28 00:44:16', 5, '2026-08-21 19:35:16', 0),
 (17, 'mong', '$2b$10$5BSfOvozi1tVG1gQsJtaAOJodSou7hghdFHA1NM53ka1cuwuS.prq', 'mong yaw', 'Staff', 'Active', 5, '2026-06-22 16:15:42', 17, '2026-06-22 16:16:15', 0),
 (18, 'potchi', '$2b$10$k0t4gDpgX..s.5J4OhvddeSI25kOEImcTU4JsY1VZUhu7tSPPXBH.', 'potchi', 'Staff', 'Active', 5, '2026-06-22 16:30:25', 18, '2026-06-22 16:30:39', 0),
 (19, 'cos', '$2b$10$2yY2Kf.z0m1KfL9.lqx6me5ma1ai2vB86vvFqYSXTP4LzaifIfSUS', 'cosme ', 'Admin', 'Active', 5, '2026-07-02 15:39:15', 19, '2026-07-02 15:39:39', 0);
@@ -317,7 +337,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=38;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
 
 --
 -- AUTO_INCREMENT for table `eligibility_forms`
@@ -335,7 +355,7 @@ ALTER TABLE `eligibility_forms_entries`
 -- AUTO_INCREMENT for table `residents`
 --
 ALTER TABLE `residents`
-  MODIFY `resident_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+  MODIFY `resident_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
 
 --
 -- AUTO_INCREMENT for table `users`

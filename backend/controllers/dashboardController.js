@@ -53,7 +53,7 @@ const getDashboardStats = (req, res) => {
           NULLIF(f_name, ''), NULLIF(m_name, ''),
           NULLIF(l_name, ''), NULLIF(suffix, '')
         ))          AS name,
-        'Resident'  AS type,
+        CASE WHEN is_household_head = 1 THEN 'Head' ELSE 'Resident' END AS type,
         resident_id AS id,
         created_at
       FROM residents
@@ -104,6 +104,7 @@ const getRecentActivity = (req, res) => {
       al.entity_name,
       al.action_type,
       al.performed_at  AS action_time,
+      al.changes,
       u.fullname       AS performed_by
     FROM activity_logs al
     LEFT JOIN users u ON al.performed_by = u.user_id

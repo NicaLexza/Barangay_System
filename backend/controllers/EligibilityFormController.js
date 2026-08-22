@@ -1,5 +1,6 @@
 // controllers/EligibilityFormController.js
 const db = require("../config/db");
+const { logActivity } = require("../utils/activityLogger");
 
 /**
  * GET /api/eligibility-forms
@@ -39,21 +40,33 @@ const getForms = (req, res) => {
 const updateFormStatus = (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
+  const performed_by = req.user.id;
 
   if (!["Enabled", "Disabled"].includes(status)) {
     return res.status(400).json({ message: "Invalid status value" });
   }
 
-  const sql = "UPDATE eligibility_forms SET status = ? WHERE form_id = ?";
+  // Fetch form name first for logging
+  db.query("SELECT form_name FROM eligibility_forms WHERE form_id = ?", [id], (err, results) => {
+    if (err) return res.status(500).json({ message: "Database error" });
+    if (results.length === 0) return res.status(404).json({ message: "Form not found" });
 
-  db.query(sql, [status, id], (err, result) => {
-    if (err) return res.status(500).json({ message: "Database error", err });
+    const formName = results[0].form_name;
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "Form not found" });
-    }
+    const sql = "UPDATE eligibility_forms SET status = ? WHERE form_id = ?";
+    db.query(sql, [status, id], (err, result) => {
+      if (err) return res.status(500).json({ message: "Database error", err });
 
-    res.status(200).json({ message: `Form ${status.toLowerCase()} successfully` });
+      logActivity({
+        entity_type: "Eligibility Form",
+        entity_id: id,
+        entity_name: formName,
+        action_type: status.toLowerCase(),
+        performed_by
+      });
+
+      res.status(200).json({ message: `Form ${status.toLowerCase()} successfully` });
+    });
   });
 };
 
