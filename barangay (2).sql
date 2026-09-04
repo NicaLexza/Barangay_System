@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 22, 2026 at 02:13 PM
+-- Generation Time: Sep 04, 2026 at 02:27 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -102,7 +102,20 @@ INSERT INTO `activity_logs` (`log_id`, `entity_type`, `entity_id`, `entity_name`
 (57, 'Resident', 22, 'James Bondo', 'updated', 5, '2026-08-21 19:41:47', '[{\"field\":\"Last Name\",\"from\":\"Bond\",\"to\":\"Bondo\"},{\"field\":\"Birthdate\",\"from\":\"2026-04-14\",\"to\":\"2026-04-15\"},{\"field\":\"Civil Status\",\"from\":\"Divorced\",\"to\":\"Married\"},{\"field\":\"PWD\",\"from\":\"No\",\"to\":\"Yes\"}]'),
 (58, 'Eligibility Form', 15, 'sa', 'enabled', 5, '2026-08-21 19:45:21', NULL),
 (59, 'Eligibility Form', 15, 'sa', 'disabled', 5, '2026-08-21 19:45:25', NULL),
-(60, 'Resident', 22, 'James Bondo', 'deleted', 5, '2026-08-21 19:46:23', NULL);
+(60, 'Resident', 22, 'James Bondo', 'deleted', 5, '2026-08-21 19:46:23', NULL),
+(61, 'Account', 16, 'bro', 'updated', 5, '2026-09-04 16:51:00', '[{\"field\":\"Role\",\"from\":\"Staff\",\"to\":\"Admin\"}]'),
+(62, 'Account', 16, 'bro', 'updated', 5, '2026-09-04 16:51:12', '[{\"field\":\"Status\",\"from\":\"Active\",\"to\":\"Inactive\"}]'),
+(63, 'Account', 16, 'brod', 'updated', 5, '2026-09-04 16:51:23', '[{\"field\":\"Username\",\"from\":\"bro\",\"to\":\"brod\"}]'),
+(64, 'Account', 16, 'brod', 'updated', 5, '2026-09-04 16:51:44', NULL),
+(65, 'Account', 16, 'brod', 'updated', 5, '2026-09-04 16:55:46', NULL),
+(66, 'Account', 16, 'brod', 'Password Changed', 5, '2026-09-04 16:57:24', NULL),
+(67, 'Eligibility Form', 15, 'sa', 'enabled', 5, '2026-09-04 16:58:34', NULL),
+(68, 'Database', NULL, 'barangay_backup_2026-09-04_174022.sql', 'restored', 5, '2026-09-04 17:41:33', NULL),
+(69, 'Account', 16, 'brod', 'Password Reset', 5, '2026-09-04 18:00:27', NULL),
+(70, 'Account', 16, 'brod', 'Password Reset', 5, '2026-09-04 18:00:42', NULL),
+(71, 'Account', 20, 'kiw', 'created', 5, '2026-09-04 18:04:47', NULL),
+(72, 'Account', 16, 'brod', 'Password Reset', 5, '2026-09-04 18:07:36', NULL),
+(73, 'Account', 16, 'brod', 'updated', 5, '2026-09-04 18:07:47', '[{\"field\":\"Status\",\"from\":\"Inactive\",\"to\":\"Active\"}]');
 
 -- --------------------------------------------------------
 
@@ -130,7 +143,7 @@ INSERT INTO `eligibility_forms` (`form_id`, `form_name`, `status`, `created_by`,
 (11, 'household', 'Archived', 5, '2026-07-05 01:39:43'),
 (12, 'd', 'Archived', 5, '2026-07-05 01:40:05'),
 (14, 'heads', 'Archived', 5, '2026-07-05 01:45:12'),
-(15, 'sa', 'Disabled', 5, '2026-07-05 01:52:15');
+(15, 'sa', 'Enabled', 5, '2026-07-05 01:52:15');
 
 -- --------------------------------------------------------
 
@@ -175,7 +188,7 @@ INSERT INTO `eligibility_forms_entries` (`entry_id`, `form_id`, `resident_id`, `
 (45, 7, 10, 0, NULL, NULL),
 (70, 14, 23, 1, 5, '2026-07-05 01:45:43'),
 (71, 15, 6, 1, 5, '2026-07-05 02:05:27'),
-(74, 15, 15, 0, NULL, NULL),
+(74, 15, 15, 0, 5, '2026-09-04 17:06:44'),
 (75, 15, 1, 0, NULL, NULL),
 (76, 15, 20, 0, NULL, NULL),
 (77, 15, 9, 0, NULL, NULL),
@@ -186,8 +199,7 @@ INSERT INTO `eligibility_forms_entries` (`entry_id`, `form_id`, `resident_id`, `
 (82, 15, 4, 0, NULL, NULL),
 (83, 15, 10, 0, NULL, NULL),
 (84, 15, 11, 0, NULL, NULL),
-(85, 15, 17, 0, NULL, NULL),
-(86, 15, 23, 0, NULL, NULL);
+(85, 15, 17, 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -278,10 +290,11 @@ INSERT INTO `users` (`user_id`, `username`, `password`, `fullname`, `role`, `sta
 (6, 'James', '$2b$10$A8MCfaYXN4rPfwutc.jxK.OTZUqOPOniLQXEoQkJ9f.qU5cN6Nt.e', 'James Smith', 'Staff', 'Active', 4, '2026-03-07 18:12:30', NULL, '2026-04-12 18:04:54', 0),
 (10, 'reid', '$2b$10$Q2aZiIn0uKvRu8lLzuyUO.c7HAeGmjnxMK5CCUkHk0MQlqLpVOCjW', 'James Reid', 'Admin', 'Inactive', 4, '2026-03-07 22:46:30', 4, '2026-04-12 18:04:54', 0),
 (15, 'sample', '$2b$10$p/imSAnE72uXhYb7/wHDGers80g0Zisqw0sJFdcVx3ra2ZLBjGQte', 'sample', 'Staff', 'Active', 4, '2026-04-12 18:32:23', 15, '2026-04-12 18:48:50', 0),
-(16, 'bro', '$2b$10$6.uAsYlW6wfTVMVtnhnuwe6nAPHeXohyHI3nrNXoFAhalcW6JKNhu', 'bru', 'Staff', 'Active', 4, '2026-04-28 00:44:16', 5, '2026-08-21 19:35:16', 0),
+(16, 'brod', '$2b$10$.q.vqBRjSJWVDpAF6UjWMuDMrPGFDY5Z52TVDWwcp3zdLfqjc/Tly', 'bru', 'Admin', 'Active', 4, '2026-04-28 00:44:16', 16, '2026-09-04 18:08:09', 0),
 (17, 'mong', '$2b$10$5BSfOvozi1tVG1gQsJtaAOJodSou7hghdFHA1NM53ka1cuwuS.prq', 'mong yaw', 'Staff', 'Active', 5, '2026-06-22 16:15:42', 17, '2026-06-22 16:16:15', 0),
 (18, 'potchi', '$2b$10$k0t4gDpgX..s.5J4OhvddeSI25kOEImcTU4JsY1VZUhu7tSPPXBH.', 'potchi', 'Staff', 'Active', 5, '2026-06-22 16:30:25', 18, '2026-06-22 16:30:39', 0),
-(19, 'cos', '$2b$10$2yY2Kf.z0m1KfL9.lqx6me5ma1ai2vB86vvFqYSXTP4LzaifIfSUS', 'cosme ', 'Admin', 'Active', 5, '2026-07-02 15:39:15', 19, '2026-07-02 15:39:39', 0);
+(19, 'cos', '$2b$10$2yY2Kf.z0m1KfL9.lqx6me5ma1ai2vB86vvFqYSXTP4LzaifIfSUS', 'cosme ', 'Admin', 'Active', 5, '2026-07-02 15:39:15', 19, '2026-07-02 15:39:39', 0),
+(20, 'kiw', '$2b$10$O9yx7PnAtvYR9DRusqCnr.Pwvzx01qh3oDivi8eIXXgCRgOGRjBf6', 'kiw', 'Staff', 'Active', 5, '2026-09-04 18:04:47', 20, '2026-09-04 18:05:48', 0);
 
 --
 -- Indexes for dumped tables
@@ -337,7 +350,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=74;
 
 --
 -- AUTO_INCREMENT for table `eligibility_forms`
@@ -361,7 +374,7 @@ ALTER TABLE `residents`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- Constraints for dumped tables

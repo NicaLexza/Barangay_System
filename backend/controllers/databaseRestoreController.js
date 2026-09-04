@@ -1,6 +1,7 @@
 // controllers/databaseRestoreController.js
 const { spawn } = require("child_process");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const db = require("../config/db");
 const { logActivity } = require("../utils/activityLogger");
 const { getTableCounts } = require("../utils/tableCounts");
@@ -47,7 +48,32 @@ const restoreDatabase = (req, res) => {
     // is the baseline we'll compare the post-restore database against —
     // catches truncated/incomplete files that run cleanly (exit code 0)
     // but never actually contained all the rows they should have.
-    const expectedCounts = parseExpectedCounts(req.file.buffer.toString("utf8"));
+    const buffer = req.file.buffer;
+    let sqlContent;
+
+    const MAGIC_HEADER = "BRGYENC1";
+    const magicHeaderBuffer = Buffer.from(MAGIC_HEADER);
+
+    if (buffer.length > 24 && buffer.subarray(0, 8).equals(magicHeaderBuffer)) {
+      // Encrypted file
+      const algorithm = "aes-256-cbc";
+      const secretKey = crypto.createHash("sha256").update(process.env.BACKUP_ENCRYPTION_KEY || "barangay_fallback_secret_key_123!").digest();
+      const iv = buffer.subarray(8, 24);
+      const encryptedData = buffer.subarray(24);
+      const decipher = crypto.createDecipheriv(algorithm, secretKey, iv);
+      
+      try {
+        const decryptedBuffer = Buffer.concat([decipher.update(encryptedData), decipher.final()]);
+        sqlContent = decryptedBuffer.toString("utf8");
+      } catch (err) {
+        return res.status(400).json({ message: "Failed to decrypt backup file. Invalid key or corrupted file." });
+      }
+    } else {
+      // Plain text file (backward compatibility)
+      sqlContent = buffer.toString("utf8");
+    }
+
+    const expectedCounts = parseExpectedCounts(sqlContent);
 
     const args = ["-h", DB_HOST, "-u", DB_USER];
     if (DB_PASSWORD) args.push(`-p${DB_PASSWORD}`);
@@ -127,7 +153,7 @@ const restoreDatabase = (req, res) => {
       });
     });
 
-    child.stdin.write(req.file.buffer);
+    child.stdin.write(sqlContent);
     child.stdin.end();
   });
 };

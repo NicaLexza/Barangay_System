@@ -1,6 +1,7 @@
 // controllers/databaseBackupController.js
 const { spawn } = require("child_process");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const db = require("../config/db");
 const { logActivity } = require("../utils/activityLogger");
 const { getTableCounts } = require("../utils/tableCounts");
@@ -87,6 +88,14 @@ const backupDatabase = async (req, res) => {
 
   const filename = `barangay_backup_${formatTimestamp()}.sql`;
 
+  // Cryptography setup
+  const algorithm = "aes-256-cbc";
+  // Hash the env variable (or fallback) to get a 32-byte key
+  const secretKey = crypto.createHash("sha256").update(process.env.BACKUP_ENCRYPTION_KEY || "barangay_fallback_secret_key_123!").digest();
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv(algorithm, secretKey, iv);
+  const magicHeader = Buffer.from("BRGYENC1");
+
   const args = ["-h", DB_HOST, "-u", DB_USER];
   if (DB_PASSWORD) args.push(`-p${DB_PASSWORD}`);
   args.push("--single-transaction", DB_NAME);
@@ -108,12 +117,19 @@ const backupDatabase = async (req, res) => {
 
   child.stdout.once("data", () => {
     if (!res.headersSent) {
-      res.setHeader("Content-Type", "application/sql");
-      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      res.setHeader("Content-Type", "application/octet-stream");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}.enc"`);
+      res.write(magicHeader);
+      res.write(iv);
     }
   });
 
-  child.stdout.pipe(res, { end: false });
+  child.stdout.pipe(cipher);
+  cipher.pipe(res, { end: false });
+
+  cipher.on('end', () => {
+    res.end();
+  });
 
   child.on("close", (code) => {
     if (code !== 0) {
@@ -129,12 +145,10 @@ const backupDatabase = async (req, res) => {
       return;
     }
 
-    res.end();
-
     logActivity({
       entity_type:  "Database",
       entity_id:    null,
-      entity_name:  filename,
+      entity_name:  `${filename}.enc`,
       action_type:  "backup_created",
       performed_by: user.user_id,
     });

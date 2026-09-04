@@ -7,7 +7,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import KeyIcon from '@mui/icons-material/Key';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import EditAccountModal from '../../modals/EditAccountModal';
-import ChangePasswordModal from '../../modals/ChangePasswordModal';
+import ResetPasswordModal from '../../modals/ResetPasswordModal';
 import AccountsToolbar from './AccountsToolbar';
 import DeleteConfirmModal from '../../modals/DeleteAccountModal';
 import InfoPopper from '../../Reusables/InfoPopper.jsx';
@@ -19,7 +19,7 @@ const UsersTable = () => {
   const [selectedRow, setSelectedRow] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
   const [infoAnchorEl, setInfoAnchorEl] = useState(null);
   const [searchValue, setSearchValue] = useState('');
   const [loading, setLoading] = useState(false);
@@ -87,7 +87,7 @@ const UsersTable = () => {
             <IconButton size="small" color="primary" onClick={() => { setSelectedRow(row); setEditOpen(true); }}>
               <EditIcon fontSize="small" />
             </IconButton>
-            <IconButton size="small" color="warning" onClick={() => { setSelectedRow(row); setChangePasswordOpen(true); }}>
+            <IconButton size="small" color="warning" onClick={() => { setSelectedRow(row); setResetPasswordOpen(true); }} title="Reset Password">
               <KeyIcon fontSize="small" />
             </IconButton>
             <IconButton size="small" color="error" onClick={() => { setSelectedRow(row); setDeleteOpen(true); }}>
@@ -219,11 +219,11 @@ const UsersTable = () => {
         target={selectedRow}
       />
 
-      <ChangePasswordModal
-        open={changePasswordOpen}
-        onClose={() => { setChangePasswordOpen(false); setSelectedRow(null); }}
+      <ResetPasswordModal
+        open={resetPasswordOpen}
+        onClose={() => { setResetPasswordOpen(false); setSelectedRow(null); }}
         userId={selectedRow?.id || selectedRow?.user_id}
-        onSuccess={() => { setRefreshKey(prev => prev + 1); setChangePasswordOpen(false); }}
+        onSuccess={() => { setRefreshKey(prev => prev + 1); }}
       />
     </Box>
   );
