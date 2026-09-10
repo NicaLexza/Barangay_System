@@ -1,6 +1,7 @@
 // controllers/residentAddController.js
 const db = require("../config/db");
 const { logActivity } = require("../utils/activityLogger");
+const { computeIsSenior } = require("../utils/seniorStatus");
 
 const addResident = (req, res) => {
   const {
@@ -17,11 +18,15 @@ const addResident = (req, res) => {
     occupation,
     citizenship,
     is_pwd = 0,
-    is_senior = 0,
     is_solop = 0,
     is_household_head = 0,
     household_member_count,
   } = req.body;
+
+  // NOTE: `is_senior` is intentionally NOT read from req.body. It is always
+  // derived from `birthdate` below — see utils/seniorStatus.js — so it can
+  // never drift out of sync with the resident's actual age, the way a
+  // manually-checked box could.
 
   // Required fields validation (basic server-side)
   if (!f_name || !l_name || !sex || !birthdate || !birthplace || !civil_status || !street) {
@@ -29,6 +34,7 @@ const addResident = (req, res) => {
   }
 
   const created_by = req.user.id; // From JWT (authMiddleware)
+  const is_senior = computeIsSenior(birthdate);
 
   const checkSql = `
     SELECT COUNT(*) AS count 
@@ -69,7 +75,7 @@ const addResident = (req, res) => {
         occupation || null,
         citizenship || "Filipino",
         is_pwd ? 1 : 0,
-        is_senior ? 1 : 0,
+        is_senior,
         is_solop ? 1 : 0,
         is_household_head ? 1 : 0,
         is_household_head ? (household_member_count || 1) : null,

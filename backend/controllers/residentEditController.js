@@ -2,6 +2,7 @@
 
 const db = require("../config/db");
 const { logActivity } = require("../utils/activityLogger");
+const { computeIsSenior } = require("../utils/seniorStatus");
 
 const updateResident = (req, res) => {
   const { resident_id, ...data } = req.body;
@@ -76,7 +77,6 @@ const updateResident = (req, res) => {
       if (data.occupation !== undefined) { fields.push("occupation = ?"); values.push(data.occupation || null); }
       if (data.citizenship !== undefined) { fields.push("citizenship = ?"); values.push(data.citizenship || "Filipino"); }
       if (data.is_pwd !== undefined) { fields.push("is_pwd = ?"); values.push(data.is_pwd ? 1 : 0); }
-      if (data.is_senior !== undefined) { fields.push("is_senior = ?"); values.push(data.is_senior ? 1 : 0); }
       if (data.is_solop !== undefined) { fields.push("is_solop = ?"); values.push(data.is_solop ? 1 : 0); }
       if (data.is_household_head !== undefined) {
         fields.push("is_household_head = ?");
@@ -89,6 +89,16 @@ const updateResident = (req, res) => {
         fields.push("household_member_count = ?");
         values.push(data.household_member_count || null);
       }
+
+      // `is_senior` is NEVER taken from `data` (the client no longer sends
+      // it, and even if it did it would be ignored) — it is always
+      // recomputed from whichever birthdate is now in effect, so editing a
+      // birthdate automatically corrects the senior flag instead of
+      // leaving it stale.
+      const effectiveBirthdate = data.birthdate || oldData.birthdate;
+      const newIsSenior = computeIsSenior(effectiveBirthdate);
+      fields.push("is_senior = ?");
+      values.push(newIsSenior);
 
       fields.push("updated_by = ?");
       values.push(updated_by);
@@ -148,7 +158,6 @@ const updateResident = (req, res) => {
       if (data.occupation !== undefined) compareAndPush("occupation", data.occupation || null);
       if (data.citizenship !== undefined) compareAndPush("citizenship", data.citizenship || "Filipino");
       if (data.is_pwd !== undefined) compareAndPush("is_pwd", data.is_pwd ? 1 : 0, formatBool);
-      if (data.is_senior !== undefined) compareAndPush("is_senior", data.is_senior ? 1 : 0, formatBool);
       if (data.is_solop !== undefined) compareAndPush("is_solop", data.is_solop ? 1 : 0, formatBool);
       if (data.is_household_head !== undefined) {
         compareAndPush("is_household_head", data.is_household_head ? 1 : 0, formatBool);
@@ -156,6 +165,11 @@ const updateResident = (req, res) => {
       } else if (data.household_member_count !== undefined) {
         compareAndPush("household_member_count", data.household_member_count || null);
       }
+      // Log the senior flag flipping too — most often this will happen
+      // silently as a side effect of a birthdate correction, which is
+      // exactly the kind of change an admin reviewing activity history
+      // should be able to see.
+      compareAndPush("is_senior", newIsSenior, formatBool);
 
       const sql = `UPDATE residents SET ${fields.join(", ")} WHERE resident_id = ?`;
       values.push(resident_id);

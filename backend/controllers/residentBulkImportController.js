@@ -2,6 +2,7 @@
 const db = require("../config/db");
 const xlsx = require("xlsx");
 const { logActivity } = require("../utils/activityLogger");
+const { computeIsSenior } = require("../utils/seniorStatus");
 
 // Column mapping from Google Form export headers to DB fields
 const COLUMN_MAP = {
@@ -21,7 +22,9 @@ const COLUMN_MAP = {
   "Occupation":                        "occupation",
   "Citizenship":                       "citizenship",
   "Is Person with Disability (PWD)?":  "is_pwd",
-  "Is Senior Citizen?":                "is_senior",
+  // NOTE: no "Is Senior Citizen?" mapping — is_senior is always derived
+  // from Birthdate (see computeIsSenior below), never read from a
+  // spreadsheet answer.
   "Is Solo Parent?":                   "is_solop",
 };
 
@@ -113,7 +116,8 @@ const bulkImportResidents = (req, res) => {
     row.occupation  = String(row.occupation || "").trim() || null;
     row.citizenship = String(row.citizenship || "").trim() || "Filipino";
     row.is_pwd      = parseYesNo(row.is_pwd);
-    row.is_senior   = parseYesNo(row.is_senior);
+    // Derived purely from birthdate — never from a spreadsheet answer.
+    row.is_senior   = computeIsSenior(row.birthdate);
     row.is_solop    = parseYesNo(row.is_solop);
     row._rowNumber  = index + 2; // +2 because row 1 is header
 

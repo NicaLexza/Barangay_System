@@ -162,7 +162,7 @@ const ImportResidentModal = ({ open, onClose, onSuccess }) => {
       valueGetter: (value) => (value ? "Yes" : "No"),
     },
     {
-      field: "is_senior", headerName: "Senior", width: 80,
+      field: "is_senior", headerName: "Senior (auto)", width: 100,
       valueGetter: (value) => (value ? "Yes" : "No"),
     },
     {

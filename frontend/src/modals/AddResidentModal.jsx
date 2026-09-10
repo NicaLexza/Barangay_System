@@ -37,7 +37,8 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
     occupation: "",
     citizenship: "Filipino",
     is_pwd: false,
-    is_senior: false,
+    // is_senior removed — Senior Citizen status is now always computed
+    // server-side from birthdate (age >= 60), never set manually here.
     is_solop: false,
     is_household_head: false,
     household_member_count: 1,
@@ -121,7 +122,6 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
         occupation: "",
         citizenship: "Filipino",
         is_pwd: false,
-        is_senior: false,
         is_solop: false,
         is_household_head: false,
         household_member_count: 1,
@@ -282,15 +282,15 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
               control={<Checkbox name="is_pwd" checked={formData.is_pwd} onChange={handleChange} />}
               label="Person with Disability (PWD)"
             />
-            <FormControlLabel
-              control={<Checkbox name="is_senior" checked={formData.is_senior} onChange={handleChange} />}
-              label="Senior Citizen"
-            />
+            {/* Senior Citizen is intentionally not a checkbox here — it's
+                always computed from Birthdate (age >= 60) on save, so it
+                can never go out of sync with the resident's actual age. */}
             <FormControlLabel
               control={<Checkbox name="is_solop" checked={formData.is_solop} onChange={handleChange} />}
               label="Solo Parent"
             />
           </FormGroup>
+         
 
           <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 2 }}>
             Household

@@ -1,6 +1,7 @@
 // controllers/residentImportPreviewController.js
 const db = require("../config/db");
 const xlsx = require("xlsx");
+const { computeIsSenior } = require("../utils/seniorStatus");
 
 const COLUMN_MAP = {
   "First Name":                        "f_name",
@@ -19,7 +20,11 @@ const COLUMN_MAP = {
   "Occupation":                        "occupation",
   "Citizenship":                       "citizenship",
   "Is Person with Disability (PWD)?":  "is_pwd",
-  "Is Senior Citizen?":                "is_senior",
+  // NOTE: intentionally no longer mapping an "Is Senior Citizen?" column.
+  // Senior status is derived from Birthdate below (see computeIsSenior),
+  // never trusted from a spreadsheet cell — a stale/incorrect "Yes"/"No"
+  // answer in the form response should not be able to override the
+  // person's actual age.
   "Is Solo Parent?":                   "is_solop",
   "Are you the Household Head?":       "is_household_head",
   "Are you the Household Head ":       "is_household_head", // fallback — current form export has a trailing space and no "?"
@@ -119,7 +124,8 @@ const previewImportResidents = (req, res) => {
     row.occupation   = String(row.occupation || "").trim() || null;
     row.citizenship  = String(row.citizenship || "").trim() || "Filipino";
     row.is_pwd       = parseYesNo(row.is_pwd);
-    row.is_senior    = parseYesNo(row.is_senior);
+    // Derived purely from birthdate — never from a spreadsheet answer.
+    row.is_senior    = computeIsSenior(row.birthdate);
     row.is_solop     = parseYesNo(row.is_solop);
     row.is_household_head = parseYesNo(row.is_household_head);
     row.household_member_count = row.is_household_head

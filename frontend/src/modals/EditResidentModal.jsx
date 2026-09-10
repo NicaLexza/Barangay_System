@@ -37,12 +37,15 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {
     occupation: "",
     citizenship: "Filipino",
     is_pwd: false,
-    is_senior: false,
     is_solop: false,
     is_household_head: false,
     household_member_count: 1,
   });
 
+  // Read-only display only — reflects what the server currently has on
+  // file. Never sent back in the update payload and never user-editable;
+  // the server recomputes the real value from birthdate on every save.
+  const [currentIsSenior, setCurrentIsSenior] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -78,11 +81,11 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {
             occupation: data.occupation || "",
             citizenship: data.citizenship || "Filipino",
             is_pwd: !!data.is_pwd,
-            is_senior: !!data.is_senior,
             is_solop: !!data.is_solop,
             is_household_head: !!data.is_household_head,
             household_member_count: data.household_member_count ?? 1,
           });
+          setCurrentIsSenior(!!data.is_senior);
         } catch (err) {
           console.error("Fetch single resident error:", err);
           setError("Failed to load resident data.");
@@ -307,10 +310,7 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {
               control={<Checkbox name="is_pwd" checked={formData.is_pwd} onChange={handleChange} />}
               label="Person with Disability (PWD)"
             />
-            <FormControlLabel
-              control={<Checkbox name="is_senior" checked={formData.is_senior} onChange={handleChange} />}
-              label="Senior Citizen"
-            />
+            
             <FormControlLabel
               control={<Checkbox name="is_solop" checked={formData.is_solop} onChange={handleChange} />}
               label="Solo Parent"
