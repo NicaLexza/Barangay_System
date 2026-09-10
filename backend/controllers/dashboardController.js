@@ -105,6 +105,7 @@ const getRecentActivity = (req, res) => {
       al.action_type,
       al.performed_at  AS action_time,
       al.changes,
+      al.details,
       u.fullname       AS performed_by
     FROM activity_logs al
     LEFT JOIN users u ON al.performed_by = u.user_id

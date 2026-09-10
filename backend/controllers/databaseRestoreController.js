@@ -4,14 +4,73 @@ const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const db = require("../config/db");
 const { logActivity } = require("../utils/activityLogger");
-const { getTableCounts } = require("../utils/tableCounts");
-const { parseExpectedCounts } = require("../utils/parseBackupCounts");
+const { getTableIdMaps } = require("../utils/tableCounts");
+const { parseExpectedIds } = require("../utils/parseBackupCounts");
 
 const MYSQL_PATH  = process.env.MYSQL_PATH || "mysql";
 const DB_HOST     = process.env.DB_HOST || "localhost";
 const DB_USER     = process.env.DB_USER || "root";
 const DB_PASSWORD = process.env.DB_PASSWORD || "";
 const DB_NAME     = process.env.DB_NAME || "barangay";
+
+const TABLE_LABELS = {
+  residents: "Residents",
+  accounts: "Accounts",
+  eligibility_forms: "Eligibility Forms",
+  eligibility_entries: "Eligibility Entries",
+};
+
+/**
+ * Builds the identity-level verification report: for each tracked table,
+ * compares the set of primary keys the uploaded file claimed to contain
+ * against the set actually present in the database after the restore ran.
+ * Any ID present in the file but absent from the DB is reported by name,
+ * resolved from the file's own parsed data — the database no longer has
+ * that row to look up, since it's the one that's missing.
+ */
+const buildVerificationReport = (expectedIds, actualIdMaps) => {
+  const expectedCounts = {};
+  const actualCounts = {};
+  const missing = {};
+
+  Object.keys(expectedIds).forEach((key) => {
+    const expected = expectedIds[key];
+    const actual = actualIdMaps[key] || { ids: [], labelsById: {} };
+
+    expectedCounts[key] = expected.count;
+    actualCounts[key] = actual.ids.length;
+
+    const actualIdSet = new Set(actual.ids);
+    const missingIds = expected.ids.filter((id) => !actualIdSet.has(id));
+
+    if (missingIds.length > 0) {
+      missing[key] = missingIds.map((id) => ({
+        id,
+        name: expected.labelsById[id] || `Record #${id}`,
+      }));
+    }
+  });
+
+  return {
+    status: Object.keys(missing).length > 0 ? "warning" : "success",
+    expected: expectedCounts,
+    actual: actualCounts,
+    missing,
+  };
+};
+
+/**
+ * Flattened, count-only view of the verification report — kept so the
+ * existing `mismatches` response field (and anything already reading it)
+ * keeps working unchanged while richer detail is now also available
+ * under `verification`.
+ */
+const buildLegacyMismatches = (report) =>
+  Object.keys(report.missing).map((key) => ({
+    table: TABLE_LABELS[key] || key,
+    expected: report.expected[key],
+    actual: report.actual[key],
+  }));
 
 const restoreDatabase = (req, res) => {
   if (req.user.role !== "Admin") {
@@ -61,7 +120,7 @@ const restoreDatabase = (req, res) => {
       const iv = buffer.subarray(8, 24);
       const encryptedData = buffer.subarray(24);
       const decipher = crypto.createDecipheriv(algorithm, secretKey, iv);
-      
+
       try {
         const decryptedBuffer = Buffer.concat([decipher.update(encryptedData), decipher.final()]);
         sqlContent = decryptedBuffer.toString("utf8");
@@ -73,7 +132,9 @@ const restoreDatabase = (req, res) => {
       sqlContent = buffer.toString("utf8");
     }
 
-    const expectedCounts = parseExpectedCounts(sqlContent);
+    // { residents: { count, ids, labelsById }, accounts: {...}, ... } —
+    // parsed once, up front, before mysql touches the database.
+    const expectedIds = parseExpectedIds(sqlContent);
 
     const args = ["-h", DB_HOST, "-u", DB_USER];
     if (DB_PASSWORD) args.push(`-p${DB_PASSWORD}`);
@@ -107,41 +168,27 @@ const restoreDatabase = (req, res) => {
       }
 
       // mysql exited cleanly — but that only means the script ran without
-      // a hard SQL error. Compare what actually landed against what the
-      // file claimed to catch silent gaps (e.g. a truncated upload).
-      getTableCounts((countErr, counts) => {
-        if (countErr) {
-          res.status(200).json({
-            message: "Database restored successfully.",
-            counts: null,
-            expectedCounts,
-            mismatches: [],
-          });
-        } else {
-          const TABLE_LABELS = {
-            residents: "Residents",
-            accounts: "Accounts",
-            eligibility_forms: "Eligibility Forms",
-            eligibility_entries: "Eligibility Entries",
-          };
-
-          const mismatches = Object.keys(expectedCounts)
-            .filter((key) => counts[key] !== expectedCounts[key])
-            .map((key) => ({
-              table: TABLE_LABELS[key] || key,
-              expected: expectedCounts[key],
-              actual: counts[key],
-            }));
-
-          res.status(200).json({
-            message: mismatches.length > 0
-              ? "Database restored with differences from the backup file."
-              : "Database restored successfully.",
-            counts,
-            expectedCounts,
-            mismatches,
-          });
+      // a hard SQL error. Compare the actual primary keys now in the
+      // database against the ones the file claimed to contain, so any
+      // silent gap (e.g. a truncated upload) is caught and named, not
+      // just counted.
+      getTableIdMaps((idErr, actualIdMaps) => {
+        if (idErr) {
+          console.error("[restore] Failed to fetch post-restore record IDs:", idErr.message);
         }
+
+        const report = buildVerificationReport(expectedIds, actualIdMaps || {});
+        const mismatches = buildLegacyMismatches(report);
+
+        res.status(200).json({
+          message: mismatches.length > 0
+            ? "Database restored with differences from the backup file."
+            : "Database restored successfully.",
+          counts: report.actual,
+          expectedCounts: report.expected,
+          mismatches,
+          verification: report,
+        });
 
         logActivity({
           entity_type:  "Database",
@@ -149,6 +196,7 @@ const restoreDatabase = (req, res) => {
           entity_name:  req.file.originalname,
           action_type:  "restored",
           performed_by: req.user.id,
+          details:      report,
         });
       });
     });

@@ -45,6 +45,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import Navbar from "../Reusables/Navbar.jsx";
 import Footer from "../Reusables/Footer.jsx";
 import ReAuthModal from "../modals/ReAuthModal.jsx";
+import BackupRestoreResultModal from "../modals/BackupRestoreResultModal.jsx";
 
 dayjs.extend(relativeTime);
 
@@ -285,7 +286,7 @@ const Dot = ({ color }) => (
   />
 );
 
-const ActivityRow = ({ item, last }) => {
+const ActivityRow = ({ item, last, onViewReport }) => {
   const [expanded, setExpanded] = useState(false);
   const key = `${item.entity_type}:${item.action_type}`;
   const color = ACT_COLORS[key] ?? INK_3;
@@ -315,6 +316,19 @@ const ActivityRow = ({ item, last }) => {
   }
 
   const hasChanges = changes.length > 0;
+
+  // Backup/restore rows carry their verification report in `details` —
+  // parsed here so "VIEW REPORT" can reopen the exact same modal that
+  // showed right after the operation, without re-running anything.
+  let report = null;
+  if (item.entity_type === "Database" && item.details) {
+    try {
+      report = JSON.parse(item.details);
+    } catch (e) {
+      console.error("Failed to parse activity details:", e);
+    }
+  }
+  const hasReport = !!report;
 
   return (
     <>
@@ -372,6 +386,29 @@ const ActivityRow = ({ item, last }) => {
                         ) : (
                           <KeyboardArrowDownIcon sx={{ fontSize: 14 }} />
                         )}
+                      </Box>
+                    )}
+                    {hasReport && (
+                      <Box
+                        onClick={() =>
+                          onViewReport?.({
+                            report,
+                            operation: item.action_type === "backup_created" ? "backup" : "restore",
+                            filename: item.entity_name,
+                          })
+                        }
+                        sx={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          color: "#0891b2",
+                          cursor: "pointer",
+                          ml: 0.5,
+                          "&:hover": { opacity: 0.8 }
+                        }}
+                      >
+                        <Typography sx={{ fontSize: "0.65rem", fontWeight: 600 }}>
+                          VIEW REPORT
+                        </Typography>
                       </Box>
                     )}
                   </Box>
@@ -481,6 +518,18 @@ const Dashboard = () => {
   const [snackbar, setSnackbar] = useState({ open: false, severity: "success", message: "" });
   const closeSnackbar = () => setSnackbar((prev) => ({ ...prev, open: false }));
 
+  // Durable results modal for backup — shown every time a backup finishes
+  // (success or warning), independent of the transient save-to-disk
+  // outcome captured separately in `saveNote`. Restore's equivalent is
+  // rendered on LoginPage after the forced redirect (see postRestoreNotice).
+  const [backupResult, setBackupResult] = useState(null); // { report, filename, saveNote, requestedSummary } | null
+
+  // Re-opens the same results modal for a PAST backup/restore, using the
+  // report already persisted in activity_logs.details — kept as separate
+  // state from backupResult since a historical view has no saveNote or
+  // requestedSummary (those only exist right after a fresh operation).
+  const [activityReportView, setActivityReportView] = useState(null); // { report, operation, filename } | null
+
   const adminName = localStorage.getItem("username") ?? "Admin";
   const today = dayjs().format("dddd, MMMM D, YYYY");
 
@@ -544,17 +593,36 @@ const Dashboard = () => {
       );
       const counts = summaryRes.data.counts;
 
-      const downloadRes = await axios.post(
-        "http://localhost:5000/api/backup/download",
+      // Step 2: generate + verify server-side. Returns JSON (not a file) —
+      // the dump is buffered and diffed against the live DB before the
+      // browser ever starts downloading anything, so a discrepancy is
+      // known upfront instead of only being discoverable after the fact.
+      const generateRes = await axios.post(
+        "http://localhost:5000/api/backup/generate",
         { username, password },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      const { token: downloadToken, filename, verification } = generateRes.data;
+
+      // Step 3: fetch the already-generated, already-verified file bytes.
+      const downloadRes = await axios.get(
+        `http://localhost:5000/api/backup/download/${downloadToken}`,
         { headers: { Authorization: `Bearer ${token}` }, responseType: "blob" },
       );
 
-      const filename = `barangay_backup_${dayjs().format("YYYY-MM-DD_HHmmss")}.sql`;
-      const blob = new Blob([downloadRes.data], { type: "application/sql" });
+      const blob = new Blob([downloadRes.data], { type: "application/octet-stream" });
+      const saveFilename = `${filename}.enc`;
 
       setBackupReAuthOpen(false);
       fetchActivity();
+
+      // The verification report (success or warning) is already final —
+      // it was computed server-side before this point, and is already
+      // persisted to activity_logs.details. Everything below only affects
+      // whether the file made it to disk, which is a separate concern
+      // surfaced as `saveNote` inside the same results modal rather than
+      // a second, competing message.
+      let saveNote = "";
 
       // showSaveFilePicker's promise only resolves AFTER the user actually
       // finishes the native save dialog — a real completion signal, unlike
@@ -564,49 +632,55 @@ const Dashboard = () => {
       if (window.showSaveFilePicker) {
         try {
           const handle = await window.showSaveFilePicker({
-            suggestedName: filename,
-            types: [{ description: "SQL backup", accept: { "application/sql": [".sql"] } }],
+            suggestedName: saveFilename,
+            types: [{ description: "Encrypted SQL backup", accept: { "application/octet-stream": [".enc"] } }],
           });
           const writable = await handle.createWritable();
           await writable.write(blob);
           await writable.close();
 
-          setSnackbar({
-            open: true,
-            severity: "success",
-            message: `Backup saved — ${formatCountsSummary(counts)} backed up.`,
-          });
+          saveNote = `Saved to disk as "${saveFilename}".`;
         } catch (saveErr) {
           // AbortError = user clicked Cancel on the save dialog. That's not
-          // a failure, just don't claim anything was saved.
+          // a failure of the backup itself — it was already generated and
+          // verified server-side — just nothing was written to disk.
           if (saveErr.name !== "AbortError") {
             console.error("Save error:", saveErr);
             setSnackbar({
               open: true,
               severity: "error",
-              message: "Backup was generated but could not be saved to disk.",
+              message: "Backup was generated and verified, but could not be saved to disk.",
             });
+          } else {
+            saveNote = "Save was cancelled — the backup was still generated and verified.";
           }
         }
       } else {
         // Fallback for Firefox/Safari/mobile — no completion signal exists
-        // here at all, so the message is worded to not claim the save is
+        // here at all, so the note is worded to not claim the save is
         // done, only that it was handed off to the browser's downloader.
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = filename;
+        link.download = saveFilename;
         document.body.appendChild(link);
         link.click();
         link.remove();
         window.URL.revokeObjectURL(url);
 
-        setSnackbar({
-          open: true,
-          severity: "success",
-          message: `Backup download started — ${formatCountsSummary(counts)} included. Check your browser's downloads to confirm it finished saving.`,
-        });
+        saveNote = "Download started — check your browser's downloads to confirm it finished saving.";
       }
+
+      // The results modal is the durable, detailed surface for the
+      // verification outcome — shown every time, not just when something
+      // is wrong, so "everything checked out" is just as visible as a
+      // discrepancy would be.
+      setBackupResult({
+        report: verification,
+        filename: saveFilename,
+        saveNote,
+        requestedSummary: formatCountsSummary(counts),
+      });
     } catch (err) {
       console.error("Backup error:", err);
       let message = "Failed to generate backup. Please try again.";
@@ -664,28 +738,20 @@ const Dashboard = () => {
         },
       });
 
-      const { counts, mismatches } = res.data;
-      const hasMismatches = mismatches && mismatches.length > 0;
-
-      let message;
-      if (hasMismatches) {
-        const detail = mismatches
-          .map((m) => `${m.table}: ${m.actual} of ${m.expected} expected`)
-          .join("; ");
-        message = `Restore completed with differences — ${detail}. Some records may not have been restored; consider re-uploading the backup file.`;
-      } else {
-        message = counts
-          ? `Database restored successfully — ${formatCountsSummary(counts)} restored.`
-          : "Database restored successfully.";
-      }
+      const { verification } = res.data;
 
       // Stash in sessionStorage (not localStorage — that's about to be
-      // wiped below) so LoginPage can show this AFTER the redirect lands.
+      // wiped below) so LoginPage can show the full results modal AFTER
+      // the forced redirect lands. The full identity-level report travels
+      // here now, not just a summary string — LoginPage renders it with
+      // the same BackupRestoreResultModal the Dashboard uses for backup,
+      // and the same report is already persisted server-side in
+      // activity_logs.details regardless of whether this notice survives.
       sessionStorage.setItem(
         "postRestoreNotice",
         JSON.stringify({
-          severity: hasMismatches ? "warning" : "success",
-          message,
+          report: verification,
+          filename: restoreFile?.name,
         }),
       );
 
@@ -885,7 +951,7 @@ const Dashboard = () => {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".sql"
+                accept=".sql,.enc"
                 style={{ display: "none" }}
                 onChange={handleRestoreFileChange}
               />
@@ -1530,6 +1596,7 @@ const Dashboard = () => {
                           key={`${item.entity_type}-${item.action_type}-${i}`}
                           item={item}
                           last={i === activity.length - 1}
+                          onViewReport={setActivityReportView}
                         />
                       ))}
                     </List>
@@ -1571,8 +1638,35 @@ const Dashboard = () => {
         confirmColor="error"
       />
 
-      {/* Result feedback for backup (restore's feedback is shown on LoginPage
-          after the redirect — see postRestoreNotice in sessionStorage) */}
+      {/* Durable backup results — shown every time a backup finishes, success
+          or warning, so the verification outcome is never only visible for
+          a few seconds. Restore's equivalent renders on LoginPage after the
+          forced redirect — see postRestoreNotice in sessionStorage. */}
+      <BackupRestoreResultModal
+        open={!!backupResult}
+        onClose={() => setBackupResult(null)}
+        operation="backup"
+        report={backupResult?.report}
+        filename={backupResult?.filename}
+        saveNote={backupResult?.saveNote}
+        requestedSummary={backupResult?.requestedSummary}
+      />
+
+      {/* Re-opened from Recent Activity's "VIEW REPORT" link — same modal,
+          same report, just pulled from activity_logs.details instead of a
+          just-finished operation. This is what makes the report durable:
+          closing it here loses nothing since it was already persisted. */}
+      <BackupRestoreResultModal
+        open={!!activityReportView}
+        onClose={() => setActivityReportView(null)}
+        operation={activityReportView?.operation}
+        report={activityReportView?.report}
+        filename={activityReportView?.filename}
+      />
+
+      {/* Snackbar is now reserved for transient, non-verification issues
+          (e.g. a local disk-save failure) — the verification outcome itself
+          always goes through the modal above, not this. */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={7000}

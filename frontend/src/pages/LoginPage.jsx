@@ -3,13 +3,13 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import {
   TextField, Button, Typography, Box, InputAdornment, IconButton,
-  Snackbar, Alert,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import PermIdentityIcon from '@mui/icons-material/PermIdentity';
 import LockIcon from '@mui/icons-material/Lock';
+import BackupRestoreResultModal from "../modals/BackupRestoreResultModal.jsx";
 
 const Login = () => {
   const [username, setUsername] = useState("");
@@ -19,26 +19,29 @@ const Login = () => {
   const [passwordFocused, setPasswordFocused] = useState(false);
   const navigate = useNavigate();
 
-  // Picks up the "database restored" result left behind by DashboardPage
+  // Picks up the restore verification report left behind by DashboardPage
   // right before it force-navigated here. sessionStorage survives the full
   // page reload that localStorage.clear() + window.location.href triggers,
-  // which is why the message couldn't just live in React state.
-  const [notice, setNotice] = useState({ open: false, severity: "success", message: "" });
+  // which is why this couldn't just live in React state. Holds the full
+  // { report, filename } shape now, rendered via the same
+  // BackupRestoreResultModal the Dashboard uses for backup, instead of a
+  // plain message string in a Snackbar.
+  const [restoreResult, setRestoreResult] = useState(null); // { report, filename } | null
 
   useEffect(() => {
     const stored = sessionStorage.getItem("postRestoreNotice");
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        setNotice({ open: true, severity: parsed.severity || "success", message: parsed.message });
+        if (parsed.report) {
+          setRestoreResult({ report: parsed.report, filename: parsed.filename });
+        }
       } catch {
-        // Malformed value — ignore rather than show a broken toast.
+        // Malformed value — ignore rather than show a broken dialog.
       }
       sessionStorage.removeItem("postRestoreNotice");
     }
   }, []);
-
-  const closeNotice = () => setNotice((prev) => ({ ...prev, open: false }));
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -262,21 +265,13 @@ const Login = () => {
         </Box>
       </Box>
 
-      <Snackbar
-        open={notice.open}
-        autoHideDuration={7000}
-        onClose={closeNotice}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          onClose={closeNotice}
-          severity={notice.severity}
-          variant="filled"
-          sx={{ maxWidth: 480 }}
-        >
-          {notice.message}
-        </Alert>
-      </Snackbar>
+      <BackupRestoreResultModal
+        open={!!restoreResult}
+        onClose={() => setRestoreResult(null)}
+        operation="restore"
+        report={restoreResult?.report}
+        filename={restoreResult?.filename}
+      />
     </Box>
   );
 };
