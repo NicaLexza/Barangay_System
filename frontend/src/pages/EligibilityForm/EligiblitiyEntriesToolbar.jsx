@@ -48,7 +48,7 @@ export default function EligibilityEntriesToolbar({
     <>
       <Box
         sx={{
-          backgroundColor: '#002f5944',
+          backgroundColor: '#E0F2FF',
           borderBottom: '1px solid rgba(0, 47, 89, 0.2)',
         }}
       >
@@ -61,7 +61,6 @@ export default function EligibilityEntriesToolbar({
             px: 2,
             pt: 1.5,
             pb: 1,
-            borderBottom: '1px solid rgba(0, 47, 89, 0.1)',
           }}
         >
           <IconButton

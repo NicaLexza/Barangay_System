@@ -71,6 +71,14 @@ const formatDate = (value) => {
   return null;
 };
 
+const normalizeStr = (v) => String(v == null ? "" : v).trim().toLowerCase();
+
+// Same identity key the duplicate-check query below uses
+// (l_name + f_name + birthdate), applied here to catch two rows in the
+// SAME file that would resolve to the same person.
+const rowIdentityKey = (row) =>
+  `${normalizeStr(row.l_name)}|${normalizeStr(row.f_name)}|${normalizeStr(row.birthdate)}`;
+
 const bulkImportResidents = (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded" });
@@ -141,19 +149,46 @@ const bulkImportResidents = (req, res) => {
     }
   }
 
-  if (validRows.length === 0) {
+  // ── Intra-file duplicate detection ────────────────────────────────────
+  // Without this, two identical rows in the same file would both query
+  // the DB for a match, both find nothing (neither is inserted yet), and
+  // both proceed to insert — worse, since checkAndInsert below fires all
+  // rows' duplicate-check queries without waiting on each other, this was
+  // a genuine race condition, not just a logic gap. Collapsing to one
+  // occurrence per identity key before any DB query runs closes both
+  // issues at once: only the first occurrence of a given person is ever
+  // checked/inserted; every repeat is skipped up front.
+  const seenKeys = new Map(); // identityKey -> first-seen row number
+  const dedupedRows = [];
+  const skippedRows = [];
+
+  for (const row of validRows) {
+    const key = rowIdentityKey(row);
+    if (seenKeys.has(key)) {
+      skippedRows.push({
+        row: row._rowNumber,
+        name: `${row.f_name} ${row.l_name}`,
+        reason: `Duplicate within this file — same name & birthdate as row ${seenKeys.get(key)}`,
+      });
+    } else {
+      seenKeys.set(key, row._rowNumber);
+      dedupedRows.push(row);
+    }
+  }
+
+  if (dedupedRows.length === 0) {
     return res.status(400).json({
       message: "No valid rows found to import.",
       imported: 0,
-      skipped: 0,
+      skipped: skippedRows.length,
       errors: errorRows,
+      skippedDetails: skippedRows,
     });
   }
 
-  // Process each valid row: check duplicate then insert
+  // Process each remaining (de-duplicated) row: check duplicate then insert
   let imported = 0;
-  let skipped = 0;
-  const skippedRows = [];
+  let skipped = skippedRows.length; // intra-file duplicates already counted
   let processed = 0;
 
   const checkAndInsert = (row) => {
@@ -230,7 +265,7 @@ const bulkImportResidents = (req, res) => {
   };
 
   const checkDone = () => {
-    if (processed === validRows.length) {
+    if (processed === dedupedRows.length) {
       return res.status(200).json({
         message: `Import complete.`,
         imported,
@@ -241,8 +276,8 @@ const bulkImportResidents = (req, res) => {
     }
   };
 
-  // Kick off all rows
-  for (const row of validRows) {
+  // Kick off all (already de-duplicated) rows
+  for (const row of dedupedRows) {
     checkAndInsert(row);
   }
 };

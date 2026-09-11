@@ -83,7 +83,7 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
     <>
       <Box
         sx={{
-          backgroundColor: '#002f5944',
+          backgroundColor: '#E0F2FF',
           borderBottom: '1px solid rgba(0, 47, 89, 0.2)',
         }}
       >
@@ -93,7 +93,6 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
             px: 2,
             pt: 1.5,
             pb: 1,
-            borderBottom: '1px solid rgba(0, 47, 89, 0.1)',
           }}
         >
           <Typography variant="h6" fontWeight="bold" color="#002f59">

@@ -41,12 +41,12 @@ export default function AccountsToolbar({ onAddSuccess, onApplyFilters, onSearch
     <>
       <Box
         sx={{
-          backgroundColor: '#002f5944',
+          backgroundColor: '#E0F2FF',
           borderBottom: '1px solid rgba(0, 47, 89, 0.2)',
         }}
       >
         {/* Top row — Title */}
-        <Box sx={{ px: 2, pt: 1.5, pb: 1, borderBottom: '1px solid rgba(0, 47, 89, 0.1)' }}>
+        <Box sx={{ px: 2, pt: 1.5, pb: 1,}}>
           <Typography variant="h6" fontWeight="bold" color="#002f59">
             Accounts
           </Typography>

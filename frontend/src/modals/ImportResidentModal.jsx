@@ -312,10 +312,10 @@ const ImportResidentModal = ({ open, onClose, onSuccess }) => {
             </Box>
             <Stack direction="row" spacing={2} mt={1} ml={0.5} flexWrap="wrap">
               {[
-                { color: STATUS_COLORS.green,  label: "New — will insert" },
-                { color: STATUS_COLORS.yellow, label: "Changed — will update" },
-                { color: STATUS_COLORS.red,    label: "Exact duplicate — skipped" },
-                { color: STATUS_COLORS.error,  label: "Error — missing fields" },
+                { color: STATUS_COLORS.green,  label: "New : will insert" },
+                { color: STATUS_COLORS.yellow, label: "Changed : will update" },
+                { color: STATUS_COLORS.red,    label: "Exact duplicate : skipped" },
+                { color: STATUS_COLORS.error,  label: "Error : missing fields" },
                 { color: "#bdbdbd",            label: "Excluded" },
               ].map(({ color, label }) => (
                 <Box key={label} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
@@ -325,7 +325,7 @@ const ImportResidentModal = ({ open, onClose, onSuccess }) => {
               ))}
             </Stack>
             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block", ml: 0.5 }}>
-              💡 Double-click a highlighted cell to edit. Use the eye icon to exclude/include rows.
+              Double-click a highlighted cell to edit. Use the eye icon to exclude/include rows.
             </Typography>
           </DialogTitle>
 

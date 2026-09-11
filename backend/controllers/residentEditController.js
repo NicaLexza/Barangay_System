@@ -118,8 +118,12 @@ const updateResident = (req, res) => {
       const formatBool = (val) => val ? "Yes" : "No";
       const formatDate = (val) => {
         if (!val) return "";
-        const d = new Date(val);
-        return isNaN(d) ? val : d.toISOString().split('T')[0];
+        const d = val instanceof Date ? val : new Date(val);
+        if (isNaN(d.getTime())) return String(val);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
       };
 
       const compareAndPush = (key, newVal, formatter = (v) => v) => {

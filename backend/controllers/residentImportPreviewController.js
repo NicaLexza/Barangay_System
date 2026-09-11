@@ -22,9 +22,7 @@ const COLUMN_MAP = {
   "Is Person with Disability (PWD)?":  "is_pwd",
   // NOTE: intentionally no longer mapping an "Is Senior Citizen?" column.
   // Senior status is derived from Birthdate below (see computeIsSenior),
-  // never trusted from a spreadsheet cell — a stale/incorrect "Yes"/"No"
-  // answer in the form response should not be able to override the
-  // person's actual age.
+  // never trusted from a spreadsheet cell.
   "Is Solo Parent?":                   "is_solop",
   "Are you the Household Head?":       "is_household_head",
   "Are you the Household Head ":       "is_household_head", // fallback — current form export has a trailing space and no "?"
@@ -73,6 +71,12 @@ const formatDate = (value) => {
 
 const normalizeStr = (v) => String(v == null ? "" : v).trim().toLowerCase();
 const normalizeBool = (v) => (v ? 1 : 0);
+
+// Same identity key used to look a row up against the database
+// (l_name + f_name + birthdate) — reused here to detect two rows in the
+// SAME uploaded file that would resolve to the same person.
+const rowIdentityKey = (row) =>
+  `${normalizeStr(row.l_name)}|${normalizeStr(row.f_name)}|${normalizeStr(row.birthdate)}`;
 
 const rowsMatch = (incoming, existing) => {
   for (const field of NON_CONSTANT_FIELDS) {
@@ -156,17 +160,54 @@ const previewImportResidents = (req, res) => {
     }
   }
 
-  if (validRows.length === 0) {
-    const summary = { green: 0, yellow: 0, red: 0, error: errorRows.length };
-    return res.status(200).json({ rows: errorRows, summary });
+  // ── Intra-file duplicate detection ────────────────────────────────────
+  // Two rows in the SAME uploaded file that share the same identity key
+  // (last name + first name + birthdate) both look "new" to the database
+  // independently — neither exists there yet — so without this check both
+  // would come back green ("new record") from the per-row DB lookup below
+  // and both would get inserted on confirm, silently bypassing duplicate
+  // protection entirely. Only the first occurrence of a given key is
+  // allowed to proceed to the DB check; every repeat is flagged here and
+  // locked out (same disabled/red treatment as an already-in-database
+  // duplicate), so it can never sneak through.
+  const seenKeys = new Map(); // identityKey -> first-seen row's _rowNumber
+  const dedupedValidRows = [];
+  const inFileDuplicateRows = [];
+
+  for (const row of validRows) {
+    const key = rowIdentityKey(row);
+
+    if (seenKeys.has(key)) {
+      inFileDuplicateRows.push({
+        ...row,
+        status: "red",
+        statusReason: `Duplicate within this file — same name & birthdate as row ${seenKeys.get(key)}`,
+        enabled: false,
+        existing_id: null,
+      });
+    } else {
+      seenKeys.set(key, row._rowNumber);
+      dedupedValidRows.push(row);
+    }
   }
 
-  // For each valid row, check against DB
-  const resultRows = [];
+  if (dedupedValidRows.length === 0) {
+    const allRows = [...inFileDuplicateRows, ...errorRows].sort((a, b) => a._rowNumber - b._rowNumber);
+    const summary = {
+      green: 0,
+      yellow: 0,
+      red: inFileDuplicateRows.length,
+      error: errorRows.length,
+    };
+    return res.status(200).json({ rows: allRows, summary });
+  }
+
+  // For each remaining (de-duplicated) valid row, check against DB
+  const resultRows = [...inFileDuplicateRows];
   let processed = 0;
 
   const checkDone = () => {
-    if (processed < validRows.length) return;
+    if (processed < dedupedValidRows.length) return;
 
     // Merge and sort by original row number
     const allRows = [...resultRows, ...errorRows].sort(
@@ -183,7 +224,7 @@ const previewImportResidents = (req, res) => {
     return res.status(200).json({ rows: allRows, summary });
   };
 
-  for (const row of validRows) {
+  for (const row of dedupedValidRows) {
     const checkSql = `
       SELECT * FROM residents
       WHERE l_name = ? AND f_name = ? AND birthdate = ?

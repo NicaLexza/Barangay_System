@@ -725,21 +725,6 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
             size="small"
             sx={{ backgroundColor: "#e8f0f8", color: NAVY, fontWeight: 600, fontSize: "0.7rem" }}
           />
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<PrintIcon />}
-            onClick={handlePrint}
-            sx={{
-              textTransform: "none",
-              borderColor: NAVY,
-              color: NAVY,
-              fontSize: "0.78rem",
-              "&:hover": { backgroundColor: "#e8f0f8" },
-            }}
-          >
-            Print Report
-          </Button>
           <IconButton size="small" onClick={onClose} sx={{ color: "#94a3b8" }}>
             <CloseIcon fontSize="small" />
           </IconButton>
