@@ -18,6 +18,12 @@ const db = require("../config/db");
  *                                    and any specific missing records), kept separate from `changes`
  *                                    since it describes a different kind of information (a report,
  *                                    not a before/after diff)
+ * @param {string} [opts.performed_at] optional 'YYYY-MM-DD HH:MM:SS' override for when this event
+ *                                    "actually" happened, distinct from when this log row was
+ *                                    inserted. Used by the resident import flow to backdate an
+ *                                    "imported" log entry to the resident's real Google Form
+ *                                    submission time instead of the moment the import ran. When
+ *                                    omitted, the column keeps its normal DEFAULT current_timestamp().
  */
 const logActivity = ({
   entity_type,
@@ -27,23 +33,26 @@ const logActivity = ({
   performed_by = null,
   changes = null,
   details = null,
+  performed_at = null,
 }) => {
   const changesJson = changes ? JSON.stringify(changes) : null;
   const detailsJson = details ? JSON.stringify(details) : null;
 
-  const sql = `
-    INSERT INTO activity_logs
-      (entity_type, entity_id, entity_name, action_type, performed_by, changes, details)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `;
+  const sql = performed_at
+    ? `INSERT INTO activity_logs
+        (entity_type, entity_id, entity_name, action_type, performed_by, changes, details, performed_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    : `INSERT INTO activity_logs
+        (entity_type, entity_id, entity_name, action_type, performed_by, changes, details)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`;
 
-  db.query(
-    sql,
-    [entity_type, entity_id, entity_name, action_type, performed_by, changesJson, detailsJson],
-    (err) => {
-      if (err) console.error("[activityLogger] Failed to log activity:", err.message);
-    }
-  );
+  const params = performed_at
+    ? [entity_type, entity_id, entity_name, action_type, performed_by, changesJson, detailsJson, performed_at]
+    : [entity_type, entity_id, entity_name, action_type, performed_by, changesJson, detailsJson];
+
+  db.query(sql, params, (err) => {
+    if (err) console.error("[activityLogger] Failed to log activity:", err.message);
+  });
 };
 
 module.exports = { logActivity };

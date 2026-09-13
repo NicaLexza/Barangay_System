@@ -145,6 +145,18 @@ const ImportResidentModal = ({ open, onClose, onSuccess }) => {
       renderCell: (params) => <StatusDot row={params.row} />,
     },
     { field: "_rowNumber", headerName: "Row",         width: 60,  sortable: false },
+    {
+      // Shows the Google Form's own "Timestamp" column (parsed server-side
+      // into form_submitted_at) so it's visible and reviewable before
+      // confirming — this is what becomes the resident's created_at on
+      // insert, instead of the moment the import runs.
+      field: "form_submitted_at", headerName: "Registered", width: 150, sortable: false,
+      renderCell: (params) => (
+        <Tooltip title="This becomes the resident's registration date (created_at) on import">
+          <span>{params.value || "—"}</span>
+        </Tooltip>
+      ),
+    },
     { field: "f_name",     headerName: "First Name",  width: 130, editable: true },
     { field: "m_name",     headerName: "Middle Name", width: 130, editable: true },
     { field: "l_name",     headerName: "Last Name",   width: 130, editable: true },
@@ -228,6 +240,7 @@ const ImportResidentModal = ({ open, onClose, onSuccess }) => {
                 <Typography variant="body2" color="#1565c0">
                   Export your Google Form responses as <strong>.xlsx</strong> or <strong>.csv</strong> and upload it here.
                   You will be able to review and edit entries before confirming the import.
+                  The form's own <strong>Timestamp</strong> column is used as each resident's registration date.
                 </Typography>
               </Box>
 
@@ -325,7 +338,8 @@ const ImportResidentModal = ({ open, onClose, onSuccess }) => {
               ))}
             </Stack>
             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block", ml: 0.5 }}>
-              Double-click a highlighted cell to edit. Use the eye icon to exclude/include rows.
+              Double-click a highlighted cell to edit. Use the eye icon to exclude/include rows. The "Registered" column
+              is read-only — it comes from the Google Form's own Timestamp and becomes each resident's registration date.
             </Typography>
           </DialogTitle>
 

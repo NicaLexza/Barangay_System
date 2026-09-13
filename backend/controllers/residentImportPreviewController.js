@@ -4,6 +4,7 @@ const xlsx = require("xlsx");
 const { computeIsSenior } = require("../utils/seniorStatus");
 
 const COLUMN_MAP = {
+  "Timestamp":                         "form_submitted_at",
   "First Name":                        "f_name",
   "MIddle Name":                       "m_name",
   "Middle Name":                       "m_name",
@@ -29,7 +30,25 @@ const COLUMN_MAP = {
   "Household Member Count":            "household_member_count",
 };
 
-const REQUIRED_FIELDS = ["f_name", "l_name", "sex", "birthdate", "birthplace", "street", "civil_status"];
+// `form_submitted_at` (the Google Form's own "Timestamp" column) is required
+// so a resident's created_at always reflects when they actually registered,
+// not when an admin happened to run the import. Per decision: a row with a
+// missing/unreadable Timestamp is flagged as an error and blocked from
+// import rather than silently falling back to "now".
+const REQUIRED_FIELDS = ["f_name", "l_name", "sex", "birthdate", "birthplace", "street", "civil_status", "form_submitted_at"];
+
+// Friendly labels for the "Missing required fields" error message —
+// only needs entries where the raw field key wouldn't read naturally.
+const FIELD_LABELS = {
+  f_name: "First Name",
+  l_name: "Last Name",
+  sex: "Sex",
+  birthdate: "Birthdate",
+  birthplace: "Birthplace",
+  street: "Street",
+  civil_status: "Civil Status",
+  form_submitted_at: "Timestamp",
+};
 
 // Non-constant fields — things that can change about a person
 const NON_CONSTANT_FIELDS = [
@@ -67,6 +86,36 @@ const formatDate = (value) => {
     return `${y}-${m}-${d}`;
   }
   return null;
+};
+
+// Like formatDate, but keeps the time component — used for the Google
+// Form's "Timestamp" column, since residents.created_at and
+// activity_logs.performed_at are both DATETIME columns and need the full
+// registration moment (not just the day) to be meaningful.
+const formatDateTime = (value) => {
+  if (!value) return null;
+
+  let d;
+  if (value instanceof Date) {
+    d = value;
+  } else {
+    // xlsx is configured with cellDates: true, so this string path is a
+    // fallback for exports where the cell didn't come through as a Date
+    // object (e.g. a re-saved/re-typed CSV). Google Forms/Sheets timestamps
+    // are natively parseable by JS Date in their usual "M/D/YYYY H:MM:SS"
+    // export format.
+    d = new Date(String(value).trim());
+  }
+
+  if (isNaN(d.getTime())) return null;
+
+  const y   = d.getFullYear();
+  const mo  = String(d.getMonth() + 1).padStart(2, "0");
+  const da  = String(d.getDate()).padStart(2, "0");
+  const hh  = String(d.getHours()).padStart(2, "0");
+  const mi  = String(d.getMinutes()).padStart(2, "0");
+  const ss  = String(d.getSeconds()).padStart(2, "0");
+  return `${y}-${mo}-${da} ${hh}:${mi}:${ss}`;
 };
 
 const normalizeStr = (v) => String(v == null ? "" : v).trim().toLowerCase();
@@ -115,6 +164,7 @@ const previewImportResidents = (req, res) => {
       if (raw[header] !== undefined) row[field] = raw[header];
     }
 
+    row.form_submitted_at = formatDateTime(row.form_submitted_at);
     row.f_name       = String(row.f_name || "").trim();
     row.m_name       = String(row.m_name || "").trim() || null;
     row.l_name       = String(row.l_name || "").trim();
@@ -151,7 +201,7 @@ const previewImportResidents = (req, res) => {
       errorRows.push({
         ...row,
         status: "error",
-        statusReason: `Missing required fields: ${missing.join(", ")}`,
+        statusReason: `Missing required fields: ${missing.map((f) => FIELD_LABELS[f] || f).join(", ")}`,
         enabled: false,
         existing_id: null,
       });

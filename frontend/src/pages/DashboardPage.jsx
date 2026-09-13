@@ -67,6 +67,7 @@ const GENDER_COLORS = { Male: "#1d4ed8", Female: "#be185d", Other: "#047857" };
 const ACT_COLORS = {
   "Resident:added": "#2563eb",
   "Resident:updated": "#0369a1",
+  "Resident:imported": "#2563eb",
   "Household:added": "#16a34a",
   "Household:updated": "#15803d",
   "Account:created": "#7c3aed",
@@ -286,6 +287,49 @@ const Dot = ({ color }) => (
   />
 );
 
+// Renders one updated resident's before/after diff inside a batch import's
+// collapsible detail — same visual language as the single-record changes
+// diff below, just nested under the resident's name so it's clear which
+// record each line belongs to.
+const BatchUpdateDiff = ({ name, changes }) => (
+  <Box sx={{ mb: 1 }}>
+    <Typography sx={{ fontSize: "0.72rem", fontWeight: 600, color: INK, mb: 0.35 }}>
+      {name}
+    </Typography>
+    {changes && changes.length > 0 ? (
+      changes.map((c, idx) => (
+        <Box
+          key={idx}
+          display="flex"
+          alignItems="baseline"
+          gap={1}
+          sx={{ pl: 1, mb: idx !== changes.length - 1 ? 0.35 : 0 }}
+        >
+          <Typography sx={{ fontSize: "0.68rem", fontWeight: 600, color: INK_2, minWidth: 76 }}>
+            {c.field}
+          </Typography>
+          <Box display="flex" alignItems="center" gap={1} flex={1} minWidth={0}>
+            <Typography
+              sx={{ fontSize: "0.68rem", color: INK_3, textDecoration: "line-through", opacity: 0.7 }}
+              noWrap
+            >
+              {c.from || "(empty)"}
+            </Typography>
+            <Typography sx={{ fontSize: "0.68rem", color: INK_3 }}>→</Typography>
+            <Typography sx={{ fontSize: "0.68rem", color: INK, fontWeight: 500 }} noWrap>
+              {c.to || "(empty)"}
+            </Typography>
+          </Box>
+        </Box>
+      ))
+    ) : (
+      <Typography sx={{ fontSize: "0.68rem", color: INK_3, pl: 1, fontStyle: "italic" }}>
+        No field changes recorded
+      </Typography>
+    )}
+  </Box>
+);
+
 const ActivityRow = ({ item, last, onViewReport }) => {
   const [expanded, setExpanded] = useState(false);
   const key = `${item.entity_type}:${item.action_type}`;
@@ -317,6 +361,30 @@ const ActivityRow = ({ item, last, onViewReport }) => {
 
   const hasChanges = changes.length > 0;
 
+  // Bulk-import log entries (one row per whole import, not per resident —
+  // see residentImportConfirmController.js) carry their added/updated
+  // breakdown in `details` instead of `changes`, distinguished by having
+  // no single entity_id (it represents many records, not one).
+  let importBatch = null;
+  if (
+    item.entity_type === "Resident" &&
+    item.action_type === "imported" &&
+    item.entity_id == null &&
+    item.details
+  ) {
+    try {
+      const parsed = JSON.parse(item.details);
+      if (parsed && (Array.isArray(parsed.added) || Array.isArray(parsed.updated))) {
+        importBatch = parsed;
+      }
+    } catch (e) {
+      console.error("Failed to parse import batch details:", e);
+    }
+  }
+  const hasImportBatch =
+    !!importBatch &&
+    ((importBatch.added?.length || 0) + (importBatch.updated?.length || 0) > 0);
+
   // Backup/restore rows carry their verification report in `details` —
   // parsed here so "VIEW REPORT" can reopen the exact same modal that
   // showed right after the operation, without re-running anything.
@@ -329,6 +397,8 @@ const ActivityRow = ({ item, last, onViewReport }) => {
     }
   }
   const hasReport = !!report;
+
+  const hasExpandableDetail = hasChanges || hasImportBatch;
 
   return (
     <>
@@ -366,7 +436,7 @@ const ActivityRow = ({ item, last, onViewReport }) => {
                       {item.entity_type} {verb}
                       {item.performed_by ? ` · ${item.performed_by}` : ""}
                     </Typography>
-                    {hasChanges && (
+                    {hasExpandableDetail && (
                       <Box
                         onClick={() => setExpanded(!expanded)}
                         sx={{
@@ -378,7 +448,7 @@ const ActivityRow = ({ item, last, onViewReport }) => {
                           "&:hover": { opacity: 0.8 }
                         }}
                       >
-                        <Typography sx={{ fontSize: "0.65rem", fontWeight: 600 }}>
+                        <Typography sx={{ fontSize: "0.65rem", fontWeight: 600, }}>
                           {expanded ? "HIDE DETAILS" : "SHOW DETAILS"}
                         </Typography>
                         {expanded ? (
@@ -435,8 +505,11 @@ const ActivityRow = ({ item, last, onViewReport }) => {
           />
         </Box>
         
-        {/* Expanded Changes Section */}
-        {hasChanges && (
+        {/* Expanded detail — either a single record's field diff, or a
+            batch import's added-names + updated-diffs breakdown. The two
+            are mutually exclusive (different entity_type/action_type
+            combinations produce each), so only one ever renders. */}
+        {hasExpandableDetail && (
           <Collapse in={expanded} timeout="auto" unmountOnExit sx={{ width: "100%", pl: 2.75 }}>
             <Box
               sx={{
@@ -447,7 +520,7 @@ const ActivityRow = ({ item, last, onViewReport }) => {
                 borderRadius: "6px",
               }}
             >
-              {changes.map((c, idx) => (
+              {hasChanges && changes.map((c, idx) => (
                 <Box 
                   key={idx} 
                   display="flex" 
@@ -484,6 +557,50 @@ const ActivityRow = ({ item, last, onViewReport }) => {
                   </Box>
                 </Box>
               ))}
+
+              {hasImportBatch && (
+                <>
+                  {importBatch.added?.length > 0 && (
+                    <Box sx={{ mb: importBatch.updated?.length > 0 ? 1.25 : 0 }}>
+                      <Typography
+                        sx={{
+                          fontSize: "0.66rem",
+                          fontWeight: 700,
+                          color: INK_3,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          mb: 0.5,
+                        }}
+                      >
+                        Added ({importBatch.added.length})
+                      </Typography>
+                      <Typography sx={{ fontSize: "0.72rem", color: INK_2, lineHeight: 1.6 }}>
+                        {importBatch.added.map((r) => r.name).join(", ")}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {importBatch.updated?.length > 0 && (
+                    <Box>
+                      <Typography
+                        sx={{
+                          fontSize: "0.66rem",
+                          fontWeight: 700,
+                          color: INK_3,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          mb: 0.5,
+                        }}
+                      >
+                        Updated ({importBatch.updated.length})
+                      </Typography>
+                      {importBatch.updated.map((r) => (
+                        <BatchUpdateDiff key={r.resident_id} name={r.name} changes={r.changes} />
+                      ))}
+                    </Box>
+                  )}
+                </>
+              )}
             </Box>
           </Collapse>
         )}

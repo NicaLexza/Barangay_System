@@ -101,6 +101,7 @@ const getRecentActivity = (req, res) => {
     SELECT
       al.log_id,
       al.entity_type,
+      al.entity_id,
       al.entity_name,
       al.action_type,
       al.performed_at  AS action_time,

@@ -3,7 +3,8 @@ const db = require("../config/db");
 const { logActivity } = require("../utils/activityLogger");
 
 // Same field labels/formatters as residentEditController.js so import-driven
-// "updated" logs render identically in the ActivityRow "SHOW DETAILS" panel.
+// "updated" diffs render identically to a manual edit's diff, whether
+// they're viewed inside the batch import log or elsewhere.
 const fieldLabels = {
   f_name: "First Name", m_name: "Middle Name", l_name: "Last Name", suffix: "Suffix",
   sex: "Sex", birthplace: "Birthplace", house_no: "House No.",
@@ -82,8 +83,43 @@ const confirmImportResidents = (req, res) => {
   const errorRows = [];
   let processed = 0;
 
+  // Collected across the whole import so the entire operation can be
+  // written as ONE activity_logs row instead of one row per resident —
+  // a 50-row import previously flooded Recent Activity with 50 separate
+  // "imported" entries. Per-resident detail isn't lost, it just moves into
+  // this single entry's `details` payload: a plain name for each new
+  // resident, and a full before/after diff (same shape as a manual edit)
+  // for each updated one. The frontend renders both as a collapsible list.
+  const addedRecords = [];
+  const updatedRecords = [];
+
   const checkDone = () => {
     if (processed < toProcess.length) return;
+
+    if (addedRecords.length > 0 || updatedRecords.length > 0) {
+      const summaryParts = [];
+      if (addedRecords.length > 0) summaryParts.push(`${addedRecords.length} added`);
+      if (updatedRecords.length > 0) summaryParts.push(`${updatedRecords.length} updated`);
+
+      // Intentionally no performed_at override here — unlike the resident
+      // record's own created_at (which correctly reflects the Google Form's
+      // original Timestamp), this log entry represents the import ACTION
+      // itself, which genuinely happened right now. That's what lets it
+      // show up immediately in Recent Activity regardless of how old the
+      // underlying registration dates are.
+      logActivity({
+        entity_type:  "Resident",
+        entity_id:    null,
+        entity_name:  summaryParts.join(", "),
+        action_type:  "imported",
+        performed_by: created_by,
+        details: {
+          added: addedRecords,
+          updated: updatedRecords,
+        },
+      });
+    }
+
     return res.status(200).json({
       message: "Import complete.",
       imported,
@@ -94,12 +130,17 @@ const confirmImportResidents = (req, res) => {
 
   for (const row of toProcess) {
     if (row.status === "green") {
+      // created_at is explicitly set from the Google Form's own "Timestamp"
+      // column (row.form_submitted_at, parsed during preview) — this is
+      // what makes the resident record itself historically accurate, kept
+      // separate from the batch log entry's own timestamp above.
       const insertSql = `
         INSERT INTO residents (
           f_name, m_name, l_name, suffix, sex, birthdate, birthplace,
           house_no, street, civil_status, occupation, citizenship,
-          is_pwd, is_senior, is_solop, is_household_head, household_member_count, created_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          is_pwd, is_senior, is_solop, is_household_head, household_member_count,
+          created_by, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       db.query(
@@ -123,6 +164,7 @@ const confirmImportResidents = (req, res) => {
           row.is_household_head ? 1 : 0,
           row.household_member_count,
           created_by,
+          row.form_submitted_at,
         ],
         (err, result) => {
           if (err) {
@@ -132,13 +174,9 @@ const confirmImportResidents = (req, res) => {
             });
           } else {
             imported++;
-
-            logActivity({
-              entity_type:  "Resident",
-              entity_id:    result.insertId,
-              entity_name:  `${row.f_name} ${row.l_name}`,
-              action_type:  "imported",
-              performed_by: created_by,
+            addedRecords.push({
+              resident_id: result.insertId,
+              name: `${row.f_name} ${row.l_name}`,
             });
           }
           processed++;
@@ -169,6 +207,9 @@ const confirmImportResidents = (req, res) => {
           const oldData = oldResults[0];
           const changes = buildChanges(oldData, row);
 
+          // created_at is intentionally NOT touched here — the resident
+          // already has one from whenever they first registered, and an
+          // update import shouldn't overwrite that original moment.
           const updateSql = `
             UPDATE residents SET
               f_name = ?, m_name = ?, l_name = ?, suffix = ?,
@@ -210,14 +251,10 @@ const confirmImportResidents = (req, res) => {
                 });
               } else {
                 updated++;
-
-                logActivity({
-                  entity_type:  "Resident",
-                  entity_id:    row.existing_id,
-                  entity_name:  `${row.f_name} ${row.l_name}`,
-                  action_type:  "updated",
-                  performed_by: created_by,
-                  changes:      changes.length > 0 ? changes : null,
+                updatedRecords.push({
+                  resident_id: row.existing_id,
+                  name: `${row.f_name} ${row.l_name}`,
+                  changes,
                 });
               }
               processed++;

@@ -6,6 +6,7 @@ const { computeIsSenior } = require("../utils/seniorStatus");
 
 // Column mapping from Google Form export headers to DB fields
 const COLUMN_MAP = {
+  "Timestamp":                         "form_submitted_at",
   "First Name":                        "f_name",
   "MIddle Name":                       "m_name",
   "Middle Name":                       "m_name",  // fallback clean version
@@ -28,7 +29,21 @@ const COLUMN_MAP = {
   "Is Solo Parent?":                   "is_solop",
 };
 
-const REQUIRED_FIELDS = ["f_name", "l_name", "sex", "birthdate", "birthplace", "street", "civil_status"];
+// `form_submitted_at` (the Google Form's own "Timestamp" column) is required
+// so a resident's created_at always reflects when they actually registered,
+// not when an admin happened to run the import.
+const REQUIRED_FIELDS = ["f_name", "l_name", "sex", "birthdate", "birthplace", "street", "civil_status", "form_submitted_at"];
+
+const FIELD_LABELS = {
+  f_name: "First Name",
+  l_name: "Last Name",
+  sex: "Sex",
+  birthdate: "Birthdate",
+  birthplace: "Birthplace",
+  street: "Street",
+  civil_status: "Civil Status",
+  form_submitted_at: "Timestamp",
+};
 
 const parseYesNo = (value) => {
   if (!value) return 0;
@@ -71,6 +86,29 @@ const formatDate = (value) => {
   return null;
 };
 
+// Like formatDate, but preserves the time component — used for the Google
+// Form's "Timestamp" column since residents.created_at is a DATETIME.
+const formatDateTime = (value) => {
+  if (!value) return null;
+
+  let d;
+  if (value instanceof Date) {
+    d = value;
+  } else {
+    d = new Date(String(value).trim());
+  }
+
+  if (isNaN(d.getTime())) return null;
+
+  const y   = d.getFullYear();
+  const mo  = String(d.getMonth() + 1).padStart(2, "0");
+  const da  = String(d.getDate()).padStart(2, "0");
+  const hh  = String(d.getHours()).padStart(2, "0");
+  const mi  = String(d.getMinutes()).padStart(2, "0");
+  const ss  = String(d.getSeconds()).padStart(2, "0");
+  return `${y}-${mo}-${da} ${hh}:${mi}:${ss}`;
+};
+
 const normalizeStr = (v) => String(v == null ? "" : v).trim().toLowerCase();
 
 // Same identity key the duplicate-check query below uses
@@ -111,6 +149,7 @@ const bulkImportResidents = (req, res) => {
     }
 
     // Normalize
+    row.form_submitted_at = formatDateTime(row.form_submitted_at);
     row.f_name      = String(row.f_name || "").trim();
     row.m_name      = String(row.m_name || "").trim() || null;
     row.l_name      = String(row.l_name || "").trim();
@@ -142,7 +181,7 @@ const bulkImportResidents = (req, res) => {
       errorRows.push({
         row: row._rowNumber,
         name: `${row.f_name || ""} ${row.l_name || ""}`.trim() || "(unnamed)",
-        reason: `Missing required fields: ${missing.join(", ")}`,
+        reason: `Missing required fields: ${missing.map((f) => FIELD_LABELS[f] || f).join(", ")}`,
       });
     } else {
       validRows.push(row);
@@ -191,6 +230,13 @@ const bulkImportResidents = (req, res) => {
   let skipped = skippedRows.length; // intra-file duplicates already counted
   let processed = 0;
 
+  // Collected so the whole run is written as ONE activity_logs row instead
+  // of one row per resident — see residentImportConfirmController.js for
+  // the identical rationale/shape (added: [{resident_id, name}]). This
+  // legacy endpoint has no update path, so `updated` is always empty, but
+  // the shape is kept consistent in case anything downstream parses it.
+  const addedRecords = [];
+
   const checkAndInsert = (row) => {
     const checkSql = `
       SELECT COUNT(*) AS count 
@@ -222,12 +268,17 @@ const bulkImportResidents = (req, res) => {
         return;
       }
 
+      // created_at is explicitly set from the parsed Google Form Timestamp
+      // instead of being omitted from the column list — previously that
+      // omission let MySQL's DEFAULT current_timestamp() silently stamp
+      // every imported resident with the import moment, not their actual
+      // registration date.
       const insertSql = `
         INSERT INTO residents (
           f_name, m_name, l_name, suffix, sex, birthdate, birthplace,
           house_no, street, civil_status, occupation, citizenship,
-          is_pwd, is_senior, is_solop, created_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          is_pwd, is_senior, is_solop, created_by, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       db.query(
@@ -239,6 +290,7 @@ const bulkImportResidents = (req, res) => {
           row.occupation, row.citizenship,
           row.is_pwd, row.is_senior, row.is_solop,
           created_by,
+          row.form_submitted_at,
         ],
         (err2, result) => {
           if (err2) {
@@ -249,12 +301,9 @@ const bulkImportResidents = (req, res) => {
             });
           } else {
             imported++;
-            logActivity({
-              entity_type: "Resident",
-              entity_id: result.insertId,
-              entity_name: `${row.f_name} ${row.l_name}`,
-              action_type: "imported",
-              performed_by: created_by
+            addedRecords.push({
+              resident_id: result.insertId,
+              name: `${row.f_name} ${row.l_name}`,
             });
           }
           processed++;
@@ -265,15 +314,32 @@ const bulkImportResidents = (req, res) => {
   };
 
   const checkDone = () => {
-    if (processed === dedupedRows.length) {
-      return res.status(200).json({
-        message: `Import complete.`,
-        imported,
-        skipped,
-        errors: errorRows,
-        skippedDetails: skippedRows,
+    if (processed !== dedupedRows.length) return;
+
+    if (addedRecords.length > 0) {
+      // No performed_at override — this log entry represents the import
+      // action itself (happening right now), distinct from the resident
+      // records' own historically-accurate created_at values.
+      logActivity({
+        entity_type:  "Resident",
+        entity_id:    null,
+        entity_name:  `${addedRecords.length} added`,
+        action_type:  "imported",
+        performed_by: created_by,
+        details: {
+          added: addedRecords,
+          updated: [],
+        },
       });
     }
+
+    return res.status(200).json({
+      message: `Import complete.`,
+      imported,
+      skipped,
+      errors: errorRows,
+      skippedDetails: skippedRows,
+    });
   };
 
   // Kick off all (already de-duplicated) rows
