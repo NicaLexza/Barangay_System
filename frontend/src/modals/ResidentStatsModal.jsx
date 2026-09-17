@@ -1,5 +1,5 @@
 // ResidentStatsModal.jsx
-import React, { useEffect, useRef, useMemo } from "react";
+import React, { useEffect, useRef, useMemo, useState, useCallback } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -8,14 +8,22 @@ import {
   Button,
   Box,
   Typography,
-  Grid,
   Divider,
   Chip,
   IconButton,
+  FormControlLabel,
+  Checkbox,
+  CircularProgress,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import PrintIcon from "@mui/icons-material/Print";
+import ClearIcon from "@mui/icons-material/Clear";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import dayjs from "dayjs";
+import axios from "axios";
 
 // ── Color palettes (hardcoded — Chart.js cannot read CSS vars) ──────────────
 const NAVY        = "#002f59";
@@ -44,6 +52,26 @@ const countBy = (rows, fn) => {
   });
   return map;
 };
+
+// Normalizes an archived-residents API row (residentArchiveController.js's
+// getArchivedResidents) into the same shape as the active-residents rows
+// the Residents table already passes in as `filteredRows` — so both can
+// be concatenated and fed into the same stats computation without any
+// special-casing below.
+const mapArchivedRow = (r) => ({
+  id: r.resident_id,
+  fullName: r.fullName || "",
+  sex: r.sex || "",
+  birthdate: r.birthdate || "",
+  address: r.address || "",
+  civilStatus: r.civilStatus || "",
+  occupation: r.occupation || "",
+  citizenship: r.citizenship || "",
+  specialSector: r.specialSector || "None",
+  is_household_head: r.is_household_head ?? 0,
+  household_member_count: r.household_member_count ?? null,
+  created_at: r.created_at,
+});
 
 // ── Chart registry so we can destroy before re-creating ──────────────────────
 const chartInstances = {};
@@ -124,9 +152,82 @@ const StatPill = ({ label, value, color }) => (
 const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
   const chartLoaded = useRef(false);
 
-  // ── Compute all statistics from filteredRows ──────────────────────────────
+  // ── Dedicated date-range filter (separate from the Residents table's own
+  // "Date Registered" filter) + opt-in archived-residents inclusion. Both
+  // reset every time the modal is opened, so each session starts from the
+  // table's current view rather than carrying over a stale filter. ────────
+  const [dateFrom, setDateFrom] = useState(null); // dayjs | null
+  const [dateTo, setDateTo] = useState(null);
+  const [includeArchived, setIncludeArchived] = useState(false);
+  const [archivedRows, setArchivedRows] = useState([]);
+  const [archivedLoading, setArchivedLoading] = useState(false);
+  const [archivedError, setArchivedError] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      setDateFrom(null);
+      setDateTo(null);
+      setIncludeArchived(false);
+      setArchivedRows([]);
+      setArchivedError("");
+    }
+  }, [open]);
+
+  // Fetches archived residents on demand — only when the checkbox is first
+  // checked, not on every render. Uses the SAME shape as the active list
+  // (see residentArchiveController.js's getArchivedResidents) so it merges
+  // cleanly with filteredRows below.
+  const fetchArchived = useCallback(async () => {
+    setArchivedLoading(true);
+    setArchivedError("");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get("http://localhost:5000/api/residents/archived", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setArchivedRows(res.data.map(mapArchivedRow));
+    } catch (err) {
+      console.error("Failed to fetch archived residents for stats:", err);
+      setArchivedError("Failed to load archived records.");
+      setIncludeArchived(false);
+    } finally {
+      setArchivedLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (includeArchived && archivedRows.length === 0 && !archivedLoading) {
+      fetchArchived();
+    }
+  }, [includeArchived, archivedRows.length, archivedLoading, fetchArchived]);
+
+  const clearDateFilter = () => {
+    setDateFrom(null);
+    setDateTo(null);
+  };
+
+  // filteredRows (active, from the Residents table) + archived (opt-in) →
+  // then narrowed by the modal's own date range on created_at (registration
+  // date), if set. This — not filteredRows directly — is what every stat
+  // and chart below is computed from.
+  const effectiveRows = useMemo(() => {
+    const base = includeArchived ? [...filteredRows, ...archivedRows] : filteredRows;
+    if (!dateFrom && !dateTo) return base;
+
+    return base.filter((row) => {
+      if (!row.created_at) return false;
+      const created = dayjs(row.created_at);
+      if (dateFrom && created.isBefore(dateFrom.startOf("day"))) return false;
+      if (dateTo && created.isAfter(dateTo.endOf("day"))) return false;
+      return true;
+    });
+  }, [filteredRows, archivedRows, includeArchived, dateFrom, dateTo]);
+
+  const hasActiveFilter = includeArchived || !!(dateFrom || dateTo);
+
+  // ── Compute all statistics from effectiveRows ──────────────────────────
   const stats = useMemo(() => {
-    const total = filteredRows.length;
+    const total = effectiveRows.length;
 
     // 1. Age distribution — matches DashboardPage.jsx's 5-bucket taxonomy exactly
     const ageBuckets = {
@@ -136,7 +237,7 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
       "Mature (46–60)": 0,
       "Elderly (60+)": 0,
     };
-    filteredRows.forEach((r) => {
+    effectiveRows.forEach((r) => {
       const age = calculateAge(r.birthdate);
       if (age === null) return;
       if (age <= 17) ageBuckets["Minor (0–17)"]++;
@@ -147,31 +248,31 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
     });
 
     // 2. Sex distribution
-    const sexMap = countBy(filteredRows, (r) => r.sex);
+    const sexMap = countBy(effectiveRows, (r) => r.sex);
 
     // 3. Street distribution (extract street from address "house_no street")
-    const streetMap = countBy(filteredRows, (r) => {
+    const streetMap = countBy(effectiveRows, (r) => {
       const addr = (r.address || r.street || "").trim();
       const parts = addr.split(" ");
       return parts.length > 1 ? parts.slice(1).join(" ") : addr || "Unknown";
     });
 
     // 4. Civil status
-    const civilMap = countBy(filteredRows, (r) => r.civilStatus || r.civil_status);
+    const civilMap = countBy(effectiveRows, (r) => r.civilStatus || r.civil_status);
 
     // 5. Employment status
-    const employed = filteredRows.filter((r) => r.occupation && r.occupation.trim()).length;
+    const employed = effectiveRows.filter((r) => r.occupation && r.occupation.trim()).length;
     const unemployed = total - employed;
 
     // 6. Citizenship
-    const citizenMap = countBy(filteredRows, (r) => {
+    const citizenMap = countBy(effectiveRows, (r) => {
       const c = (r.citizenship || "").trim();
       return c || null;
     });
 
     // 7. Special sectors — parse "PD, S, SP" style strings + deduplicate
     let pwdCount = 0, seniorCount = 0, solopCount = 0;
-    filteredRows.forEach((r) => {
+    effectiveRows.forEach((r) => {
       const sectors = (r.specialSector || "").split(",").map((s) => s.trim());
       if (sectors.includes("PD")) pwdCount++;
       if (sectors.includes("S")) seniorCount++;
@@ -179,7 +280,7 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
     });
 
     // 8. Household heads — top 10 by member count
-    const headRows = filteredRows.filter((r) => r.is_household_head === 1);
+    const headRows = effectiveRows.filter((r) => r.is_household_head === 1);
     const householdHeadsCount = headRows.length;
     const topHeads = [...headRows]
       .sort((a, b) => (b.household_member_count || 0) - (a.household_member_count || 0))
@@ -210,7 +311,7 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
       householdHeadsCount,
       topHeads,
     };
-  }, [filteredRows]);
+  }, [effectiveRows]);
 
   // ── Build all charts after Chart.js loads ─────────────────────────────────
   const buildAllCharts = () => {
@@ -530,6 +631,16 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
   const headsLegendLocal = stats.topHeads.slice(0, 5).map((h) => ({ label: h.surname, value: h.memberCount, color: NAVY }))
     .concat(stats.topHeads.length > 5 ? [{ label: `+${stats.topHeads.length - 5} more`, color: "#cbd5e1", value: null }] : []);
 
+  // Describes the active filter (range + archived-inclusion) so a printed
+  // report is self-explanatory about what data it covers, rather than just
+  // showing numbers with no context about how they were scoped.
+  const filterDescription = [
+    dateFrom || dateTo
+      ? `Registered ${dateFrom ? dateFrom.format("MMM D, YYYY") : "the beginning"} – ${dateTo ? dateTo.format("MMM D, YYYY") : "present"}`
+      : "All registration dates",
+    includeArchived ? "Includes archived residents" : "Active residents only",
+  ].join(" · ");
+
   const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -547,7 +658,8 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
 
     .meta { display: flex; justify-content: space-between; font-size: 9pt; color: #555;
       border-top: 2px solid #002f59; border-bottom: 2px solid #002f59;
-      padding: 6px 0; margin: 12px 0 20px; }
+      padding: 6px 0; margin: 12px 0 4px; }
+    .meta-filter { font-size: 8.5pt; color: #64748b; margin-bottom: 16px; font-style: italic; }
 
     .pills { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
     .pill { background: #f7f9fc; border: 1px solid #e2e8f0; border-radius: 8px;
@@ -595,6 +707,7 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
     <span>Total Records in View: <strong>${stats.total}</strong></span>
     <span>Date: ${today}</span>
   </div>
+  <div class="meta-filter">Filter applied: ${filterDescription}</div>
 
   <div class="pills">
     <div class="pill"><div class="pill-val" style="color:#002f59">${stats.total}</div><div class="pill-lbl">Total Records</div></div>
@@ -731,6 +844,79 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
         </Box>
       </DialogTitle>
 
+      {/* ── Dedicated date-range filter + include-archived toggle ──────────── */}
+      <Box
+        sx={{
+          px: 3,
+          py: 1.5,
+          borderBottom: "1px solid #e2e8f0",
+          backgroundColor: "#f7f9fc",
+          display: "flex",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 1.5,
+        }}
+      >
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <DatePicker
+            label="Registered From"
+            value={dateFrom}
+            onChange={setDateFrom}
+            format="MM/DD/YYYY"
+            maxDate={dateTo || undefined}
+            slotProps={{ textField: { size: "small", sx: { width: 165, backgroundColor: "white" } } }}
+          />
+          <DatePicker
+            label="Registered To"
+            value={dateTo}
+            onChange={setDateTo}
+            format="MM/DD/YYYY"
+            minDate={dateFrom || undefined}
+            slotProps={{ textField: { size: "small", sx: { width: 165, backgroundColor: "white" } } }}
+          />
+        </LocalizationProvider>
+
+        {(dateFrom || dateTo) && (
+          <IconButton
+            size="small"
+            onClick={clearDateFilter}
+            title="Clear date filter"
+            sx={{ color: "#94a3b8", backgroundColor: "white", border: "1px solid #e2e8f0" }}
+          >
+            <ClearIcon fontSize="small" />
+          </IconButton>
+        )}
+
+        <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={includeArchived}
+              onChange={(e) => setIncludeArchived(e.target.checked)}
+              size="small"
+            />
+          }
+          label={
+            <Typography sx={{ fontSize: "0.8rem", color: "#4a5568" }}>
+              Include archived records
+            </Typography>
+          }
+        />
+        {archivedLoading && <CircularProgress size={16} />}
+        {archivedError && (
+          <Typography sx={{ fontSize: "0.75rem", color: "#dc2626" }}>{archivedError}</Typography>
+        )}
+
+        {hasActiveFilter && (
+          <Chip
+            label={`${stats.total} of ${filteredRows.length + (includeArchived ? archivedRows.length : 0)} shown`}
+            size="small"
+            sx={{ ml: "auto", backgroundColor: "#e8f0f8", color: NAVY, fontWeight: 600, fontSize: "0.7rem" }}
+          />
+        )}
+      </Box>
+
       {/* ── Body ───────────────────────────────────────────────────────────── */}
       <DialogContent sx={{ p: 3, backgroundColor: "#f7f9fc", overflowY: "auto" }}>
 
@@ -793,7 +979,9 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
 
       <DialogActions sx={{ px: 3, py: 2, borderTop: "1px solid #e2e8f0", backgroundColor: "white" }}>
         <Typography sx={{ flex: 1, fontSize: "0.72rem", color: "#94a3b8" }}>
-          Charts auto-adjust to the active filter selection in the Residents table.
+          {hasActiveFilter
+            ? "Charts reflect the date range and archived-records setting above."
+            : "Charts auto-adjust to the active filter selection in the Residents table."}
         </Typography>
         <Button onClick={onClose} sx={{ textTransform: "none", color: "#64748b" }}>
           Close

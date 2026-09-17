@@ -15,10 +15,10 @@ const userEditRoutes = require("./routes/userEditRoutes");
 const userDeleteRoutes = require("./routes/userDeleteRoutes");
 const userChangePassRoutes = require("./routes/userChangePassRoutes");
 
+const residentArchiveRoutes = require("./routes/residentArchiveRoutes");
 const residentRoutes = require("./routes/residentRoutes");
 const residentAddRoutes = require("./routes/residentAddRoutes");
 const residentEditRoutes = require("./routes/residentEditRoutes");
-const residentDeleteRoutes = require("./routes/residentDeleteRoutes");
 const residentBulkImportRoutes = require("./routes/residentBulkImportRoutes");
 
 const eligibilityFormAddRoutes = require("./routes/EligibilityFormAddRoutes");
@@ -43,10 +43,14 @@ app.use("/api/users", userRoutes);
 app.use("/api/users", userAddRoutes);
 app.use("/api/users", userChangePassRoutes);
 
+// residentArchiveRoutes MUST be mounted before residentRoutes — it declares
+// GET /archived, and residentRoutes declares GET /:id. If residentRoutes
+// were mounted first, Express would match "/archived" against "/:id" with
+// id="archived" before ever reaching the archive router.
+app.use("/api/residents", residentArchiveRoutes);
 app.use("/api/residents", residentRoutes);
 app.use("/api/residents", residentAddRoutes);
 app.use("/api/residents", residentEditRoutes);
-app.use("/api/residents", residentDeleteRoutes);
 app.use("/api/residents", residentBulkImportRoutes);
 
 app.use("/api/eligibility-forms", eligibilityFormArchiveRoutes);

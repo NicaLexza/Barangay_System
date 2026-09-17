@@ -3,6 +3,7 @@ import Login from "./pages/LoginPage.jsx";
 import Dashboard from "./pages/DashboardPage.jsx";
 import Accounts from "./pages/Accounts/AccountsPage.jsx";
 import Residents from "./pages/Residents/ResidentsPage.jsx";
+import ResidentsArchivedPage from "./pages/ArchivedResidents/ResidentsArchivedPage.jsx";
 import Eligibility from "./pages/EligibilityForm/EligibilityPage.jsx";
 import EligibilityEntries from "./pages/EligibilityForm/EligibilityEntriesPage.jsx";
 import EligibilityArchivedPage from "./pages/EligibilityForm/EligibilityArchivedPage.jsx";
@@ -50,6 +51,18 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["Admin", "Staff"]}>
               <Residents />
+            </ProtectedRoute>
+          }
+        />
+        {/* NOTE: /Residents/Archived must be declared BEFORE any future
+            /Residents/:id-style route, same reasoning as Eligibility's
+            Archived route below — Residents has no such :id route today,
+            but this ordering keeps the pattern safe if one is ever added. */}
+        <Route
+          path="/Residents/Archived"
+          element={
+            <ProtectedRoute allowedRoles={["Admin", "Staff"]}>
+              <ResidentsArchivedPage />
             </ProtectedRoute>
           }
         />

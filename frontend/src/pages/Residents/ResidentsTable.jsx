@@ -3,10 +3,10 @@ import { useState, useEffect } from 'react';
 import { DataGrid } from '@mui/x-data-grid';
 import { Box, IconButton, Typography, Chip } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
+import ArchiveIcon from '@mui/icons-material/Archive';
 import ResidentsToolbar from './ResidentsToolbar';
 import EditResidentModal from '../../modals/EditResidentModal';
-import DeleteConfirmModal from '../../modals/DeleteResidentModal';
+import ArchiveResidentModal from '../../modals/ArchiveResidentModal';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import InfoPopper from '../../Reusables/InfoPopper.jsx';
@@ -18,7 +18,7 @@ const ResidentsTable = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedRow, setSelectedRow] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
   const [infoAnchorEl, setInfoAnchorEl] = useState(null);
   const [searchValue, setSearchValue] = useState('');
   
@@ -130,13 +130,14 @@ const ResidentsTable = () => {
 
             <IconButton
               size="small"
-              color="error"
               onClick={() => {
                 setSelectedRow(row);
-                setDeleteOpen(true);
+                setArchiveOpen(true);
               }}
+              sx={{ color: '#78716c' }}
+              title="Archive"
             >
-              <DeleteIcon fontSize="small" />
+              <ArchiveIcon fontSize="small" />
             </IconButton>
 
             <IconButton
@@ -161,6 +162,9 @@ const ResidentsTable = () => {
           return;
         }
 
+        // Backend already excludes archived residents (is_archived = 0) —
+        // see residentController.js. Archived residents live only on the
+        // separate /Residents/Archived page.
         const response = await axios.get('http://localhost:5000/api/residents', {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -316,11 +320,13 @@ const ResidentsTable = () => {
         }}
       />
 
-      {/* Delete Confirmation */}
-      <DeleteConfirmModal
-        open={deleteOpen}
+      {/* Archive Confirmation — replaces the old hard-delete confirmation.
+          Residents are never permanently deleted anymore; this just flips
+          is_archived on and removes them from this active list. */}
+      <ArchiveResidentModal
+        open={archiveOpen}
         onClose={() => {
-          setDeleteOpen(false);
+          setArchiveOpen(false);
           setSelectedRow(null);
         }}
         onConfirm={() => setRefreshKey(prev => prev + 1)}

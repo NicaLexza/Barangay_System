@@ -17,6 +17,7 @@ import {
   Divider,
 } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import ArchiveIcon from '@mui/icons-material/Archive';
 import AddResidentModal from '../../modals/AddResidentModal';
 import AddEligibilityFormModal from '../../modals/AddEligibilityFormModal';
 import ImportResidentModal from '../../modals/ImportResidentModal';
@@ -25,6 +26,7 @@ import ResidentStatsModal from '../../modals/ResidentStatsModal';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { useNavigate } from 'react-router-dom';
 
 export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filteredRows, onSearchChange }) {
   const [quickFilterValue, setQuickFilterValue] = useState('');
@@ -34,6 +36,7 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
   const [anchorEl, setAnchorEl] = useState(null);
   const openFilter = Boolean(anchorEl);
   const [openStatsModal, setOpenStatsModal] = useState(false);
+  const navigate = useNavigate();
 
   const [ageMin, setAgeMin] = useState('');
   const [ageMax, setAgeMax] = useState('');
@@ -90,6 +93,9 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
         {/* Top row — Page Title */}
         <Box
           sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
             px: 2,
             pt: 1.5,
             pb: 1,
@@ -98,6 +104,26 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
           <Typography variant="h6" fontWeight="bold" color="#002f59">
             Residents
           </Typography>
+
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<ArchiveIcon fontSize="small" />}
+            onClick={() => navigate('/Residents/Archived')}
+            sx={{
+              textTransform: 'none',
+              borderColor: '#78716c',
+              color: '#57534e',
+              fontWeight: 500,
+              backgroundColor: '#fff',
+              '&:hover': {
+                borderColor: '#57534e',
+                backgroundColor: '#f5f5f4',
+              },
+            }}
+          >
+            View Archived
+          </Button>
         </Box>
 
         {/* Bottom row — Search, Filter, Buttons */}

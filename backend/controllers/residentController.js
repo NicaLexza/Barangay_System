@@ -1,7 +1,11 @@
 // controllers/residentController.js
 const db = require("../config/db");
 
-// Get all residents with computed fields
+// Get all residents with computed fields — excludes archived residents.
+// Archived residents have their own list at GET /api/residents/archived
+// (residentArchiveController.js) and are intentionally invisible here so
+// they don't show up in the active roster or get pulled into eligibility
+// form resident-selection.
 const getAllResidents = (req, res) => {
   const sql = `
     SELECT 
@@ -30,6 +34,7 @@ const getAllResidents = (req, res) => {
     FROM residents r
     LEFT JOIN users cu ON cu.User_id = r.created_by
     LEFT JOIN users uu ON uu.User_id = r.updated_by
+    WHERE r.is_archived = 0
     ORDER BY r.l_name, r.f_name
   `;
 
@@ -55,7 +60,9 @@ const getAllResidents = (req, res) => {
   });
 };
 
-// Fetch one resident by ID (raw fields for edit modal)
+// Fetch one resident by ID (raw fields for edit modal). Intentionally not
+// filtered by is_archived — this is a direct lookup by primary key used
+// internally (e.g. the edit modal), not a browsing list.
 const getResident = (req, res) => {
   const { id } = req.params;
 

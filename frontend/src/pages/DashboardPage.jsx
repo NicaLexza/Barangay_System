@@ -21,6 +21,7 @@ import {
   Snackbar,
   Alert,
   Collapse,
+  IconButton,
 } from "@mui/material";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import HomeIcon from "@mui/icons-material/Home";
@@ -39,9 +40,14 @@ import BackupIcon from "@mui/icons-material/Backup";
 import RestoreIcon from "@mui/icons-material/Restore";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import ClearIcon from "@mui/icons-material/Clear";
+import DateRangeIcon from "@mui/icons-material/DateRange";
 import axios from "axios";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import Navbar from "../Reusables/Navbar.jsx";
 import Footer from "../Reusables/Footer.jsx";
 import ReAuthModal from "../modals/ReAuthModal.jsx";
@@ -68,6 +74,8 @@ const ACT_COLORS = {
   "Resident:added": "#2563eb",
   "Resident:updated": "#0369a1",
   "Resident:imported": "#2563eb",
+  "Resident:archived": "#78716c",
+  "Resident:restored": "#16a34a",
   "Household:added": "#16a34a",
   "Household:updated": "#15803d",
   "Account:created": "#7c3aed",
@@ -617,6 +625,15 @@ const Dashboard = () => {
   const [loadS, setLoadS] = useState(true);
   const [loadA, setLoadA] = useState(true);
 
+  // Custom date-range filter — scopes every resident-based stat card and
+  // chart to a strict window (created_at BETWEEN dateFrom AND dateTo)
+  // instead of the default all-time cumulative view. Recent Activity and
+  // Recently Added Records are intentionally NEVER affected by this filter
+  // (see dashboardController.js) — they always show the current latest.
+  const [dateFrom, setDateFrom] = useState(null); // dayjs | null
+  const [dateTo, setDateTo] = useState(null);     // dayjs | null
+  const hasDateFilter = !!(dateFrom && dateTo);
+
   // Backup re-auth flow state — mirrors the restore flow below. Backup now
   // requires the same credential confirmation restore already required,
   // instead of firing straight off the button click.
@@ -650,13 +667,22 @@ const Dashboard = () => {
   const adminName = localStorage.getItem("username") ?? "Admin";
   const today = dayjs().format("dddd, MMMM D, YYYY");
 
-  const fetchStats = useCallback(async () => {
+  // Accepts an optional { startDate, endDate } ('YYYY-MM-DD' strings) —
+  // when omitted, the backend returns the default all-time cumulative view.
+  const fetchStats = useCallback(async (range) => {
+    setLoadS(true);
     try {
       const token = localStorage.getItem("token");
+      const params = {};
+      if (range?.startDate && range?.endDate) {
+        params.startDate = range.startDate;
+        params.endDate = range.endDate;
+      }
       const { data } = await axios.get(
         "http://localhost:5000/api/dashboard/stats",
         {
           headers: { Authorization: `Bearer ${token}` },
+          params,
         },
       );
       setStats(data);
@@ -684,10 +710,31 @@ const Dashboard = () => {
     }
   }, []);
 
+  // Recent Activity is fetched once and never depends on the date filter.
   useEffect(() => {
-    fetchStats();
     fetchActivity();
-  }, [fetchStats, fetchActivity]);
+  }, [fetchActivity]);
+
+  // Stats refetch whenever the date range changes — including on mount
+  // (both null → unfiltered all-time view) and whenever either endpoint
+  // is cleared (immediately reverts to all-time rather than requiring a
+  // separate "Clear" action, though a Clear button is still offered below
+  // for convenience).
+  useEffect(() => {
+    if (hasDateFilter) {
+      fetchStats({
+        startDate: dateFrom.format("YYYY-MM-DD"),
+        endDate: dateTo.format("YYYY-MM-DD"),
+      });
+    } else {
+      fetchStats();
+    }
+  }, [dateFrom, dateTo, hasDateFilter, fetchStats]);
+
+  const clearDateFilter = () => {
+    setDateFrom(null);
+    setDateTo(null);
+  };
 
   // ── Backup — now gated behind re-auth ─────────────────────────────────────
   const handleBackupReAuthClose = () => {
@@ -999,6 +1046,8 @@ const Dashboard = () => {
             display="flex"
             justifyContent="space-between"
             alignItems="flex-end"
+            flexWrap="wrap"
+            gap={1.5}
             mb={3}
           >
             <Box>
@@ -1028,9 +1077,63 @@ const Dashboard = () => {
               <Typography sx={{ fontSize: "0.8rem", color: INK_3, mt: 0.4 }}>
                 Welcome back, {adminName}
               </Typography>
+              {hasDateFilter && (
+                <Typography sx={{ fontSize: "0.75rem", color: NAVY, fontWeight: 600, mt: 0.4 }}>
+                  Showing {dateFrom.format("MMM D, YYYY")} – {dateTo.format("MMM D, YYYY")}
+                </Typography>
+              )}
             </Box>
 
-            <Box display="flex" alignItems="center" gap={1.5}>
+            <Box display="flex" alignItems="center" gap={1.5} flexWrap="wrap">
+              {/* Custom date-range filter — resident stat cards, age/gender/
+                  civil-status breakdowns, and special sectors all scope to
+                  this range (strict window) when both dates are set.
+                  Recent Activity / Recently Added Records intentionally
+                  ignore this filter entirely. */}
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DatePicker
+                  label="From"
+                  value={dateFrom}
+                  onChange={setDateFrom}
+                  format="MM/DD/YYYY"
+                  maxDate={dateTo || undefined}
+                  slotProps={{
+                    textField: {
+                      size: "small",
+                      sx: { width: 150, backgroundColor: WHITE, borderRadius: 1 },
+                    },
+                  }}
+                />
+                <DatePicker
+                  label="To"
+                  value={dateTo}
+                  onChange={setDateTo}
+                  format="MM/DD/YYYY"
+                  minDate={dateFrom || undefined}
+                  slotProps={{
+                    textField: {
+                      size: "small",
+                      sx: { width: 150, backgroundColor: WHITE, borderRadius: 1 },
+                    },
+                  }}
+                />
+              </LocalizationProvider>
+              {hasDateFilter && (
+                <IconButton
+                  size="small"
+                  onClick={clearDateFilter}
+                  title="Clear date filter"
+                  sx={{
+                    color: INK_3,
+                    backgroundColor: WHITE,
+                    border: `1px solid ${BORDER}`,
+                    "&:hover": { backgroundColor: SURFACE },
+                  }}
+                >
+                  <ClearIcon fontSize="small" />
+                </IconButton>
+              )}
+
               <Box
                 sx={{
                   backgroundColor: WHITE,
