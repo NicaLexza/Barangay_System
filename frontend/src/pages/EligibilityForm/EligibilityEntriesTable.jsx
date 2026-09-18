@@ -11,6 +11,7 @@ import axios from "axios";
 import DeleteEligibilityFormEntriesModal from "../../modals/DeleteEligibilityFormEntriesModal";
 import EligibilityEntriesToolbar from "./EligiblitiyEntriesToolbar";
 import InfoPopper from "../../Reusables/InfoPopper.jsx";
+import ReAuthModal from "../../modals/ReAuthModal.jsx";
 
 const EligibilityEntriesTable = () => {
   const { formId } = useParams();
@@ -26,6 +27,15 @@ const EligibilityEntriesTable = () => {
   const [searchValue, setSearchValue] = useState('');
   const [filters, setFilters] = useState({ rewardedStatus: 'All' });
 
+  // Reversal (Received -> Pending) re-auth flow — Pending -> Received never
+  // goes through this, it's applied directly via handleStatusChange below.
+  // The backend independently re-verifies these credentials too (not just
+  // a UI gate) — see eligibilityFormEntriesUpdateController.js.
+  const [reAuthOpen, setReAuthOpen] = useState(false);
+  const [reAuthLoading, setReAuthLoading] = useState(false);
+  const [reAuthError, setReAuthError] = useState("");
+  const [pendingReversalEntryId, setPendingReversalEntryId] = useState(null);
+
   const infoOpen = Boolean(infoAnchorEl);
 
   const handleInfoEnter = (event, row) => {
@@ -35,6 +45,8 @@ const EligibilityEntriesTable = () => {
 
   const handleInfoLeave = () => setInfoAnchorEl(null);
 
+  // Forward change only (Pending -> Received, or any change that isn't a
+  // Received -> Pending reversal). No credentials needed here.
   const handleStatusChange = async (entryId, newStatus) => {
     try {
       const token = localStorage.getItem("token");
@@ -46,6 +58,51 @@ const EligibilityEntriesTable = () => {
       setRefreshKey((prev) => prev + 1);
     } catch (err) {
       console.error("Failed to update entry status:", err);
+    }
+  };
+
+  // Select's onChange — routes a Received -> Pending change through the
+  // re-auth modal instead of applying it directly.
+  const handleSelectChange = (row, newStatus) => {
+    const wasReceived = row.is_rewarded === 1;
+    const isReversal = wasReceived && newStatus === "pending";
+
+    if (isReversal) {
+      setPendingReversalEntryId(row.entry_id);
+      setReAuthError("");
+      setReAuthOpen(true);
+      return;
+    }
+
+    handleStatusChange(row.entry_id, newStatus);
+  };
+
+  const handleReAuthClose = () => {
+    if (reAuthLoading) return;
+    setReAuthOpen(false);
+    setPendingReversalEntryId(null);
+    setReAuthError("");
+  };
+
+  const handleReAuthConfirm = async ({ username, password }) => {
+    if (!pendingReversalEntryId) return;
+    setReAuthLoading(true);
+    setReAuthError("");
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.put(
+        `http://localhost:5000/api/eligibility-forms/entries/${pendingReversalEntryId}/status`,
+        { is_rewarded: 0, username, password },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setReAuthOpen(false);
+      setPendingReversalEntryId(null);
+      setRefreshKey((prev) => prev + 1);
+    } catch (err) {
+      setReAuthError(err.response?.data?.message || "Failed to revert status. Please try again.");
+    } finally {
+      setReAuthLoading(false);
     }
   };
 
@@ -313,7 +370,7 @@ const EligibilityEntriesTable = () => {
           <Select
             variant="outlined"
             value={params.row.is_rewarded === 1 ? "received" : "pending"}
-            onChange={(e) => handleStatusChange(params.row.entry_id, e.target.value)}
+            onChange={(e) => handleSelectChange(params.row, e.target.value)}
             disabled={isDisabled}
             onClick={(e) => e.stopPropagation()}
             sx={{
@@ -446,6 +503,20 @@ const EligibilityEntriesTable = () => {
         onClose={() => { setDeleteOpen(false); setSelectedRow(null); }}
         onConfirm={() => setRefreshKey((prev) => prev + 1)}
         target={selectedRow}
+      />
+
+      {/* Reversal re-auth — only triggered by a Received -> Pending change.
+          Backend independently re-verifies these credentials as well. */}
+      <ReAuthModal
+        open={reAuthOpen}
+        onClose={handleReAuthClose}
+        onConfirm={handleReAuthConfirm}
+        loading={reAuthLoading}
+        error={reAuthError}
+        title="Confirm Status Reversal"
+        description="Reverting a Received status back to Pending requires admin confirmation. Enter your admin credentials to proceed."
+        confirmLabel="Revert to Pending"
+        confirmColor="error"
       />
     </Box>
   );

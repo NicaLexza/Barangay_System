@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import {
   Typography, Box, Card, CardContent, CardActionArea,
   IconButton, Menu, MenuItem, Chip, Divider, CircularProgress,
-  Button,
+  Button, Tooltip,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
@@ -12,6 +12,9 @@ import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import DeleteEligibilityFormModal from "../../modals/DeleteEligibilityFormModal";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
 import ArchiveIcon from "@mui/icons-material/Archive";
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import SourceOutlinedIcon from "@mui/icons-material/SourceOutlined";
+import EventOutlinedIcon from "@mui/icons-material/EventOutlined";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -87,6 +90,17 @@ const EligibilityTable = () => {
     });
   };
 
+  // Days remaining until end_date — used to surface an "Ending soon" nudge
+  // on active forms so staff notice before the auto-lock kicks in, rather
+  // than being surprised when it silently flips to Disabled.
+  const daysUntilEnd = (endDate) => {
+    if (!endDate) return null;
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+    const diffMs = end - new Date();
+    return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  };
+
   return (
     <Box sx={{ px: 4, py: 3, height: "100%", overflowY: "auto" }}>
 
@@ -139,6 +153,8 @@ const EligibilityTable = () => {
             const rewarded = form.rewarded_count ?? 0;
             const notRewarded = total - rewarded;
             const isEnabled = form.status === "Enabled";
+            const remainingDays = isEnabled ? daysUntilEnd(form.end_date) : null;
+            const endingSoon = remainingDays !== null && remainingDays <= 3 && remainingDays >= 0;
 
             return (
               <Box
@@ -169,19 +185,32 @@ const EligibilityTable = () => {
                   <CardActionArea onClick={() => handleCardClick(form)} sx={{ p: 0 }}>
                     <CardContent sx={{ pt: 2.5, pb: 2, px: 2.5 }}>
 
-                      {/* Status chip + Form name */}
+                      {/* Status chip(s) + Form name */}
                       <Box sx={{ mb: 1, pr: 3 }}>
-                        <Chip
-                          label={form.status}
-                          size="small"
-                          sx={{
-                            mb: 0.75,
-                            backgroundColor: isEnabled ? "#e8f5e9" : "#fdecea",
-                            color: isEnabled ? "#2e7d32" : "#c62828",
-                            fontWeight: 600,
-                            fontSize: "0.7rem",
-                          }}
-                        />
+                        <Box sx={{ display: "flex", gap: 0.75, mb: 0.75, flexWrap: "wrap" }}>
+                          <Chip
+                            label={form.status}
+                            size="small"
+                            sx={{
+                              backgroundColor: isEnabled ? "#e8f5e9" : "#fdecea",
+                              color: isEnabled ? "#2e7d32" : "#c62828",
+                              fontWeight: 600,
+                              fontSize: "0.7rem",
+                            }}
+                          />
+                          {endingSoon && (
+                            <Chip
+                              label={remainingDays === 0 ? "Ends today" : `Ends in ${remainingDays}d`}
+                              size="small"
+                              sx={{
+                                backgroundColor: "#fff7ed",
+                                color: "#c2410c",
+                                fontWeight: 600,
+                                fontSize: "0.7rem",
+                              }}
+                            />
+                          )}
+                        </Box>
                         <Typography
                           variant="h6"
                           fontWeight="bold"
@@ -193,6 +222,55 @@ const EligibilityTable = () => {
                       </Box>
 
                       <Divider sx={{ my: 1.5 }} />
+
+                      {/* Additional details — source, distribution, quantity */}
+                      <Box sx={{ display: "flex", flexDirection: "column", gap: 0.6, mb: 1.5 }}>
+                        <Tooltip title={form.source_details || "N/A"} placement="top">
+                          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
+                            <SourceOutlinedIcon fontSize="small" sx={{ color: "#777", mt: "1px" }} />
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{
+                                display: "-webkit-box",
+                                WebkitLineClamp: 1,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
+                              }}
+                            >
+                              {form.source_details || "N/A"}
+                            </Typography>
+                          </Box>
+                        </Tooltip>
+                        <Tooltip title={form.distribution_details || "N/A"} placement="top">
+                          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
+                            <Inventory2OutlinedIcon fontSize="small" sx={{ color: "#777", mt: "1px" }} />
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{
+                                display: "-webkit-box",
+                                WebkitLineClamp: 1,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
+                              }}
+                            >
+                              {form.distribution_details || "N/A"}
+                              {form.target_quantity ? ` — target ${form.target_quantity}` : ""}
+                            </Typography>
+                          </Box>
+                        </Tooltip>
+                        {(form.start_date || form.end_date) && (
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <EventOutlinedIcon fontSize="small" sx={{ color: "#777" }} />
+                            <Typography variant="body2" color="text.secondary">
+                              {formatDate(form.start_date)} – {formatDate(form.end_date)}
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+
+                      <Divider sx={{ mb: 1.5 }} />
 
                       {/* Entry counts */}
                       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.75 }}>

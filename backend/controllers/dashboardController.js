@@ -1,5 +1,6 @@
 // controllers/dashboardController.js
 const db = require("../config/db");
+const { sweepExpiredForms } = require("../utils/eligibilityAutoLock");
 
 /**
  * GET /api/dashboard/stats?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
@@ -25,6 +26,19 @@ const db = require("../config/db");
  * figure alongside an arbitrary custom range would be confusing.
  */
 const getDashboardStats = (req, res) => {
+  // Auto-lock sweep runs first so "active_forms" below reflects any form
+  // that just crossed its end_date — see utils/eligibilityAutoLock.js.
+  // Sweep failures don't block the dashboard; worst case active_forms is
+  // momentarily stale until the next request.
+  sweepExpiredForms((sweepErr) => {
+    if (sweepErr) {
+      console.error("[getDashboardStats] Auto-lock sweep failed, continuing anyway:", sweepErr.message);
+    }
+    runDashboardQueries(req, res);
+  });
+};
+
+const runDashboardQueries = (req, res) => {
   const { startDate, endDate } = req.query;
   const hasRange = !!(startDate && endDate);
   const rangeStart = hasRange ? `${startDate} 00:00:00` : null;
