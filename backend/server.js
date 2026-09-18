@@ -20,6 +20,7 @@ const residentRoutes = require("./routes/residentRoutes");
 const residentAddRoutes = require("./routes/residentAddRoutes");
 const residentEditRoutes = require("./routes/residentEditRoutes");
 const residentBulkImportRoutes = require("./routes/residentBulkImportRoutes");
+const residentTransferHeadRoutes = require("./routes/residentTransferHeadRoutes");
 
 const eligibilityFormAddRoutes = require("./routes/EligibilityFormAddRoutes");
 const eligibilityFormRoutes = require("./routes/eligibilityFormRoutes");
@@ -52,6 +53,7 @@ app.use("/api/residents", residentRoutes);
 app.use("/api/residents", residentAddRoutes);
 app.use("/api/residents", residentEditRoutes);
 app.use("/api/residents", residentBulkImportRoutes);
+app.use("/api/residents", residentTransferHeadRoutes);
 
 app.use("/api/eligibility-forms", eligibilityFormArchiveRoutes);
 app.use("/api/eligibility-forms", eligibilityFormAddRoutes);

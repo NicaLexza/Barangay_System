@@ -100,6 +100,14 @@ const ArchiveResidentModal = ({ open, onClose, onConfirm, target }) => {
             later.
           </Typography>
 
+          {target?.is_household_head === 1 && (
+            <Box sx={{ bgcolor: '#fff7ed', border: '1px solid #fdba74', p: 1.5, borderRadius: 1, maxWidth: 280 }}>
+              <Typography variant="caption" sx={{ color: '#9a3412', display: 'block', textAlign: 'center' }}>
+                <strong>Note:</strong> Archiving a household head will automatically promote their oldest active member to become the new household head.
+              </Typography>
+            </Box>
+          )}
+
           {error && (
             <Typography color="error" variant="body2" align="center">
               {error}

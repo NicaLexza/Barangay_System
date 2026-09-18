@@ -1,5 +1,4 @@
-// ResidentsTable.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { DataGrid } from '@mui/x-data-grid';
 import { Box, IconButton, Typography, Chip } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
@@ -7,8 +6,12 @@ import ArchiveIcon from '@mui/icons-material/Archive';
 import ResidentsToolbar from './ResidentsToolbar';
 import EditResidentModal from '../../modals/EditResidentModal';
 import ArchiveResidentModal from '../../modals/ArchiveResidentModal';
+import TransferHeadModal from '../../modals/TransferHeadModal';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+import StarsIcon from '@mui/icons-material/Stars';
 import InfoPopper from '../../Reusables/InfoPopper.jsx';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -19,8 +22,20 @@ const ResidentsTable = () => {
   const [selectedRow, setSelectedRow] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [transferHeadOpen, setTransferHeadOpen] = useState(false);
   const [infoAnchorEl, setInfoAnchorEl] = useState(null);
   const [searchValue, setSearchValue] = useState('');
+  const [expandedHeads, setExpandedHeads] = useState(new Set());
+
+  const toggleExpand = (headId) => {
+    const newExpanded = new Set(expandedHeads);
+    if (newExpanded.has(headId)) {
+      newExpanded.delete(headId);
+    } else {
+      newExpanded.add(headId);
+    }
+    setExpandedHeads(newExpanded);
+  };
   
   // Filter state
   const [filters, setFilters] = useState({
@@ -61,7 +76,19 @@ const ResidentsTable = () => {
   };
 
   const columns = [
-    { field: "no", headerName: "No.", width: 70, sortable: false },
+    { 
+      field: "no", 
+      headerName: "No.", 
+      width: 70, 
+      sortable: false,
+      renderCell: (params) => {
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', ml: params.row.isSubRow ? 2 : 0 }}>
+            {params.row.hierarchicalNo}
+          </Box>
+        );
+      }
+    },
     {
       field: "fullName",
       headerName: "Full Name",
@@ -69,12 +96,24 @@ const ResidentsTable = () => {
       renderCell: (params) => {
         const row = params.row;
         return (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, height: '100%' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, height: '100%', ml: row.isSubRow ? 3 : 0 }}>
+            {row.isExpandable && (
+              <IconButton 
+                size="small" 
+                onClick={(e) => { e.stopPropagation(); toggleExpand(row.id); }} 
+                sx={{ p: 0, mr: -0.5 }}
+              >
+                {row.isExpanded ? <KeyboardArrowDownIcon fontSize="small" /> : <KeyboardArrowRightIcon fontSize="small" />}
+              </IconButton>
+            )}
+            {!row.isExpandable && !row.isSubRow && <Box sx={{ width: 24, height: 24, mr: -0.5 }} />}
+            
             <Typography variant="body2" noWrap>{row.fullName}</Typography>
+            
             {row.is_household_head === 1 && (
               <Chip
                 icon={<PeopleAltIcon sx={{ fontSize: '12px !important' }} />}
-                label={row.household_member_count ?? 1}
+                label={row.member_count ?? 1}
                 size="small"
                 sx={{
                   height: 20,
@@ -124,9 +163,24 @@ const ResidentsTable = () => {
                 setSelectedRow(row);
                 setEditOpen(true);
               }}
+              title="Edit"
             >
               <EditIcon fontSize="small" />
             </IconButton>
+
+            {row.isSubRow && (
+              <IconButton
+                size="small"
+                color="info"
+                onClick={() => {
+                  setSelectedRow(row);
+                  setTransferHeadOpen(true);
+                }}
+                title="Make Household Head"
+              >
+                <StarsIcon fontSize="small" />
+              </IconButton>
+            )}
 
             <IconButton
               size="small"
@@ -182,7 +236,8 @@ const ResidentsTable = () => {
           citizenship: resident.citizenship || '',
           specialSector: resident.specialSector || 'None',
           is_household_head: resident.is_household_head ?? 0,
-          household_member_count: resident.household_member_count ?? null,
+          head_resident_id: resident.head_resident_id ?? null,
+          member_count: resident.member_count ?? null,
           created_by: resident.created_by,
           created_at: resident.created_at,
           created_by_name: resident.created_by_name,
@@ -271,10 +326,76 @@ const ResidentsTable = () => {
     return true;
   });
 
+  const hierarchicalRows = useMemo(() => {
+    // 1. Separate heads and members from the filtered list
+    const heads = [];
+    const membersByHead = {};
+    const orphanedMembers = [];
+
+    filteredRows.forEach(row => {
+      if (row.is_household_head === 1) {
+        heads.push(row);
+        membersByHead[row.id] = [];
+      }
+    });
+
+    filteredRows.forEach(row => {
+      if (row.is_household_head === 0) {
+        if (membersByHead[row.head_resident_id]) {
+          membersByHead[row.head_resident_id].push(row);
+        } else {
+          // If the member matches filters but the head doesn't, treat as orphaned/top-level
+          orphanedMembers.push(row);
+        }
+      }
+    });
+
+    // 2. Build the final array
+    const result = [];
+    let headCounter = 1;
+
+    heads.forEach(head => {
+      const headMembers = membersByHead[head.id] || [];
+      const hasMembers = headMembers.length > 0;
+      
+      result.push({
+        ...head,
+        hierarchicalNo: headCounter,
+        isExpandable: hasMembers,
+        isExpanded: expandedHeads.has(head.id),
+      });
+
+      if (hasMembers && expandedHeads.has(head.id)) {
+        headMembers.forEach((member, mIdx) => {
+          result.push({
+            ...member,
+            hierarchicalNo: `${headCounter}.${mIdx + 1}`,
+            isSubRow: true,
+          });
+        });
+      }
+
+      headCounter++;
+    });
+
+    // Append any orphaned members at the end
+    orphanedMembers.forEach(orphan => {
+      result.push({
+        ...orphan,
+        hierarchicalNo: headCounter,
+        isExpandable: false,
+        isExpanded: false,
+      });
+      headCounter++;
+    });
+
+    return result;
+  }, [filteredRows, expandedHeads]);
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       <DataGrid
-        rows={filteredRows}
+        rows={hierarchicalRows}
         columns={columns}
         getRowId={(row) => row.id}
         hideFooter
@@ -331,6 +452,16 @@ const ResidentsTable = () => {
         }}
         onConfirm={() => setRefreshKey(prev => prev + 1)}
         target={selectedRow}
+      />
+
+      <TransferHeadModal
+        open={transferHeadOpen}
+        onClose={() => {
+          setTransferHeadOpen(false);
+          setSelectedRow(null);
+        }}
+        onSuccess={() => setRefreshKey(prev => prev + 1)}
+        member={selectedRow}
       />
     </Box>
   );

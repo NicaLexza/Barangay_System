@@ -1,11 +1,25 @@
-//residentEditController.js
+// residentEditController.js
 
 const db = require("../config/db");
 const { logActivity } = require("../utils/activityLogger");
 const { computeIsSenior } = require("../utils/seniorStatus");
 
+/**
+ * PUT /api/residents/update
+ *
+ * Editing rules depend on whether the resident is a head or member:
+ *
+ * - **Head**: address fields editable as normal. Updating a head's address
+ *   propagates instantly to all members via JOIN (no sync step).
+ *
+ * - **Member**: no address fields editable directly (address comes from
+ *   head). Supports a **"Remove from household"** action via
+ *   `remove_from_household = true` — clears head_resident_id, sets
+ *   is_household_head = 1, requires `house_no` + `street` in the same
+ *   request (the member becomes head of a new household-of-one).
+ */
 const updateResident = (req, res) => {
-  const { resident_id, ...data } = req.body;
+  const { resident_id, remove_from_household, ...data } = req.body;
 
   if (!resident_id) return res.status(400).json({ message: "Resident ID required" });
 
@@ -59,7 +73,49 @@ const updateResident = (req, res) => {
       if (oldResults.length === 0) return res.status(404).json({ message: "Resident not found" });
       
       const oldData = oldResults[0];
+      const isMember = !oldData.is_household_head;
 
+      // ── "Remove from household" action ──────────────────────────
+      // Member becomes an independent head-of-one. Requires address.
+      if (remove_from_household) {
+        if (!isMember) {
+          return res.status(400).json({ message: "Only household members can be removed from a household" });
+        }
+        if (!data.street) {
+          return res.status(400).json({ message: "Street is required when removing a member from their household" });
+        }
+
+        const removeSql = `
+          UPDATE residents
+          SET is_household_head = 1,
+              head_resident_id = NULL,
+              house_no = ?,
+              street = ?,
+              updated_by = ?
+          WHERE resident_id = ?
+        `;
+
+        db.query(removeSql, [data.house_no || null, data.street, updated_by, resident_id], (err2) => {
+          if (err2) {
+            console.error("Remove from household error:", err2);
+            return res.status(500).json({ message: "Failed to remove from household", error: err2.message });
+          }
+
+          res.json({ message: "Resident removed from household and is now an independent head" });
+
+          logActivity({
+            entity_type:  "Resident",
+            entity_id:    resident_id,
+            entity_name:  `${oldData.f_name} ${oldData.l_name}`.trim(),
+            action_type:  "removed_from_household",
+            performed_by: updated_by,
+          });
+        });
+
+        return; // Early exit — no further update logic
+      }
+
+      // ── Standard update ─────────────────────────────────────────
       // 2. Build dynamic SET
       const fields = [];
       const values = [];
@@ -71,24 +127,20 @@ const updateResident = (req, res) => {
       if (data.sex) { fields.push("sex = ?"); values.push(data.sex); }
       if (data.birthdate) { fields.push("birthdate = ?"); values.push(data.birthdate); }
       if (data.birthplace !== undefined) { fields.push("birthplace = ?"); values.push(data.birthplace); }
-      if (data.house_no !== undefined) { fields.push("house_no = ?"); values.push(data.house_no || null); }
-      if (data.street) { fields.push("street = ?"); values.push(data.street); }
+
+      // Address fields: only heads can edit these.
+      // Members silently ignore address fields — their address comes from
+      // their head and is never stored on their own row.
+      if (!isMember) {
+        if (data.house_no !== undefined) { fields.push("house_no = ?"); values.push(data.house_no || null); }
+        if (data.street) { fields.push("street = ?"); values.push(data.street); }
+      }
+
       if (data.civil_status) { fields.push("civil_status = ?"); values.push(data.civil_status); }
       if (data.occupation !== undefined) { fields.push("occupation = ?"); values.push(data.occupation || null); }
       if (data.citizenship !== undefined) { fields.push("citizenship = ?"); values.push(data.citizenship || "Filipino"); }
       if (data.is_pwd !== undefined) { fields.push("is_pwd = ?"); values.push(data.is_pwd ? 1 : 0); }
       if (data.is_solop !== undefined) { fields.push("is_solop = ?"); values.push(data.is_solop ? 1 : 0); }
-      if (data.is_household_head !== undefined) {
-        fields.push("is_household_head = ?");
-        values.push(data.is_household_head ? 1 : 0);
-        // If toggling head OFF, clear the member count
-        fields.push("household_member_count = ?");
-        values.push(data.is_household_head ? (data.household_member_count || 1) : null);
-      } else if (data.household_member_count !== undefined) {
-        // Head status unchanged but count was updated
-        fields.push("household_member_count = ?");
-        values.push(data.household_member_count || null);
-      }
 
       // `is_senior` is NEVER taken from `data` (the client no longer sends
       // it, and even if it did it would be ignored) — it is always
@@ -103,7 +155,8 @@ const updateResident = (req, res) => {
       fields.push("updated_by = ?");
       values.push(updated_by);
 
-      if (fields.length === 1) return res.status(400).json({ message: "No fields to update" });
+      if (fields.length === 2) return res.status(400).json({ message: "No fields to update" });
+      // fields.length === 2 means only is_senior + updated_by were added (no real changes)
 
       // 3. Compute Changes (Diffs)
       const changes = [];
@@ -112,7 +165,7 @@ const updateResident = (req, res) => {
         sex: "Sex", birthdate: "Birthdate", birthplace: "Birthplace", house_no: "House No.",
         street: "Street", civil_status: "Civil Status", occupation: "Occupation", citizenship: "Citizenship",
         is_pwd: "PWD", is_senior: "Senior Citizen", is_solop: "Solo Parent",
-        is_household_head: "Household Head", household_member_count: "Member Count"
+        is_household_head: "Household Head",
       };
 
       const formatBool = (val) => val ? "Yes" : "No";
@@ -156,19 +209,16 @@ const updateResident = (req, res) => {
       if (data.sex !== undefined) compareAndPush("sex", data.sex);
       if (data.birthdate !== undefined) compareAndPush("birthdate", data.birthdate);
       if (data.birthplace !== undefined) compareAndPush("birthplace", data.birthplace);
-      if (data.house_no !== undefined) compareAndPush("house_no", data.house_no || null);
-      if (data.street !== undefined) compareAndPush("street", data.street);
+      // Address diffs only for heads
+      if (!isMember) {
+        if (data.house_no !== undefined) compareAndPush("house_no", data.house_no || null);
+        if (data.street !== undefined) compareAndPush("street", data.street);
+      }
       if (data.civil_status !== undefined) compareAndPush("civil_status", data.civil_status);
       if (data.occupation !== undefined) compareAndPush("occupation", data.occupation || null);
       if (data.citizenship !== undefined) compareAndPush("citizenship", data.citizenship || "Filipino");
       if (data.is_pwd !== undefined) compareAndPush("is_pwd", data.is_pwd ? 1 : 0, formatBool);
       if (data.is_solop !== undefined) compareAndPush("is_solop", data.is_solop ? 1 : 0, formatBool);
-      if (data.is_household_head !== undefined) {
-        compareAndPush("is_household_head", data.is_household_head ? 1 : 0, formatBool);
-        compareAndPush("household_member_count", data.is_household_head ? (data.household_member_count || 1) : null);
-      } else if (data.household_member_count !== undefined) {
-        compareAndPush("household_member_count", data.household_member_count || null);
-      }
       // Log the senior flag flipping too — most often this will happen
       // silently as a side effect of a birthdate correction, which is
       // exactly the kind of change an admin reviewing activity history

@@ -6,6 +6,7 @@ import RestoreIcon from '@mui/icons-material/Restore';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import ResidentsArchivedToolbar from './ResidentsArchivedToolbar';
 import InfoPopper from '../../Reusables/InfoPopper.jsx';
+import ReAuthModal from '../../modals/ReAuthModal';
 import axios from 'axios';
 
 /** Decode role from token (client-side only, for UI gating — real
@@ -28,6 +29,7 @@ const ResidentsArchivedTable = () => {
   const [selectedRow, setSelectedRow] = useState(null);
   const [infoAnchorEl, setInfoAnchorEl] = useState(null);
   const [restoringId, setRestoringId] = useState(null);
+  const [reAuthOpen, setReAuthOpen] = useState(false);
 
   const isAdmin = getRoleFromToken() === 'Admin';
 
@@ -70,20 +72,30 @@ const ResidentsArchivedTable = () => {
     fetchArchived();
   }, [refreshKey]);
 
-  const handleRestore = async (row) => {
-    setRestoringId(row.id);
+  const handleRestoreClick = (row) => {
+    setSelectedRow(row);
+    setReAuthOpen(true);
+  };
+
+  const executeRestore = async () => {
+    if (!selectedRow) return;
+    setRestoringId(selectedRow.id);
     try {
       const token = localStorage.getItem('token');
-      await axios.put(
-        `http://localhost:5000/api/residents/archived/${row.id}/restore`,
+      const res = await axios.put(
+        `http://localhost:5000/api/residents/archived/${selectedRow.id}/restore`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      alert(res.data.message);
       setRefreshKey((prev) => prev + 1);
     } catch (err) {
       console.error('Failed to restore resident:', err);
+      alert(err.response?.data?.message || 'Failed to restore resident');
     } finally {
       setRestoringId(null);
+      setReAuthOpen(false);
+      setSelectedRow(null);
     }
   };
 
@@ -123,7 +135,7 @@ const ResidentsArchivedTable = () => {
                     size="small"
                     color="primary"
                     disabled={restoringId === row.id}
-                    onClick={() => handleRestore(row)}
+                    onClick={() => handleRestoreClick(row)}
                   >
                     <RestoreIcon fontSize="small" />
                   </IconButton>
@@ -178,6 +190,15 @@ const ResidentsArchivedTable = () => {
           { label: 'Archived by', value: selectedRow?.archived_by_name },
           { label: 'Archived at', value: selectedRow?.archived_at },
         ]}
+      />
+
+      <ReAuthModal
+        open={reAuthOpen}
+        onClose={() => {
+          setReAuthOpen(false);
+          setSelectedRow(null);
+        }}
+        onConfirm={executeRestore}
       />
     </Box>
   );

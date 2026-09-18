@@ -280,7 +280,7 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
             <RadioGroup row value={household} onChange={(e) => setHousehold(e.target.value)}>
               <FormControlLabel value="All"     control={<Radio />} label="All" />
               <FormControlLabel value="Heads"   control={<Radio />} label="Heads Only" />
-              <FormControlLabel value="Regular" control={<Radio />} label="Regular" />
+              <FormControlLabel value="Members" control={<Radio />} label="Members Only" />
             </RadioGroup>
           </FormControl>
 

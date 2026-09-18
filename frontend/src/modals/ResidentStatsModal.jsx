@@ -69,7 +69,7 @@ const mapArchivedRow = (r) => ({
   citizenship: r.citizenship || "",
   specialSector: r.specialSector || "None",
   is_household_head: r.is_household_head ?? 0,
-  household_member_count: r.household_member_count ?? null,
+  member_count: r.member_count ?? null,
   created_at: r.created_at,
 });
 
@@ -283,7 +283,7 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
     const headRows = effectiveRows.filter((r) => r.is_household_head === 1);
     const householdHeadsCount = headRows.length;
     const topHeads = [...headRows]
-      .sort((a, b) => (b.household_member_count || 0) - (a.household_member_count || 0))
+      .sort((a, b) => (b.member_count || 0) - (a.member_count || 0))
       .slice(0, 10)
       .map((r) => {
         const fullName = (r.fullName || "").trim();
@@ -292,7 +292,7 @@ const ResidentStatsModal = ({ open, onClose, filteredRows = [] }) => {
         return {
           surname,
           fullName,
-          memberCount: r.household_member_count || 1,
+          memberCount: r.member_count || 1,
         };
       });
 

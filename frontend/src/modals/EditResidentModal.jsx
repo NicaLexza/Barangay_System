@@ -39,7 +39,8 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {
     is_pwd: false,
     is_solop: false,
     is_household_head: false,
-    household_member_count: 1,
+    head_resident_id: null,
+    member_count: 1,
   });
 
   // Read-only display only — reflects what the server currently has on
@@ -47,6 +48,7 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {
   // the server recomputes the real value from birthdate on every save.
   const [currentIsSenior, setCurrentIsSenior] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -83,9 +85,11 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {
             is_pwd: !!data.is_pwd,
             is_solop: !!data.is_solop,
             is_household_head: !!data.is_household_head,
-            household_member_count: data.household_member_count ?? 1,
+            head_resident_id: data.head_resident_id ?? null,
+            member_count: data.member_count ?? 1,
           });
           setCurrentIsSenior(!!data.is_senior);
+          setIsRemoving(false);
         } catch (err) {
           console.error("Fetch single resident error:", err);
           setError("Failed to load resident data.");
@@ -98,16 +102,6 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-
-    if (name === "is_household_head") {
-      setFormData((prev) => ({
-        ...prev,
-        is_household_head: checked,
-        household_member_count: checked ? (prev.household_member_count || 1) : 1,
-      }));
-      return;
-    }
-
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -122,13 +116,13 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {
     setError("");
     setSuccess("");
 
-    if (!formData.f_name || !formData.l_name || !formData.sex || !formData.birthdate || !formData.birthplace || !formData.civil_status || !formData.street) {
-      setError("Please fill all required fields (marked with *)");
+    if (!formData.f_name || !formData.l_name || !formData.sex || !formData.birthdate || !formData.birthplace || !formData.civil_status) {
+      setError("Please fill all required personal fields (marked with *)");
       return;
     }
 
-    if (formData.is_household_head && (!formData.household_member_count || formData.household_member_count < 1)) {
-      setError("Household member count must be at least 1.");
+    if (formData.is_household_head && !formData.street) {
+      setError("Street is required for household heads.");
       return;
     }
 
@@ -145,8 +139,15 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {
         ...formData,
         birthdate: formData.birthdate ? dayjs(formData.birthdate).format("YYYY-MM-DD") : null,
         resident_id: residentId,
-        household_member_count: formData.is_household_head ? Number(formData.household_member_count) : null,
       };
+
+      if (isRemoving) {
+        payload.remove_from_household = true;
+      } else if (!formData.is_household_head) {
+        // Address is read-only for members (managed by head)
+        delete payload.house_no;
+        delete payload.street;
+      }
 
       const res = await axios.put("http://localhost:5000/api/residents/update", payload, {
         headers: { Authorization: `Bearer ${token}` },
@@ -160,6 +161,18 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRemoveFromHousehold = () => {
+    if (!window.confirm(`Are you sure you want to remove ${formData.f_name} from their household? They will become an independent household head, and will need a new address. Please fill out their new address and click 'Remove & Save'.`)) return;
+
+    setIsRemoving(true);
+    setFormData((prev) => ({
+      ...prev,
+      house_no: "",
+      street: "",
+    }));
+    setError("Please provide the new street address for this resident.");
   };
 
   return (
@@ -243,8 +256,18 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {
             required
           />
 
-          <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 2 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             Address
+            {!formData.is_household_head && !isRemoving && (
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'normal' }}>
+                Managed by household head
+              </Typography>
+            )}
+            {isRemoving && (
+              <Typography variant="caption" color="error" sx={{ fontWeight: 'bold' }}>
+                New independent address required
+              </Typography>
+            )}
           </Typography>
           <Stack direction="row" spacing={2}>
             <TextField
@@ -253,6 +276,7 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {
               value={formData.house_no}
               onChange={handleChange}
               fullWidth
+              disabled={!formData.is_household_head && !isRemoving}
             />
             <TextField
               label="Street *"
@@ -260,7 +284,8 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {
               value={formData.street}
               onChange={handleChange}
               fullWidth
-              required
+              required={formData.is_household_head || isRemoving}
+              disabled={!formData.is_household_head && !isRemoving}
             />
           </Stack>
 
@@ -318,31 +343,42 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {
           </FormGroup>
 
           <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 2 }}>
-            Household
+            Household Status
           </Typography>
-          <Stack direction="row" spacing={2} alignItems="center">
-            <FormControlLabel
-              control={
-                <Checkbox
-                  name="is_household_head"
-                  checked={formData.is_household_head}
-                  onChange={handleChange}
-                />
-              }
-              label="Household Head"
-            />
-            {formData.is_household_head && (
-              <TextField
-                label="Member Count *"
-                name="household_member_count"
-                type="number"
-                value={formData.household_member_count}
-                onChange={handleChange}
-                inputProps={{ min: 1 }}
-                sx={{ width: 160 }}
-              />
+          <Box sx={{ p: 2, bgcolor: "#f8fafc", borderRadius: 1, border: "1px solid #e2e8f0" }}>
+            {formData.is_household_head ? (
+              <Typography variant="body2">
+                <strong>Household Head</strong> with {formData.member_count} member{formData.member_count !== 1 ? 's' : ''}.
+              </Typography>
+            ) : (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="body2">
+                  <strong>Household Member</strong> (Head ID: {formData.head_resident_id})
+                </Typography>
+                {!isRemoving ? (
+                  <Button 
+                    size="small" 
+                    color="error" 
+                    variant="outlined" 
+                    onClick={handleRemoveFromHousehold}
+                    disabled={loading}
+                  >
+                    Remove from Household
+                  </Button>
+                ) : (
+                  <Button 
+                    size="small" 
+                    color="secondary" 
+                    variant="outlined" 
+                    onClick={() => setIsRemoving(false)}
+                    disabled={loading}
+                  >
+                    Cancel Removal
+                  </Button>
+                )}
+              </Box>
             )}
-          </Stack>
+          </Box>
 
           {error && <Typography color="error" mt={2}>{error}</Typography>}
           {success && <Typography color="success.main" mt={2}>{success}</Typography>}
@@ -357,9 +393,9 @@ const EditResidentModal = ({ open, onClose, onSuccess, residentId }) => {
             variant="contained"
             onClick={handleUpdate}
             disabled={loading}
-            sx={{ backgroundColor: "#002f59" }}
+            sx={{ backgroundColor: isRemoving ? "#d32f2f" : "#002f59" }}
           >
-            {loading ? "Updating..." : "Update Resident"}
+            {loading ? "Updating..." : (isRemoving ? "Remove & Save" : "Update Resident")}
           </Button>
         </Box>
       </DialogActions>

@@ -1,9 +1,10 @@
 // ImportResidentModal.jsx
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useMemo } from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, Typography, Box, Stack, Divider, Chip,
   CircularProgress, IconButton, Tooltip,
+  ToggleButton, ToggleButtonGroup,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
@@ -15,6 +16,8 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import HomeIcon from "@mui/icons-material/Home";
+import GroupIcon from "@mui/icons-material/Group";
 import axios from "axios";
 
 const STATUS_COLORS = {
@@ -39,6 +42,7 @@ const StatusDot = ({ row }) => {
 
 const ImportResidentModal = ({ open, onClose, onSuccess }) => {
   const [step, setStep] = useState(0);
+  const [importType, setImportType] = useState("head");
   const [file, setFile] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewRows, setPreviewRows] = useState([]);
@@ -66,6 +70,7 @@ const ImportResidentModal = ({ open, onClose, onSuccess }) => {
     try {
       const token = localStorage.getItem("token");
       const form = new FormData();
+      form.append("importType", importType);
       form.append("file", file);
       const res = await axios.post(
         "http://localhost:5000/api/residents/import-preview",
@@ -119,6 +124,7 @@ const ImportResidentModal = ({ open, onClose, onSuccess }) => {
 
   const handleClose = () => {
     setStep(0);
+    setImportType("head");
     setFile(null);
     setPreviewRows([]);
     setPreviewSummary(null);
@@ -139,57 +145,96 @@ const ImportResidentModal = ({ open, onClose, onSuccess }) => {
   );
   const totalSelected = liveCounts.green + liveCounts.yellow;
 
-  const columns = [
-    {
-      field: "_status", headerName: "", width: 36, sortable: false, disableColumnMenu: true,
-      renderCell: (params) => <StatusDot row={params.row} />,
-    },
-    { field: "_rowNumber", headerName: "Row",         width: 60,  sortable: false },
-    {
-      // Shows the Google Form's own "Timestamp" column (parsed server-side
-      // into form_submitted_at) so it's visible and reviewable before
-      // confirming — this is what becomes the resident's created_at on
-      // insert, instead of the moment the import runs.
-      field: "form_submitted_at", headerName: "Registered", width: 150, sortable: false,
-      renderCell: (params) => (
-        <Tooltip title="This becomes the resident's registration date (created_at) on import">
-          <span>{params.value || "—"}</span>
-        </Tooltip>
-      ),
-    },
-    { field: "f_name",     headerName: "First Name",  width: 130, editable: true },
-    { field: "m_name",     headerName: "Middle Name", width: 130, editable: true },
-    { field: "l_name",     headerName: "Last Name",   width: 130, editable: true },
-    { field: "suffix",     headerName: "Suffix",      width: 80,  editable: true },
-    { field: "sex",        headerName: "Sex",         width: 80 },
-    { field: "birthdate",  headerName: "Birthdate",   width: 110 },
-    { field: "birthplace", headerName: "Birthplace",  width: 130, editable: true },
-    { field: "house_no",   headerName: "House No.",   width: 110, editable: true },
-    { field: "street",     headerName: "Street",      width: 130, editable: true },
-    { field: "civil_status", headerName: "Civil Status", width: 120 },
-    { field: "occupation", headerName: "Occupation",  width: 140, editable: true },
-    { field: "citizenship",headerName: "Citizenship", width: 120, editable: true },
-    {
-      field: "is_pwd", headerName: "PWD", width: 70,
-      valueGetter: (value) => (value ? "Yes" : "No"),
-    },
-    {
-      field: "is_senior", headerName: "Senior (auto)", width: 100,
-      valueGetter: (value) => (value ? "Yes" : "No"),
-    },
-    {
-      field: "is_solop", headerName: "Solo Parent", width: 95,
-      valueGetter: (value) => (value ? "Yes" : "No"),
-    },
-    {
-      field: "is_household_head", headerName: "Household Head", width: 130,
-      valueGetter: (value) => (value ? "Yes" : "No"),
-    },
-    {
-      field: "household_member_count", headerName: "Member Count", width: 110,
-      valueGetter: (value) => (value ?? "—"),
-    },
-    {
+  // ── Columns differ by import type ─────────────────────────────────
+  const columns = useMemo(() => {
+    const baseCols = [
+      {
+        field: "_status", headerName: "", width: 36, sortable: false, disableColumnMenu: true,
+        renderCell: (params) => <StatusDot row={params.row} />,
+      },
+      { field: "_rowNumber", headerName: "Row",         width: 60,  sortable: false },
+      {
+        field: "form_submitted_at", headerName: "Registered", width: 150, sortable: false,
+        renderCell: (params) => (
+          <Tooltip title="This becomes the resident's registration date (created_at) on import">
+            <span>{params.value || "—"}</span>
+          </Tooltip>
+        ),
+      },
+    ];
+
+    // For member imports, show the head lookup columns first
+    if (importType === "member") {
+      baseCols.push(
+        {
+          field: "head_f_name", headerName: "(HEAD) First Name", width: 150, sortable: false,
+          renderCell: (params) => (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              {params.row.head_resident_id ? (
+                <CheckCircleOutlineIcon color="success" fontSize="small" />
+              ) : (
+                <Tooltip title="Household Head not found in database">
+                  <ErrorOutlineIcon color="error" fontSize="small" />
+                </Tooltip>
+              )}
+              <span>{params.value}</span>
+            </Box>
+          ),
+        },
+        { field: "head_l_name", headerName: "(HEAD) Last Name", width: 150, sortable: false },
+        { field: "head_birthdate", headerName: "(HEAD) Birthdate", width: 130, sortable: false },
+      );
+    }
+
+    baseCols.push(
+      { field: "f_name",     headerName: "First Name",  width: 130, editable: true },
+      { field: "m_name",     headerName: "Middle Name", width: 130, editable: true },
+      { field: "l_name",     headerName: "Last Name",   width: 130, editable: true },
+      { field: "suffix",     headerName: "Suffix",      width: 80,  editable: true },
+      { field: "sex",        headerName: "Sex",         width: 80 },
+      { field: "birthdate",  headerName: "Birthdate",   width: 110 },
+      { field: "birthplace", headerName: "Birthplace",  width: 130, editable: true },
+    );
+
+    // Address columns — only for head imports
+    if (importType === "head") {
+      baseCols.push(
+        { field: "house_no",   headerName: "House No.",   width: 110, editable: true },
+        { field: "street",     headerName: "Street",      width: 130, editable: true },
+      );
+    } else {
+      // For member preview, show address from head (read-only)
+      baseCols.push(
+        { field: "house_no",   headerName: "House No. (from Head)", width: 150, sortable: false },
+        { field: "street",     headerName: "Street (from Head)",    width: 150, sortable: false },
+      );
+    }
+
+    baseCols.push(
+      { field: "civil_status", headerName: "Civil Status", width: 120 },
+      { field: "occupation", headerName: "Occupation",  width: 140, editable: true },
+      { field: "citizenship",headerName: "Citizenship", width: 120, editable: true },
+      {
+        field: "is_pwd", headerName: "PWD", width: 70,
+        valueGetter: (value) => (value ? "Yes" : "No"),
+      },
+      {
+        field: "is_senior", headerName: "Senior (auto)", width: 100,
+        valueGetter: (value) => (value ? "Yes" : "No"),
+      },
+      {
+        field: "is_solop", headerName: "Solo Parent", width: 95,
+        valueGetter: (value) => (value ? "Yes" : "No"),
+      },
+    );
+
+    // Type indicator
+    baseCols.push({
+      field: "is_household_head", headerName: "Type", width: 110,
+      valueGetter: (value) => (value ? "Head" : "Member"),
+    });
+
+    baseCols.push({
       field: "_actions", headerName: "Actions", width: 90, sortable: false, disableColumnMenu: true,
       renderCell: (params) => {
         const row = params.row;
@@ -216,8 +261,10 @@ const ImportResidentModal = ({ open, onClose, onSuccess }) => {
           </Box>
         );
       },
-    },
-  ];
+    });
+
+    return baseCols;
+  }, [importType, toggleRow, deleteRow]);
 
   const dialogProps =
     step === 1
@@ -235,12 +282,59 @@ const ImportResidentModal = ({ open, onClose, onSuccess }) => {
           </DialogTitle>
           <DialogContent sx={{ px: 4, py: 3 }}>
             <Stack spacing={2.5}>
-              <Box sx={{ backgroundColor: "#e3f2fd", borderRadius: 2, p: 2 }}>
-                <Typography variant="body2" color="#0d47a1" fontWeight={600} mb={0.5}>Instructions</Typography>
-                <Typography variant="body2" color="#1565c0">
-                  Export your Google Form responses as <strong>.xlsx</strong> or <strong>.csv</strong> and upload it here.
-                  You will be able to review and edit entries before confirming the import.
-                  The form's own <strong>Timestamp</strong> column is used as each resident's registration date.
+              {/* Import Type Selector */}
+              <Box>
+                <Typography variant="body2" fontWeight={600} mb={1} color="text.secondary">
+                  What type of form are you importing?
+                </Typography>
+                <ToggleButtonGroup
+                  value={importType}
+                  exclusive
+                  onChange={(e, val) => { if (val) setImportType(val); }}
+                  fullWidth
+                  sx={{
+                    "& .MuiToggleButton-root": {
+                      py: 1.5,
+                      textTransform: "none",
+                      fontWeight: 600,
+                      "&.Mui-selected": {
+                        backgroundColor: "#002f59",
+                        color: "#fff",
+                        "&:hover": { backgroundColor: "#001c38" },
+                      },
+                    },
+                  }}
+                >
+                  <ToggleButton value="head">
+                    <HomeIcon sx={{ mr: 1 }} />
+                    Household Heads
+                  </ToggleButton>
+                  <ToggleButton value="member">
+                    <GroupIcon sx={{ mr: 1 }} />
+                    Household Members
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+
+              <Box sx={{ backgroundColor: importType === "head" ? "#e3f2fd" : "#e8f5e9", borderRadius: 2, p: 2, transition: "background-color 0.3s" }}>
+                <Typography variant="body2" color={importType === "head" ? "#0d47a1" : "#1b5e20"} fontWeight={600} mb={0.5}>
+                  {importType === "head" ? "Household Head Import" : "Household Member Import"}
+                </Typography>
+                <Typography variant="body2" color={importType === "head" ? "#1565c0" : "#2e7d32"}>
+                  {importType === "head" ? (
+                    <>
+                      Upload your <strong>HEAD Resident Registration</strong> Google Form export (.xlsx or .csv).
+                      Each row will be registered as a <strong>Household Head</strong> with their address.
+                      The form's <strong>Timestamp</strong> column is used as each resident's registration date.
+                    </>
+                  ) : (
+                    <>
+                      Upload your <strong>Member Resident Registration</strong> Google Form export (.xlsx or .csv).
+                      Each row will be linked to an <strong>existing Household Head</strong> using the
+                      {" "}<strong>(HEAD) First Name</strong>, <strong>(HEAD) Last Name</strong>, and <strong>(HEAD) Birthdate</strong> columns.
+                      Heads must already be in the system before importing their members.
+                    </>
+                  )}
                 </Typography>
               </Box>
 
@@ -302,6 +396,16 @@ const ImportResidentModal = ({ open, onClose, onSuccess }) => {
                 <IconButton size="small" onClick={() => setStep(0)} sx={{ color: "#002f59" }}>
                   <ArrowBackIcon fontSize="small" />
                 </IconButton>
+                <Chip
+                  size="small"
+                  icon={importType === "head" ? <HomeIcon /> : <GroupIcon />}
+                  label={importType === "head" ? "Head Import" : "Member Import"}
+                  sx={{
+                    backgroundColor: importType === "head" ? "#e3f2fd" : "#e8f5e9",
+                    color: importType === "head" ? "#0d47a1" : "#1b5e20",
+                    fontWeight: 700,
+                  }}
+                />
                 <Typography variant="h6" fontWeight="bold">
                   Preview — {previewRows.length} row{previewRows.length !== 1 ? "s" : ""}
                 </Typography>
@@ -340,6 +444,9 @@ const ImportResidentModal = ({ open, onClose, onSuccess }) => {
             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block", ml: 0.5 }}>
               Double-click a highlighted cell to edit. Use the eye icon to exclude/include rows. The "Registered" column
               is read-only — it comes from the Google Form's own Timestamp and becomes each resident's registration date.
+              {importType === "member" && (
+                <> The "(HEAD)" columns show which household head each member will be linked to.</>
+              )}
             </Typography>
           </DialogTitle>
 
@@ -357,9 +464,6 @@ const ImportResidentModal = ({ open, onClose, onSuccess }) => {
                 params.row.status !== "error"
               }
               getRowClassName={(params) => {
-                // Same rule as StatusDot: grey is "manually excluded," which
-                // is only ever possible for green/yellow rows — red and
-                // error rows keep their own color regardless of `enabled`.
                 const manuallyExcluded =
                   !params.row.enabled &&
                   (params.row.status === "green" || params.row.status === "yellow");

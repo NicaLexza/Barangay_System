@@ -2,7 +2,6 @@
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
-const { bulkImportResidents } = require("../controllers/residentBulkImportController");
 const { previewImportResidents } = require("../controllers/residentImportPreviewController");
 const { confirmImportResidents } = require("../controllers/residentImportConfirmController");
 const { verifyToken } = require("../middleware/authMiddleware");
@@ -25,11 +24,14 @@ const upload = multer({
   },
 });
 
-// Original direct import (kept for backward compatibility)
-router.post("/bulk-import", verifyToken, upload.single("file"), bulkImportResidents);
+// Old single-shot /bulk-import endpoint RETIRED — under the household model
+// it would silently create orphaned residents (is_household_head defaults to
+// 0 with no head_resident_id), violating the invariant that every resident
+// is either a head or linked to one. Use the two-step flow below instead.
 
-// New two-step import flow
+// Two-step import flow (the only supported import path going forward).
+// Imported residents default to heads-of-one (is_household_head = 1).
 router.post("/import-preview", verifyToken, upload.single("file"), previewImportResidents);
 router.post("/import-confirm", verifyToken, confirmImportResidents);
 
-module.exports = router;
+module.exports = router;

@@ -6,14 +6,26 @@ const db = require("../config/db");
 // (residentArchiveController.js) and are intentionally invisible here so
 // they don't show up in the active roster or get pulled into eligibility
 // form resident-selection.
+//
+// Household changes:
+// - `head_resident_id` returned so the frontend can group heads + members.
+// - `member_count` computed live (number of non-archived members + 1 for the
+//   head) instead of the old stored `household_member_count` column.
+// - Address for members is resolved via LEFT JOIN to their head row, so
+//   editing a head's address propagates instantly with no sync step.
 const getAllResidents = (req, res) => {
   const sql = `
     SELECT 
       r.resident_id,
+      r.f_name,
+      r.l_name,
       CONCAT_WS(' ', r.f_name, r.m_name, r.l_name, r.suffix) AS fullName,
       DATE_FORMAT(r.birthdate, '%Y-%m-%d') AS birthdate,
       r.birthplace,
-      CONCAT_WS(' ', r.house_no, r.street) AS address,
+      CASE
+        WHEN r.is_household_head = 1 THEN CONCAT_WS(' ', r.house_no, r.street)
+        ELSE CONCAT_WS(' ', h.house_no, h.street)
+      END AS address,
       CONCAT(
         IF(r.is_pwd = 1, 'PD, ', ''),
         IF(r.is_senior = 1, 'S, ', ''),
@@ -24,7 +36,16 @@ const getAllResidents = (req, res) => {
       r.occupation,
       r.citizenship,
       r.is_household_head,
-      r.household_member_count,
+      r.head_resident_id,
+      CASE
+        WHEN r.is_household_head = 1 THEN (
+          SELECT COUNT(*) + 1
+          FROM residents m
+          WHERE m.head_resident_id = r.resident_id
+            AND m.is_archived = 0
+        )
+        ELSE NULL
+      END AS member_count,
       DATE_FORMAT(r.created_at, '%Y-%m-%d %H:%i:%s') AS created_at,
       r.created_by,
       cu.Fullname AS created_by_name,
@@ -34,6 +55,7 @@ const getAllResidents = (req, res) => {
     FROM residents r
     LEFT JOIN users cu ON cu.User_id = r.created_by
     LEFT JOIN users uu ON uu.User_id = r.updated_by
+    LEFT JOIN residents h ON h.resident_id = r.head_resident_id
     WHERE r.is_archived = 0
     ORDER BY r.l_name, r.f_name
   `;
@@ -63,31 +85,41 @@ const getAllResidents = (req, res) => {
 // Fetch one resident by ID (raw fields for edit modal). Intentionally not
 // filtered by is_archived — this is a direct lookup by primary key used
 // internally (e.g. the edit modal), not a browsing list.
+//
+// For members, the response also includes the head's address and full name
+// so the edit modal can display "Lives at [head's address]" read-only.
 const getResident = (req, res) => {
   const { id } = req.params;
 
   const sql = `
     SELECT 
-      resident_id,
-      f_name,
-      m_name,
-      l_name,
-      suffix,
-      sex,
-      birthdate,
-      birthplace,
-      house_no,
-      street,
-      civil_status,
-      occupation,
-      citizenship,
-      is_pwd,
-      is_senior,
-      is_solop,
-      is_household_head,
-      household_member_count
-    FROM residents
-    WHERE resident_id = ?
+      r.resident_id,
+      r.f_name,
+      r.m_name,
+      r.l_name,
+      r.suffix,
+      r.sex,
+      DATE_FORMAT(r.birthdate, '%Y-%m-%d') AS birthdate,
+      r.birthplace,
+      r.house_no,
+      r.street,
+      r.civil_status,
+      r.occupation,
+      r.citizenship,
+      r.is_pwd,
+      r.is_senior,
+      r.is_solop,
+      r.is_household_head,
+      r.head_resident_id,
+      CASE WHEN r.head_resident_id IS NOT NULL THEN
+        CONCAT_WS(' ', h.f_name, h.m_name, h.l_name, h.suffix)
+      ELSE NULL END AS head_fullName,
+      CASE WHEN r.head_resident_id IS NOT NULL THEN
+        CONCAT_WS(' ', h.house_no, h.street)
+      ELSE NULL END AS head_address
+    FROM residents r
+    LEFT JOIN residents h ON h.resident_id = r.head_resident_id
+    WHERE r.resident_id = ?
   `;
 
   db.query(sql, [id], (err, results) => {
@@ -104,4 +136,33 @@ const getResident = (req, res) => {
   });
 };
 
-module.exports = { getAllResidents, getResident };
+// Return all non-archived household heads for the "Add Member" modal's
+// head-selection dropdown. Lightweight — just id, name, and address.
+const getHeads = (req, res) => {
+  const sql = `
+    SELECT
+      r.resident_id,
+      CONCAT_WS(' ', r.f_name, r.m_name, r.l_name, r.suffix) AS fullName,
+      CONCAT_WS(' ', r.house_no, r.street) AS address,
+      (
+        SELECT COUNT(*) + 1
+        FROM residents m
+        WHERE m.head_resident_id = r.resident_id
+          AND m.is_archived = 0
+      ) AS member_count
+    FROM residents r
+    WHERE r.is_household_head = 1
+      AND r.is_archived = 0
+    ORDER BY r.l_name, r.f_name
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Get heads error:", err);
+      return res.status(500).json({ message: "Database error" });
+    }
+    res.json(results);
+  });
+};
+
+module.exports = { getAllResidents, getResident, getHeads };

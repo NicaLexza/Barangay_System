@@ -14,6 +14,10 @@ import {
   FormGroup,
   Typography,
   Box,
+  RadioGroup,
+  Radio,
+  Autocomplete,
+  CircularProgress,
 } from "@mui/material";
 import axios from "axios";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -40,26 +44,32 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
     // is_senior removed — Senior Citizen status is now always computed
     // server-side from birthdate (age >= 60), never set manually here.
     is_solop: false,
-    is_household_head: false,
-    household_member_count: 1,
+    head_resident_id: null,
   });
+
+  const [mode, setMode] = useState("head"); // "head" | "member"
+  const [heads, setHeads] = useState([]);
+  const [loadingHeads, setLoadingHeads] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  // Fetch heads when switching to member mode
+  React.useEffect(() => {
+    if (mode === "member" && open) {
+      setLoadingHeads(true);
+      axios.get("http://localhost:5000/api/residents/heads", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      })
+      .then(res => setHeads(res.data))
+      .catch(err => console.error("Failed to fetch heads", err))
+      .finally(() => setLoadingHeads(false));
+    }
+  }, [mode, open]);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-
-    if (name === "is_household_head") {
-      setFormData((prev) => ({
-        ...prev,
-        is_household_head: checked,
-        household_member_count: checked ? 1 : 1, // reset to 1 when toggled
-      }));
-      return;
-    }
-
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -74,13 +84,18 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
     setError("");
     setSuccess("");
 
-    if (!formData.f_name || !formData.l_name || !formData.sex || !formData.birthdate || !formData.birthplace || !formData.civil_status || !formData.street) {
-      setError("Please fill all required fields (marked with *)");
+    if (!formData.f_name || !formData.l_name || !formData.sex || !formData.birthdate || !formData.birthplace || !formData.civil_status) {
+      setError("Please fill all required personal fields (marked with *)");
       return;
     }
 
-    if (formData.is_household_head && (!formData.household_member_count || formData.household_member_count < 1)) {
-      setError("Household member count must be at least 1.");
+    if (mode === "head" && !formData.street) {
+      setError("Street is required for a new household.");
+      return;
+    }
+
+    if (mode === "member" && !formData.head_resident_id) {
+      setError("Please select a household head.");
       return;
     }
 
@@ -96,8 +111,15 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
       const payload = {
         ...formData,
         birthdate: formData.birthdate ? dayjs(formData.birthdate).format("YYYY-MM-DD") : null,
-        household_member_count: formData.is_household_head ? Number(formData.household_member_count) : null,
       };
+
+      // Address is irrelevant for members (handled by backend anyway)
+      if (mode === "member") {
+        delete payload.house_no;
+        delete payload.street;
+      } else {
+        delete payload.head_resident_id;
+      }
 
       const res = await axios.post("http://localhost:5000/api/residents/add", payload, {
         headers: {
@@ -123,14 +145,14 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
         citizenship: "Filipino",
         is_pwd: false,
         is_solop: false,
-        is_household_head: false,
-        household_member_count: 1,
+        head_resident_id: null,
       });
+      setMode("head");
 
       onSuccess?.();
     } catch (err) {
       console.error("Add resident error:", err);
-      setError(err.response?.data?.message || "Failed to add resident. Please try again.");
+      setError(err.response?.data?.error || err.response?.data?.message || "Failed to add resident. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -144,6 +166,47 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
 
       <DialogContent sx={{ px: 4, py: 3 }}>
         <Stack spacing={2.5}>
+          <Box sx={{ mb: 1 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>Registration Type</Typography>
+            <RadioGroup row value={mode} onChange={(e) => setMode(e.target.value)}>
+              <FormControlLabel value="head" control={<Radio />} label="New Household (Head)" />
+              <FormControlLabel value="member" control={<Radio />} label="Add Household Member" />
+            </RadioGroup>
+          </Box>
+
+          {mode === "member" && (
+            <Box sx={{ p: 2, bgcolor: "#f8fafc", borderRadius: 1, border: "1px solid #e2e8f0" }}>
+              <Typography variant="subtitle2" sx={{ mb: 1.5, color: "#334155" }}>
+                Select Household Head
+              </Typography>
+              <Autocomplete
+                options={heads}
+                loading={loadingHeads}
+                getOptionLabel={(option) => `${option.fullName} — ${option.address}`}
+                isOptionEqualToValue={(option, value) => option.resident_id === value.resident_id}
+                onChange={(e, newValue) => {
+                  setFormData(prev => ({ ...prev, head_resident_id: newValue ? newValue.resident_id : null }));
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Search for Head *"
+                    required
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <React.Fragment>
+                          {loadingHeads ? <CircularProgress color="inherit" size={20} /> : null}
+                          {params.InputProps.endAdornment}
+                        </React.Fragment>
+                      ),
+                    }}
+                  />
+                )}
+              />
+            </Box>
+          )}
+
           <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 1 }}>
             Personal Information
           </Typography>
@@ -215,26 +278,30 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
             fullWidth
           />
 
-          <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 2 }}>
-            Address
-          </Typography>
-          <Stack direction="row" spacing={2}>
-            <TextField
-              label="House No. / Block / Lot"
-              name="house_no"
-              value={formData.house_no}
-              onChange={handleChange}
-              fullWidth
-            />
-            <TextField
-              label="Street *"
-              name="street"
-              value={formData.street}
-              onChange={handleChange}
-              fullWidth
-              required
-            />
-          </Stack>
+          {mode === "head" && (
+            <>
+              <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 2 }}>
+                Address
+              </Typography>
+              <Stack direction="row" spacing={2}>
+                <TextField
+                  label="House No. / Block / Lot"
+                  name="house_no"
+                  value={formData.house_no}
+                  onChange={handleChange}
+                  fullWidth
+                />
+                <TextField
+                  label="Street *"
+                  name="street"
+                  value={formData.street}
+                  onChange={handleChange}
+                  fullWidth
+                  required
+                />
+              </Stack>
+            </>
+          )}
 
           <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 2 }}>
             Other Information
@@ -290,34 +357,6 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
               label="Solo Parent"
             />
           </FormGroup>
-         
-
-          <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 2 }}>
-            Household
-          </Typography>
-          <Stack direction="row" spacing={2} alignItems="center">
-            <FormControlLabel
-              control={
-                <Checkbox
-                  name="is_household_head"
-                  checked={formData.is_household_head}
-                  onChange={handleChange}
-                />
-              }
-              label="Household Head"
-            />
-            {formData.is_household_head && (
-              <TextField
-                label="Member Count *"
-                name="household_member_count"
-                type="number"
-                value={formData.household_member_count}
-                onChange={handleChange}
-                inputProps={{ min: 1 }}
-                sx={{ width: 160 }}
-              />
-            )}
-          </Stack>
 
           {error && <Typography color="error" mt={2}>{error}</Typography>}
           {success && <Typography color="success.main" mt={2}>{success}</Typography>}
