@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 20, 2026 at 11:55 AM
+-- Generation Time: Sep 20, 2026 at 09:21 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -235,7 +235,14 @@ INSERT INTO `activity_logs` (`log_id`, `entity_type`, `entity_id`, `entity_name`
 (196, 'Eligibility Form', 2, 'School Supplies', NULL, 'created', 5, '2026-09-19 01:54:06', NULL),
 (197, 'Resident', 9, 'Christian Cosme', NULL, 'archived', 5, '2026-09-19 01:59:45', NULL),
 (198, 'Resident', 9, 'Christian Cosme', NULL, 'restored', 5, '2026-09-19 01:59:53', NULL),
-(199, 'Eligibility Entry', 1, 'Fred Caliao', NULL, 'marked_received', 5, '2026-09-19 02:02:54', NULL);
+(199, 'Eligibility Entry', 1, 'Fred Caliao', NULL, 'marked_received', 5, '2026-09-19 02:02:54', NULL),
+(200, 'Resident', 5, 'Fred Caliao', NULL, 'updated', 5, '2026-09-20 19:26:00', '[{\"field\":\"Sex\",\"from\":\"Male\",\"to\":\"Female\"}]'),
+(201, 'Account', 16, 'brodie', NULL, 'updated', 5, '2026-09-20 19:26:55', '[{\"field\":\"Username\",\"from\":\"brod\",\"to\":\"brodie\"}]'),
+(202, 'Account', 16, 'brodie', NULL, 'Password Reset', 5, '2026-09-20 19:27:08', NULL),
+(203, 'Eligibility Form', 1, 'Caliao Fam (auto-locked)', NULL, 'disabled', NULL, '2026-09-21 02:05:00', NULL),
+(204, 'Eligibility Form', 2, 'School Supplies (auto-locked)', NULL, 'disabled', NULL, '2026-09-21 02:05:00', NULL),
+(205, 'Database', NULL, 'barangay_backup_2026-09-21_022151.sql.enc', '{\"status\":\"success\",\"expected\":{\"residents\":11,\"accounts\":13,\"eligibility_forms\":2,\"eligibility_entries\":5},\"actual\":{\"residents\":11,\"accounts\":13,\"eligibility_forms\":2,\"eligibility_entries\":5},\"missing\":{}}', 'restored', 5, '2026-09-21 02:22:21', NULL),
+(206, 'Eligibility Form', 3, 'Ayuda', NULL, 'created', 5, '2026-09-21 02:29:02', NULL);
 
 -- --------------------------------------------------------
 
@@ -261,8 +268,9 @@ CREATE TABLE `eligibility_forms` (
 --
 
 INSERT INTO `eligibility_forms` (`form_id`, `form_name`, `source_details`, `distribution_details`, `target_quantity`, `start_date`, `end_date`, `status`, `created_by`, `created_at`) VALUES
-(1, 'Caliao Fam', 'Riot', '3000 VP', 3, '2026-09-19', '2026-09-20', 'Enabled', 5, '2026-09-19 01:25:16'),
-(2, 'School Supplies', 'Deped', 'School Supplies', 100, '2026-09-19', '2026-09-20', 'Enabled', 5, '2026-09-19 01:54:06');
+(1, 'Caliao Fam', 'Riot', '3000 VP', 3, '2026-09-19', '2026-09-20', 'Disabled', 5, '2026-09-19 01:25:16'),
+(2, 'School Supplies', 'Deped', 'School Supplies', 100, '2026-09-19', '2026-09-20', 'Disabled', 5, '2026-09-19 01:54:06'),
+(3, 'Ayuda', 'Never Grow Old', '10k', 5, '2026-09-21', '2026-09-22', 'Enabled', 5, '2026-09-21 02:29:02');
 
 -- --------------------------------------------------------
 
@@ -288,7 +296,15 @@ INSERT INTO `eligibility_forms_entries` (`entry_id`, `form_id`, `resident_id`, `
 (2, 1, 6, 0, NULL, NULL),
 (3, 1, 7, 0, NULL, NULL),
 (4, 2, 11, 0, NULL, NULL),
-(5, 2, 10, 0, NULL, NULL);
+(5, 2, 10, 0, NULL, NULL),
+(6, 3, 11, 0, NULL, NULL),
+(7, 3, 5, 0, NULL, NULL),
+(8, 3, 10, 0, NULL, NULL),
+(9, 3, 6, 0, NULL, NULL),
+(10, 3, 7, 0, NULL, NULL),
+(11, 3, 9, 0, NULL, NULL),
+(12, 3, 8, 0, NULL, NULL),
+(13, 3, 2, 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -333,7 +349,7 @@ INSERT INTO `residents` (`resident_id`, `f_name`, `m_name`, `l_name`, `suffix`, 
 (2, 'Test2', NULL, 'User2', NULL, 'Male', '1990-01-01', 'Manila', NULL, '123 Main St', 'Single', NULL, 'Filipino', 0, 0, 0, 1, NULL, 0, NULL, NULL, 1, '2026-09-18 20:34:48', NULL, NULL),
 (3, 'Julius', NULL, 'Caliao', NULL, 'Male', '2005-09-27', 'Biliran', '750', 'Bohol', 'Single', 'Student', 'Filipino', 0, 0, 0, 0, NULL, 1, 5, '2026-09-18 20:51:23', 5, '2026-09-18 20:43:33', NULL, '2026-09-18 12:51:23'),
 (4, 'Callie', NULL, 'Caliao', NULL, 'Male', '2015-09-27', 'Manila', NULL, NULL, 'Single', 'Driver', 'Filipino', 0, 0, 0, 1, NULL, 1, 5, '2026-09-18 21:21:05', 5, '2026-09-18 20:44:28', NULL, '2026-09-18 13:21:05'),
-(5, 'Fred', NULL, 'Caliao', NULL, 'Male', '2012-09-27', 'Manila', '750', 'Bohol', 'Single', NULL, 'Filipino', 0, 0, 0, 1, NULL, 0, NULL, NULL, 5, '2026-09-18 20:51:02', NULL, '2026-09-18 12:51:23'),
+(5, 'Fred', NULL, 'Caliao', NULL, 'Female', '2012-09-27', 'Manila', '750', 'Bohol', 'Single', NULL, 'Filipino', 0, 0, 0, 1, NULL, 0, NULL, NULL, 5, '2026-09-18 20:51:02', 5, '2026-09-20 11:26:00'),
 (6, 'Leon', NULL, 'Caliao', NULL, 'Male', '2015-09-27', 'Manila', '123', 'Solis', 'Single', NULL, 'Filipino', 0, 0, 0, 1, NULL, 0, NULL, NULL, 5, '2026-09-18 20:59:52', 5, '2026-09-18 13:15:42'),
 (7, 'Voldemort', NULL, 'Caliao', NULL, 'Male', '2020-09-27', 'Manila', NULL, NULL, 'Single', NULL, 'Filipino', 0, 0, 0, 0, 6, 0, NULL, NULL, 5, '2026-09-18 21:21:44', NULL, '2026-09-18 13:22:00'),
 (8, 'Marco', NULL, 'Eljan', 'Sr', 'Male', '2004-09-03', 'Nueva Ecija', '14', 'Angeles', 'Divorced', 'Gingineer', 'Bisaya', 0, 0, 1, 1, NULL, 0, NULL, NULL, 5, '2026-09-18 22:16:27', 5, '2026-09-18 17:07:35'),
@@ -374,7 +390,7 @@ INSERT INTO `users` (`user_id`, `username`, `password`, `fullname`, `role`, `sta
 (6, 'James', '$2b$10$A8MCfaYXN4rPfwutc.jxK.OTZUqOPOniLQXEoQkJ9f.qU5cN6Nt.e', 'James Smith', 'Staff', 'Active', 4, '2026-03-07 18:12:30', NULL, '2026-04-12 18:04:54', 0),
 (10, 'reid', '$2b$10$Q2aZiIn0uKvRu8lLzuyUO.c7HAeGmjnxMK5CCUkHk0MQlqLpVOCjW', 'James Reid', 'Admin', 'Inactive', 4, '2026-03-07 22:46:30', 4, '2026-04-12 18:04:54', 0),
 (15, 'sample', '$2b$10$p/imSAnE72uXhYb7/wHDGers80g0Zisqw0sJFdcVx3ra2ZLBjGQte', 'sample', 'Staff', 'Active', 4, '2026-04-12 18:32:23', 15, '2026-04-12 18:48:50', 0),
-(16, 'brod', '$2b$10$.q.vqBRjSJWVDpAF6UjWMuDMrPGFDY5Z52TVDWwcp3zdLfqjc/Tly', 'bru', 'Admin', 'Active', 4, '2026-04-28 00:44:16', 5, '2026-09-10 21:54:52', 0),
+(16, 'brodie', '$2b$10$J9zRJgKJCWWEM/4kTDaALuR4BQEHet6YV4Tgm6/jne903FV0TqSnG', 'bru', 'Admin', 'Active', 4, '2026-04-28 00:44:16', 5, '2026-09-20 19:27:08', 1),
 (17, 'mong', '$2b$10$5BSfOvozi1tVG1gQsJtaAOJodSou7hghdFHA1NM53ka1cuwuS.prq', 'mong yaw', 'Staff', 'Active', 5, '2026-06-22 16:15:42', 17, '2026-06-22 16:16:15', 0),
 (18, 'potchi', '$2b$10$k0t4gDpgX..s.5J4OhvddeSI25kOEImcTU4JsY1VZUhu7tSPPXBH.', 'potchi', 'Staff', 'Active', 5, '2026-06-22 16:30:25', 18, '2026-06-22 16:30:39', 0),
 (19, 'cos', '$2b$10$0/FJQuchNDYGFk1/UWfzke2gQG45uj1OFuDJvMKFnXMAgVLQsKZLa', 'cosme ', 'Admin', 'Active', 5, '2026-07-02 15:39:15', 19, '2026-09-07 22:39:54', 0),
@@ -438,19 +454,19 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=200;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=207;
 
 --
 -- AUTO_INCREMENT for table `eligibility_forms`
 --
 ALTER TABLE `eligibility_forms`
-  MODIFY `form_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `form_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `eligibility_forms_entries`
 --
 ALTER TABLE `eligibility_forms_entries`
-  MODIFY `entry_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `entry_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `residents`
