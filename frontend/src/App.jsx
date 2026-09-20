@@ -8,6 +8,7 @@ import Eligibility from "./pages/EligibilityForm/EligibilityPage.jsx";
 import EligibilityEntries from "./pages/EligibilityForm/EligibilityEntriesPage.jsx";
 import EligibilityArchivedPage from "./pages/EligibilityForm/EligibilityArchivedPage.jsx";
 import ChangePassword from "./pages/ChangePasswordPage.jsx";
+import AuditLogs from "./pages/AuditLogs/AuditLogsPage.jsx";
 import ProtectedRoute from "./Reusables/ProtectedRoute.jsx";
 
 function App() {
@@ -41,6 +42,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["Admin"]}>
               <Accounts />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/AuditLogs"
+          element={
+            <ProtectedRoute allowedRoles={["Admin"]}>
+              <AuditLogs />
             </ProtectedRoute>
           }
         />

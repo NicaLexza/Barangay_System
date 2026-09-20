@@ -313,7 +313,7 @@ const ResidentsTable = () => {
 
     // Household filter
     if (filters.household === 'Heads' && row.is_household_head !== 1) return false;
-    if (filters.household === 'Regular' && row.is_household_head === 1) return false;
+    if (filters.household === 'Members' && row.is_household_head === 1) return false;
 
     // Date Registered filter (based on created_at)
     if (filters.dateFrom) {

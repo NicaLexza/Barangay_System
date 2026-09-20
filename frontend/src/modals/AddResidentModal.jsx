@@ -357,7 +357,7 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
               label="Solo Parent"
             />
           </FormGroup>
-
+ 
           {error && <Typography color="error" mt={2}>{error}</Typography>}
           {success && <Typography color="success.main" mt={2}>{success}</Typography>}
         </Stack>

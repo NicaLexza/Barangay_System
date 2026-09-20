@@ -21,7 +21,7 @@ const TransferHeadModal = ({ open, onClose, onSuccess, member }) => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        `http://localhost:5000/api/residents/household/${member.head_resident_id}/transfer/${member.resident_id}`,
+        `http://localhost:5000/api/residents/household/${member.head_resident_id}/transfer/${member.id}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

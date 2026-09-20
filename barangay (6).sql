@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 18, 2026 at 12:24 PM
+-- Generation Time: Sep 20, 2026 at 11:55 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -207,7 +207,35 @@ INSERT INTO `activity_logs` (`log_id`, `entity_type`, `entity_id`, `entity_name`
 (168, 'Eligibility Form', 21, 'sample', NULL, 'enabled', 5, '2026-09-17 22:13:43', NULL),
 (169, 'Eligibility Form', 21, 'sample (auto-locked)', NULL, 'disabled', NULL, '2026-09-17 22:13:43', NULL),
 (170, 'Eligibility Form', 21, 'sample', NULL, 'enabled', 5, '2026-09-18 14:34:28', NULL),
-(171, 'Eligibility Form', 21, 'sample (auto-locked)', NULL, 'disabled', NULL, '2026-09-18 14:34:28', NULL);
+(171, 'Eligibility Form', 21, 'sample (auto-locked)', NULL, 'disabled', NULL, '2026-09-18 14:34:28', NULL),
+(172, 'Resident', 49, 'glendardo Pata', NULL, 'added', 5, '2026-09-18 20:16:44', NULL),
+(173, 'Resident', 3, 'Julius Caliao', NULL, 'added', 5, '2026-09-18 20:43:33', NULL),
+(174, 'Resident', 4, 'Callie Caliao', NULL, 'member_added', 5, '2026-09-18 20:44:28', NULL),
+(175, 'Resident', 1, 'Test User', NULL, 'archived', 5, '2026-09-18 20:46:03', NULL),
+(176, 'Resident', 5, 'Fred Caliao', NULL, 'member_added', 5, '2026-09-18 20:51:02', NULL),
+(177, 'Resident', 3, 'Julius Caliao', NULL, 'archived', 5, '2026-09-18 20:51:23', NULL),
+(178, 'Resident', 5, 'Fred Caliao', '\"Auto-promoted to household head when Julius Caliao was archived\"', 'head_transferred', 5, '2026-09-18 20:51:23', NULL),
+(179, 'Resident', 6, 'Leon Caliao', NULL, 'member_added', 5, '2026-09-18 20:59:52', NULL),
+(180, 'Resident', 6, 'Leon Caliao', NULL, 'removed_from_household', 5, '2026-09-18 21:12:28', NULL),
+(181, 'Resident', 6, 'Leon Caliao', NULL, 'archived', 5, '2026-09-18 21:13:18', NULL),
+(182, 'Resident', 6, 'Leon Caliao', NULL, 'restored', 5, '2026-09-18 21:15:42', NULL),
+(183, 'Resident', 4, 'Callie Caliao', NULL, 'archived', 5, '2026-09-18 21:16:01', NULL),
+(184, 'Resident', 4, 'Callie Caliao', NULL, 'restored', 5, '2026-09-18 21:16:12', NULL),
+(185, 'Resident', 4, 'Callie Caliao', NULL, 'archived', 5, '2026-09-18 21:21:05', NULL),
+(186, 'Resident', 7, 'Voldemort Caliao', NULL, 'member_added', 5, '2026-09-18 21:21:44', NULL),
+(187, 'Resident', 7, 'Voldemort Caliao', NULL, 'archived', 5, '2026-09-18 21:21:49', NULL),
+(188, 'Resident', 7, 'Voldemort Caliao', NULL, 'restored', 5, '2026-09-18 21:22:00', NULL),
+(189, 'Resident', NULL, '1 added', '{\"added\":[{\"resident_id\":8,\"name\":\"Marco Eljan\"}],\"updated\":[]}', 'imported', 5, '2026-09-19 01:05:27', NULL),
+(190, 'Resident', NULL, '1 added', '{\"added\":[{\"resident_id\":9,\"name\":\"Christian Cosme\",\"head_name\":\"Marco Eljan\"}],\"updated\":[]}', 'imported', 5, '2026-09-19 01:05:58', NULL),
+(191, 'Resident', NULL, '1 updated', '{\"added\":[],\"updated\":[{\"resident_id\":9,\"name\":\"Christian Cosme\",\"changes\":[{\"field\":\"House No.\",\"from\":\"\",\"to\":\"14\"},{\"field\":\"Street\",\"from\":\"\",\"to\":\"Angeles\"}]}]}', 'imported', 5, '2026-09-19 01:06:59', NULL),
+(192, 'Resident', NULL, '1 updated', '{\"added\":[],\"updated\":[{\"resident_id\":8,\"name\":\"Marco Eljan\",\"changes\":[]}]}', 'imported', 5, '2026-09-19 01:07:35', NULL),
+(193, 'Eligibility Form', 1, 'Caliao Fam', NULL, 'created', 5, '2026-09-19 01:25:16', NULL),
+(194, 'Resident', 10, 'Ginger Caliao', NULL, 'member_added', 5, '2026-09-19 01:52:20', NULL),
+(195, 'Resident', 11, 'Callie Caliao', NULL, 'member_added', 5, '2026-09-19 01:53:00', NULL),
+(196, 'Eligibility Form', 2, 'School Supplies', NULL, 'created', 5, '2026-09-19 01:54:06', NULL),
+(197, 'Resident', 9, 'Christian Cosme', NULL, 'archived', 5, '2026-09-19 01:59:45', NULL),
+(198, 'Resident', 9, 'Christian Cosme', NULL, 'restored', 5, '2026-09-19 01:59:53', NULL),
+(199, 'Eligibility Entry', 1, 'Fred Caliao', NULL, 'marked_received', 5, '2026-09-19 02:02:54', NULL);
 
 -- --------------------------------------------------------
 
@@ -233,19 +261,8 @@ CREATE TABLE `eligibility_forms` (
 --
 
 INSERT INTO `eligibility_forms` (`form_id`, `form_name`, `source_details`, `distribution_details`, `target_quantity`, `start_date`, `end_date`, `status`, `created_by`, `created_at`) VALUES
-(4, 'unemployed shytes', NULL, NULL, NULL, NULL, NULL, 'Archived', 4, '2026-03-16 15:45:39'),
-(6, 'eacakes', NULL, NULL, NULL, NULL, NULL, 'Archived', 4, '2026-03-17 18:32:35'),
-(7, 'dasdasd', NULL, NULL, NULL, NULL, NULL, 'Archived', 4, '2026-03-17 19:47:55'),
-(11, 'household', NULL, NULL, NULL, NULL, NULL, 'Archived', 5, '2026-07-05 01:39:43'),
-(12, 'd', NULL, NULL, NULL, NULL, NULL, 'Archived', 5, '2026-07-05 01:40:05'),
-(14, 'heads', NULL, NULL, NULL, NULL, NULL, 'Archived', 5, '2026-07-05 01:45:12'),
-(15, 'sa', NULL, NULL, NULL, NULL, NULL, 'Archived', 5, '2026-07-05 01:52:15'),
-(16, 'Seniors', NULL, NULL, NULL, NULL, NULL, 'Enabled', 5, '2026-09-10 22:08:26'),
-(17, 'Unemployed', NULL, NULL, NULL, NULL, NULL, 'Enabled', 5, '2026-09-10 22:21:38'),
-(18, 'PWDs', NULL, NULL, NULL, NULL, NULL, 'Enabled', 5, '2026-09-10 22:23:10'),
-(19, 'Single', NULL, NULL, NULL, NULL, NULL, 'Enabled', 5, '2026-09-11 13:19:54'),
-(20, 'Divorce ', 'Vincent', '50k cash assistance', 10, '2026-09-17', '2026-09-18', 'Enabled', 5, '2026-09-17 22:10:53'),
-(21, 'sample', 'sample', 'sample', 10, '2026-09-01', '2026-09-16', 'Disabled', 5, '2026-09-17 22:13:00');
+(1, 'Caliao Fam', 'Riot', '3000 VP', 3, '2026-09-19', '2026-09-20', 'Enabled', 5, '2026-09-19 01:25:16'),
+(2, 'School Supplies', 'Deped', 'School Supplies', 100, '2026-09-19', '2026-09-20', 'Enabled', 5, '2026-09-19 01:54:06');
 
 -- --------------------------------------------------------
 
@@ -267,84 +284,11 @@ CREATE TABLE `eligibility_forms_entries` (
 --
 
 INSERT INTO `eligibility_forms_entries` (`entry_id`, `form_id`, `resident_id`, `is_rewarded`, `processed_by`, `processed_at`) VALUES
-(21, 4, 14, 0, NULL, '2026-03-16 15:45:39'),
-(23, 5, 6, 1, 4, '2026-03-17 18:18:37'),
-(26, 5, 1, 0, NULL, '2026-03-16 15:53:34'),
-(27, 5, 9, 0, NULL, '2026-03-16 15:53:34'),
-(28, 5, 2, 0, NULL, '2026-03-16 15:53:34'),
-(29, 5, 14, 1, 18, '2026-06-22 16:31:08'),
-(30, 5, 7, 0, NULL, '2026-03-16 15:53:34'),
-(31, 5, 4, 0, NULL, '2026-03-16 15:53:34'),
-(32, 5, 10, 0, NULL, '2026-03-16 15:53:34'),
-(34, 5, 17, 0, NULL, '2026-03-16 15:53:34'),
-(38, 6, 2, 1, 4, '2026-03-28 18:49:23'),
-(39, 6, 4, 1, 4, '2026-03-17 19:47:13'),
-(40, 6, 10, 0, NULL, NULL),
-(41, 7, 6, 1, 4, '2026-03-17 19:58:16'),
-(42, 7, 1, 0, NULL, NULL),
-(43, 7, 2, 0, NULL, NULL),
-(44, 7, 7, 0, NULL, NULL),
-(45, 7, 10, 0, NULL, NULL),
-(70, 14, 23, 1, 5, '2026-07-05 01:45:43'),
-(71, 15, 6, 1, 5, '2026-07-05 02:05:27'),
-(75, 15, 1, 0, NULL, NULL),
-(76, 15, 20, 0, NULL, NULL),
-(77, 15, 9, 0, NULL, NULL),
-(78, 15, 2, 0, NULL, NULL),
-(79, 15, 14, 0, NULL, NULL),
-(80, 15, 21, 0, NULL, NULL),
-(81, 15, 7, 0, NULL, NULL),
-(82, 15, 4, 0, NULL, NULL),
-(83, 15, 10, 0, NULL, NULL),
-(85, 15, 17, 0, NULL, NULL),
-(87, 16, 20, 0, 5, '2026-09-11 13:41:27'),
-(88, 16, 24, 0, NULL, NULL),
-(89, 16, 32, 0, NULL, NULL),
-(90, 16, 31, 0, NULL, NULL),
-(91, 17, 26, 0, NULL, NULL),
-(92, 17, 14, 0, NULL, NULL),
-(93, 17, 29, 0, NULL, NULL),
-(94, 18, 37, 1, 5, '2026-09-11 11:10:19'),
-(95, 18, 6, 1, 5, '2026-09-11 11:10:21'),
-(96, 18, 31, 0, NULL, NULL),
-(97, 18, 17, 0, NULL, NULL),
-(98, 19, 37, 0, NULL, NULL),
-(99, 19, 9, 0, NULL, NULL),
-(100, 19, 32, 0, NULL, NULL),
-(101, 19, 26, 0, NULL, NULL),
-(102, 19, 39, 0, NULL, NULL),
-(103, 19, 44, 0, NULL, NULL),
-(104, 19, 33, 0, NULL, NULL),
-(105, 19, 17, 0, NULL, NULL),
-(106, 20, 34, 1, 5, '2026-09-17 22:11:09'),
-(107, 20, 36, 1, 5, '2026-09-17 22:11:13'),
-(108, 21, 47, 0, NULL, NULL),
-(109, 21, 20, 0, NULL, NULL),
-(110, 21, 24, 0, NULL, NULL),
-(111, 21, 37, 0, NULL, NULL),
-(112, 21, 48, 0, NULL, NULL),
-(113, 21, 9, 0, NULL, NULL),
-(114, 21, 6, 0, NULL, NULL),
-(115, 21, 32, 0, NULL, NULL),
-(116, 21, 26, 0, NULL, NULL),
-(117, 21, 34, 0, NULL, NULL),
-(118, 21, 14, 0, NULL, NULL),
-(119, 21, 39, 0, NULL, NULL),
-(120, 21, 21, 0, NULL, NULL),
-(121, 21, 43, 0, NULL, NULL),
-(122, 21, 7, 0, NULL, NULL),
-(123, 21, 38, 0, NULL, NULL),
-(124, 21, 29, 0, NULL, NULL),
-(125, 21, 44, 0, NULL, NULL),
-(126, 21, 31, 0, NULL, NULL),
-(127, 21, 10, 0, NULL, NULL),
-(128, 21, 25, 0, NULL, NULL),
-(129, 21, 33, 0, NULL, NULL),
-(130, 21, 17, 0, NULL, NULL),
-(131, 21, 35, 0, NULL, NULL),
-(132, 21, 23, 0, NULL, NULL),
-(133, 21, 30, 0, NULL, NULL),
-(134, 21, 36, 0, NULL, NULL);
+(1, 1, 5, 1, 5, '2026-09-19 02:02:54'),
+(2, 1, 6, 0, NULL, NULL),
+(3, 1, 7, 0, NULL, NULL),
+(4, 2, 11, 0, NULL, NULL),
+(5, 2, 10, 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -370,7 +314,7 @@ CREATE TABLE `residents` (
   `is_senior` tinyint(1) DEFAULT 0,
   `is_solop` tinyint(1) DEFAULT 0,
   `is_household_head` tinyint(1) NOT NULL DEFAULT 0,
-  `household_member_count` int(11) DEFAULT NULL,
+  `head_resident_id` int(11) DEFAULT NULL,
   `is_archived` tinyint(1) NOT NULL DEFAULT 0,
   `archived_by` int(11) DEFAULT NULL,
   `archived_at` datetime DEFAULT NULL,
@@ -384,35 +328,18 @@ CREATE TABLE `residents` (
 -- Dumping data for table `residents`
 --
 
-INSERT INTO `residents` (`resident_id`, `f_name`, `m_name`, `l_name`, `suffix`, `sex`, `birthdate`, `birthplace`, `house_no`, `street`, `civil_status`, `occupation`, `citizenship`, `is_pwd`, `is_senior`, `is_solop`, `is_household_head`, `household_member_count`, `is_archived`, `archived_by`, `archived_at`, `created_by`, `created_at`, `updated_by`, `updated_at`) VALUES
-(6, 'Elen', 'Ramos', 'Chino', NULL, 'Female', '1967-12-03', 'Manila', '89', 'bohol', 'Divorced', 'Vendor', 'Filipino', 1, 0, 1, 0, NULL, 0, NULL, NULL, 2, '2026-02-02 13:48:27', 5, '2026-09-10 13:49:27'),
-(7, 'Jose', 'Bautista', 'Hernandez', NULL, 'Male', '1985-09-12', 'Nueva Ecija', '56', 'Aguinaldo', 'Married', 'Carpenter', 'Filipino', 0, 0, 0, 0, NULL, 0, NULL, NULL, 3, '2026-02-02 13:57:21', NULL, '2026-02-09 07:54:08'),
-(9, 'Pedro', 'Flores', 'Castillo', 'III', 'Male', '1995-01-30', 'Opol', '78', 'Lapu-Lapu', 'Single', 'Security Guard', 'Filipino', 0, 0, 0, 0, NULL, 0, NULL, NULL, 5, '2026-02-02 13:57:21', NULL, '2026-02-09 07:54:08'),
-(10, 'Rosa', 'Diaz', 'Morales', NULL, 'Female', '1988-06-14', 'Opol', '21', 'Magsaysay', 'Married', 'Barangay Health Worker', 'Filipino', 0, 0, 0, 0, NULL, 0, NULL, NULL, 2, '2026-02-02 13:57:21', NULL, '2026-02-09 07:55:32'),
-(14, 'John ', NULL, 'Doe', 'Jr.', 'Male', '2021-02-06', 'Manila', '79', 'Boston', 'Divorced', NULL, 'Filipino', 0, 0, 1, 0, NULL, 0, NULL, NULL, 4, '2026-02-06 17:47:21', NULL, '2026-02-09 07:55:32'),
-(17, 'sample', 'sample', 'sample', NULL, 'Male', '2005-09-27', 'japan', '21', 'sample', 'Single', 'sample', 'Filipino', 1, 0, 0, 0, NULL, 0, NULL, NULL, 4, '2026-02-12 15:35:22', 4, '2026-09-10 10:36:57'),
-(20, 'Julius Cesar', 'Mabagal', 'Caliao', 'Jr', 'Male', '1900-09-27', 'Leyte', '750', 'Bohol', 'Married', 'Network Gingineer', 'Bisakol', 0, 1, 0, 0, NULL, 0, NULL, NULL, 4, '2026-04-21 18:11:53', 5, '2026-09-10 11:03:23'),
-(21, 'Jheric', NULL, 'Esmeli', 'Sr', 'Male', '2026-04-15', 'Toronto', '67', 'york', 'Divorced', 'assassin', 'Filipino', 0, 0, 0, 0, NULL, 0, NULL, NULL, 4, '2026-04-22 20:45:36', NULL, NULL),
-(23, 'bry', NULL, 'son', NULL, 'Male', '2026-06-10', 'Manila', '89', 'kopal', 'Married', 'crew', 'Filipino', 0, 0, 1, 1, 5, 0, NULL, NULL, 5, '2026-06-16 10:10:15', 5, '2026-06-17 12:49:16'),
-(24, 'Julius Cesar', 'Mabagal', 'Caliao', 'II', 'Male', '1960-07-05', 'New York, Makati', '15A', 'Madrid', 'Divorced', 'Yearner', 'Bisaya', 0, 1, 1, 0, NULL, 0, NULL, NULL, 5, '2026-07-06 11:04:07', NULL, NULL),
-(25, 'Leo', NULL, 'Nidas', NULL, 'Male', '2005-09-27', 'Greece', '300', 'BC', 'Married', 'Spartan', 'Bisaya', 0, 0, 0, 1, 5, 0, NULL, NULL, 5, '2026-07-06 11:04:07', NULL, NULL),
-(26, 'dasdasd', 'sqdasda', 'dasdasd', NULL, 'Male', '2005-09-27', 'asdsa', '123', 'sad', 'Single', NULL, 'Filipino', 0, 0, 0, 0, NULL, 0, NULL, NULL, 5, '2026-07-08 00:54:00', 5, '2026-09-10 13:49:48'),
-(29, 'lala', 'lele', 'lulu', NULL, 'Male', '2005-09-27', 'Luzon', '750-6A', 'Bohol', 'Divorced', NULL, 'Filipino', 0, 0, 1, 1, 5, 0, NULL, NULL, 5, '2026-08-20 14:19:52', NULL, NULL),
-(30, 'Voldermort', NULL, 'Vol', 'Sr', 'Male', '2005-05-10', 'Manila', '750-6A', 'Bohol', 'Annulled', 'Wizard', 'Bisaya', 0, 0, 0, 1, 3, 0, NULL, NULL, 5, '2026-09-10 18:02:40', 5, '2026-09-10 11:02:45'),
-(31, 'Carl', NULL, 'Mangie', NULL, 'Male', '1940-12-27', 'Calamba', '1556', 'Ibarra', 'Separated', 'Astronaut', 'Bisaya', 1, 1, 1, 0, NULL, 0, NULL, NULL, 5, '2026-09-10 19:02:45', 5, '2026-09-10 13:46:19'),
-(32, 'James', NULL, 'Cruz', NULL, 'Male', '1933-02-07', 'Calabarzon', '76', 'Solis', 'Single', 'Plumber', 'Filipino', 0, 1, 0, 0, NULL, 0, NULL, NULL, 5, '2026-09-10 19:13:57', 5, '2026-09-10 11:14:03'),
-(33, 'Johnlee', NULL, 'Paulino', NULL, 'Male', '2005-09-27', 'Manila', '1556', 'Ibarra', 'Single', 'Pirate', 'Filipino', 0, 0, 0, 0, NULL, 0, NULL, NULL, 5, '2026-09-10 22:06:02', 5, '2026-09-10 14:06:19'),
-(34, 'Mark Adrian', 'Madlangawa', 'Dela Cruz', 'Jr', 'Male', '1999-09-11', 'Maynila', '178', 'DanDan', 'Widowed', 'Driver', 'Filipino', 0, 0, 1, 1, 3, 0, NULL, NULL, 3, '2026-09-10 22:10:57', 5, '2026-09-11 05:17:50'),
-(35, 'Travis', NULL, 'Scott', 'Jr', 'Male', '2000-12-25', 'Arizona', '148 G', 'California', 'Divorced', 'Actor, Singer, and Rapper', 'Bisaya', 0, 0, 1, 1, 5, 0, NULL, NULL, 3, '2026-09-10 22:10:57', 5, '2026-09-10 14:20:48'),
-(36, 'Kimi', 'No', 'Yawa', NULL, 'Female', '2000-09-27', 'Wano', '123', 'Marie', 'Widowed', 'Dimon sliyer', 'Bisaya', 0, 0, 1, 1, 2, 0, NULL, NULL, 3, '2026-09-10 22:10:57', NULL, NULL),
-(37, 'Julius Cesar', NULL, 'Caliao', NULL, 'Male', '2005-09-27', 'Etivac', '1975', 'Solis', 'Single', 'Writer', 'Bisaya', 1, 0, 0, 0, NULL, 0, NULL, NULL, 3, '2026-09-10 22:10:57', NULL, NULL),
-(38, 'Librong', NULL, 'James', 'Sr', 'Male', '1995-09-26', 'Amoranto', '1738', 'Bohol', 'Divorced', 'Baskitbolista', 'Filipino', 0, 0, 1, 1, 5, 0, NULL, NULL, 3, '2026-09-10 22:10:57', NULL, NULL),
-(39, 'Elijah Miller', 'Mariposa', 'Esmeli', NULL, 'Male', '2006-06-06', 'Dyan Lang', '26', 'F Angeles', 'Single', 'Pickleball Pro', 'Filipino', 0, 0, 0, 0, NULL, 0, NULL, NULL, 5, '2026-09-10 22:20:48', NULL, NULL),
-(42, 'Alexandra Jelaica Mae', 'Orbita', 'Alagao', NULL, 'Female', '2005-05-16', 'Ewan ko', '1995', 'Di magiging sayo yung para sa streets', 'Separated', 'Call Center', 'Bisaya', 1, 0, 1, 0, NULL, 1, 5, '2026-09-15 09:56:41', 5, '2026-09-11 13:17:50', NULL, '2026-09-15 01:56:41'),
-(43, 'John Carlo', 'Fajardo', 'Ferriols', 'Jr', 'Male', '2004-09-10', 'Tondo', '304', 'Gerona', 'Married', 'Freelancer', 'Filipino', 0, 0, 0, 0, NULL, 0, NULL, NULL, 5, '2026-09-11 13:17:50', NULL, NULL),
-(44, 'Sean Paul', 'Santino', 'Macasinag', NULL, 'Male', '2004-05-09', 'Manila', '531', 'Francisco', 'Single', 'Student', 'Filipino', 0, 0, 0, 0, NULL, 0, NULL, NULL, 5, '2026-09-11 13:17:50', NULL, NULL),
-(47, 'Callie', NULL, 'Caliao', NULL, 'Female', '2005-09-27', 'Manila', '700', 'Bohol', 'Single', 'Cat', 'Filipino', 0, 0, 0, 0, NULL, 0, NULL, NULL, 5, '2026-09-11 11:25:55', 5, '2026-09-15 02:08:47'),
-(48, 'Spot', NULL, 'Caliao', NULL, 'Female', '2025-11-13', 'Manila', '750', 'Bohol', 'Single', 'Dog', 'Bisaya', 0, 0, 0, 0, NULL, 0, NULL, NULL, 5, '2026-09-13 11:32:19', NULL, NULL);
+INSERT INTO `residents` (`resident_id`, `f_name`, `m_name`, `l_name`, `suffix`, `sex`, `birthdate`, `birthplace`, `house_no`, `street`, `civil_status`, `occupation`, `citizenship`, `is_pwd`, `is_senior`, `is_solop`, `is_household_head`, `head_resident_id`, `is_archived`, `archived_by`, `archived_at`, `created_by`, `created_at`, `updated_by`, `updated_at`) VALUES
+(1, 'Test', NULL, 'User', NULL, 'Male', '1990-01-01', 'Manila', '123', 'Main St', 'Single', NULL, 'Filipino', 0, 0, 0, 0, NULL, 1, 5, '2026-09-18 20:46:03', 1, '2026-09-18 20:32:39', NULL, '2026-09-18 12:46:03'),
+(2, 'Test2', NULL, 'User2', NULL, 'Male', '1990-01-01', 'Manila', NULL, '123 Main St', 'Single', NULL, 'Filipino', 0, 0, 0, 1, NULL, 0, NULL, NULL, 1, '2026-09-18 20:34:48', NULL, NULL),
+(3, 'Julius', NULL, 'Caliao', NULL, 'Male', '2005-09-27', 'Biliran', '750', 'Bohol', 'Single', 'Student', 'Filipino', 0, 0, 0, 0, NULL, 1, 5, '2026-09-18 20:51:23', 5, '2026-09-18 20:43:33', NULL, '2026-09-18 12:51:23'),
+(4, 'Callie', NULL, 'Caliao', NULL, 'Male', '2015-09-27', 'Manila', NULL, NULL, 'Single', 'Driver', 'Filipino', 0, 0, 0, 1, NULL, 1, 5, '2026-09-18 21:21:05', 5, '2026-09-18 20:44:28', NULL, '2026-09-18 13:21:05'),
+(5, 'Fred', NULL, 'Caliao', NULL, 'Male', '2012-09-27', 'Manila', '750', 'Bohol', 'Single', NULL, 'Filipino', 0, 0, 0, 1, NULL, 0, NULL, NULL, 5, '2026-09-18 20:51:02', NULL, '2026-09-18 12:51:23'),
+(6, 'Leon', NULL, 'Caliao', NULL, 'Male', '2015-09-27', 'Manila', '123', 'Solis', 'Single', NULL, 'Filipino', 0, 0, 0, 1, NULL, 0, NULL, NULL, 5, '2026-09-18 20:59:52', 5, '2026-09-18 13:15:42'),
+(7, 'Voldemort', NULL, 'Caliao', NULL, 'Male', '2020-09-27', 'Manila', NULL, NULL, 'Single', NULL, 'Filipino', 0, 0, 0, 0, 6, 0, NULL, NULL, 5, '2026-09-18 21:21:44', NULL, '2026-09-18 13:22:00'),
+(8, 'Marco', NULL, 'Eljan', 'Sr', 'Male', '2004-09-03', 'Nueva Ecija', '14', 'Angeles', 'Divorced', 'Gingineer', 'Bisaya', 0, 0, 1, 1, NULL, 0, NULL, NULL, 5, '2026-09-18 22:16:27', 5, '2026-09-18 17:07:35'),
+(9, 'Christian', NULL, 'Cosme', NULL, 'Male', '2005-08-15', 'Quezon City', NULL, NULL, 'Single', 'Pro Pliyer', 'Bisaya', 0, 0, 0, 0, 8, 0, NULL, NULL, 5, '2026-09-18 22:26:37', 5, '2026-09-18 17:59:53'),
+(10, 'Ginger', NULL, 'Caliao', NULL, 'Male', '2010-09-22', 'Manila', NULL, NULL, 'Single', 'Student', 'Filipino', 0, 0, 0, 0, 5, 0, NULL, NULL, 5, '2026-09-19 01:52:20', NULL, NULL),
+(11, 'Callie', NULL, 'Caliao', NULL, 'Female', '2011-09-27', 'Manila', NULL, NULL, 'Single', 'Student', 'Filipino', 0, 0, 0, 0, 5, 0, NULL, NULL, 5, '2026-09-19 01:53:00', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -491,7 +418,8 @@ ALTER TABLE `residents`
   ADD KEY `residents_ibfk_1` (`created_by`),
   ADD KEY `residents_ibfk_2` (`updated_by`),
   ADD KEY `residents_ibfk_3` (`archived_by`),
-  ADD KEY `idx_is_archived` (`is_archived`);
+  ADD KEY `idx_is_archived` (`is_archived`),
+  ADD KEY `idx_head_resident` (`head_resident_id`);
 
 --
 -- Indexes for table `users`
@@ -510,25 +438,25 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=172;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=200;
 
 --
 -- AUTO_INCREMENT for table `eligibility_forms`
 --
 ALTER TABLE `eligibility_forms`
-  MODIFY `form_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `form_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `eligibility_forms_entries`
 --
 ALTER TABLE `eligibility_forms_entries`
-  MODIFY `entry_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=135;
+  MODIFY `entry_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `residents`
 --
 ALTER TABLE `residents`
-  MODIFY `resident_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
+  MODIFY `resident_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -564,6 +492,7 @@ ALTER TABLE `eligibility_forms_entries`
 -- Constraints for table `residents`
 --
 ALTER TABLE `residents`
+  ADD CONSTRAINT `fk_head_resident` FOREIGN KEY (`head_resident_id`) REFERENCES `residents` (`resident_id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `residents_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
   ADD CONSTRAINT `residents_ibfk_2` FOREIGN KEY (`updated_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
   ADD CONSTRAINT `residents_ibfk_3` FOREIGN KEY (`archived_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;

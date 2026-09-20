@@ -105,6 +105,7 @@ const Navbar = () => {
     { label: "Dashboard",        path: "/Dashboard",  adminOnly: true  },
     { label: "Residents",        path: "/Residents",  adminOnly: false },
     { label: "Accounts",         path: "/Accounts",   adminOnly: true  },
+    { label: "Audit Logs",       path: "/AuditLogs",  adminOnly: true  },
     { label: "Eligibility Forms",path: "/Eligibility",adminOnly: false },
   ];
 
@@ -129,7 +130,7 @@ const Navbar = () => {
         </Box>
 
         {/* Nav buttons */}
-        <Box display="flex" gap={3} mx="auto" sx={{ width: "600px" }}>
+        <Box display="flex" gap={3} mx="auto" sx={{ width: "750px" }}>
           {navItems.map((item) => {
             const isActive    = location.pathname === item.path;
             const isLocked    = item.adminOnly && !isAdmin; // Staff trying admin route

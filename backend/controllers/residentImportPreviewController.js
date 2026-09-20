@@ -27,7 +27,7 @@ const HEAD_ONLY_COLUMN_MAP = {
   "house no. / block / lot":           "house_no",
   "street":                            "street",
   "are you the household head?":       "_ignored_head_flag",
-  "household member count":            "household_member_count",
+
 };
 
 // MEMBER-only columns (head lookup fields).
@@ -71,7 +71,7 @@ const FIELD_LABELS = {
 const NON_CONSTANT_FIELDS = [
   "m_name", "suffix", "sex", "birthplace", "house_no", "street",
   "civil_status", "occupation", "citizenship", "is_pwd", "is_senior", "is_solop",
-  "is_household_head", "household_member_count",
+  "is_household_head",
 ];
 
 const parseYesNo = (value) => {
@@ -152,7 +152,7 @@ const rowsMatch = (incoming, existing) => {
   for (const field of NON_CONSTANT_FIELDS) {
     // Members do not own address fields or member counts in the DB, 
     // even though we attach them to the incoming object for UI preview purposes.
-    if (incoming.is_household_head === 0 && (field === "house_no" || field === "street" || field === "household_member_count")) {
+    if (incoming.is_household_head === 0 && (field === "house_no" || field === "street")) {
       continue;
     }
 
@@ -231,7 +231,7 @@ const previewImportResidents = (req, res) => {
       row.is_household_head = 1; // HEAD form always = head
       row.house_no     = String(row.house_no || "").trim() || null;
       row.street       = String(row.street || "").trim();
-      row.household_member_count = parseInt(row.household_member_count, 10) || 1;
+
       row.head_resident_id = null;
     } else {
       row.is_household_head = 0; // MEMBER form always = member
@@ -240,7 +240,7 @@ const previewImportResidents = (req, res) => {
       row.head_birthdate = formatDate(row.head_birthdate);
       row.house_no       = null;
       row.street         = null;
-      row.household_member_count = null;
+
       row.head_resident_id = null; // will be resolved via DB lookup
     }
 

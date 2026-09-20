@@ -33,6 +33,7 @@ const eligibilityFormEntriesDeleteRoutes = require("./routes/eligibilityFormEntr
 
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const backupRoutes = require("./routes/backupRoutes");
+const auditLogRoutes = require("./routes/auditLogRoutes");
 
 
 // use routes
@@ -66,6 +67,7 @@ app.use("/api/eligibility-forms", eligibilityFormEntriesDeleteRoutes);
 
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/backup", backupRoutes);
+app.use("/api/audit-logs", auditLogRoutes);
 
 // start server
 app.listen(5000, () => {
