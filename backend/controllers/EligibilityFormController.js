@@ -10,6 +10,10 @@ const { sweepExpiredForms } = require("../utils/eligibilityAutoLock");
  * Runs the auto-lock sweep first, so any form whose end_date has passed
  * shows up already Disabled in this response rather than stale-Enabled —
  * see utils/eligibilityAutoLock.js for the check-on-read rationale.
+ *
+ * Counts only cover entries with selection_status = 'Selected' — the
+ * people/households actually receiving. Waitlisted / Not Selected entries
+ * (once ranked selection exists) must not inflate the card totals.
  */
 const getForms = (req, res) => {
   sweepExpiredForms((sweepErr) => {
@@ -27,13 +31,16 @@ const getForms = (req, res) => {
         ef.source_details,
         ef.distribution_details,
         ef.target_quantity,
+        ef.distribution_unit,
+        ef.list_type,
+        ef.pool_size,
         DATE_FORMAT(ef.start_date, '%Y-%m-%d') AS start_date,
         DATE_FORMAT(ef.end_date, '%Y-%m-%d') AS end_date,
         ef.status,
         ef.created_at,
         u.fullname AS created_by_name,
-        COUNT(efe.entry_id)  AS total_entries,
-        SUM(efe.is_rewarded) AS rewarded_count
+        COUNT(CASE WHEN efe.selection_status = 'Selected' THEN 1 END) AS total_entries,
+        COUNT(CASE WHEN efe.selection_status = 'Selected' AND efe.is_rewarded = 1 THEN 1 END) AS rewarded_count
       FROM eligibility_forms ef
       LEFT JOIN users u
         ON ef.created_by = u.user_id
@@ -42,7 +49,8 @@ const getForms = (req, res) => {
       WHERE ef.status IN ('Enabled', 'Disabled')
       GROUP BY
         ef.form_id, ef.form_name, ef.source_details, ef.distribution_details,
-        ef.target_quantity, ef.start_date, ef.end_date, ef.status,
+        ef.target_quantity, ef.distribution_unit, ef.list_type, ef.pool_size,
+        ef.start_date, ef.end_date, ef.status,
         ef.created_at, u.fullname
       ORDER BY ef.created_at DESC
     `;

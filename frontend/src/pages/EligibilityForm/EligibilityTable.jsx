@@ -10,8 +10,10 @@ import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import DeleteEligibilityFormModal from "../../modals/DeleteEligibilityFormModal";
+import CreateEligibilityFormModal from "../../modals/CreateEligibilityFormModal";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
 import ArchiveIcon from "@mui/icons-material/Archive";
+import AddIcon from "@mui/icons-material/Add";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import SourceOutlinedIcon from "@mui/icons-material/SourceOutlined";
 import EventOutlinedIcon from "@mui/icons-material/EventOutlined";
@@ -24,6 +26,7 @@ const EligibilityTable = () => {
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [selectedForm, setSelectedForm] = useState(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const navigate = useNavigate();
 
@@ -115,26 +118,41 @@ const EligibilityTable = () => {
           </Typography>
         </Box>
 
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={<ArchiveIcon />}
-          onClick={() => navigate("/Eligibility/Archived")}
-          sx={{
-            textTransform: "none",
-            borderColor: "#78716c",
-            color: "#57534e",
-            fontWeight: 500,
-            backgroundColor: "#fff",
-            flexShrink: 0,
-            "&:hover": {
-              borderColor: "#57534e",
-              backgroundColor: "#f5f5f4",
-            },
-          }}
-        >
-          View Archived
-        </Button>
+        <Box sx={{ display: "flex", gap: 1.5, flexShrink: 0 }}>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={() => setCreateOpen(true)}
+            sx={{
+              backgroundColor: "#002f59",
+              fontWeight: 600,
+              "&:hover": { backgroundColor: "#001c38" },
+            }}
+          >
+            New Form
+          </Button>
+
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<ArchiveIcon />}
+            onClick={() => navigate("/Eligibility/Archived")}
+            sx={{
+              textTransform: "none",
+              borderColor: "#78716c",
+              color: "#57534e",
+              fontWeight: 500,
+              backgroundColor: "#fff",
+              "&:hover": {
+                borderColor: "#57534e",
+                backgroundColor: "#f5f5f4",
+              },
+            }}
+          >
+            View Archived
+          </Button>
+        </Box>
       </Box>
 
       {/* Content */}
@@ -145,6 +163,15 @@ const EligibilityTable = () => {
       ) : forms.length === 0 ? (
         <Box sx={{ textAlign: "center", mt: 8 }}>
           <Typography color="text.secondary">No eligibility forms found.</Typography>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={() => setCreateOpen(true)}
+            sx={{ mt: 2 }}
+          >
+            Create the first form
+          </Button>
         </Box>
       ) : (
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
@@ -155,6 +182,10 @@ const EligibilityTable = () => {
             const isEnabled = form.status === "Enabled";
             const remainingDays = isEnabled ? daysUntilEnd(form.end_date) : null;
             const endingSoon = remainingDays !== null && remainingDays <= 3 && remainingDays >= 0;
+            const isHousehold = form.distribution_unit === "Household";
+            const entryNoun = isHousehold
+              ? (total === 1 ? "household" : "households")
+              : (total === 1 ? "record" : "records");
 
             return (
               <Box
@@ -198,6 +229,19 @@ const EligibilityTable = () => {
                               fontSize: "0.7rem",
                             }}
                           />
+                          {form.distribution_unit && (
+                            <Chip
+                              label={isHousehold ? "Per household" : "Per resident"}
+                              size="small"
+                              variant="outlined"
+                              sx={{
+                                borderColor: "#cbd5e1",
+                                color: "#475569",
+                                fontWeight: 500,
+                                fontSize: "0.7rem",
+                              }}
+                            />
+                          )}
                           {endingSoon && (
                             <Chip
                               label={remainingDays === 0 ? "Ends today" : `Ends in ${remainingDays}d`}
@@ -276,7 +320,7 @@ const EligibilityTable = () => {
                       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.75 }}>
                         <PeopleAltOutlinedIcon fontSize="small" sx={{ color: "#555" }} />
                         <Typography variant="body2" color="text.secondary">
-                          {total} {total === 1 ? "record" : "records"}
+                          {total} {entryNoun}
                         </Typography>
                       </Box>
 
@@ -359,6 +403,14 @@ const EligibilityTable = () => {
         onClose={() => { setArchiveOpen(false); setSelectedForm(null); }}
         onConfirm={() => setRefreshKey((prev) => prev + 1)}
         target={selectedForm}
+      />
+
+      {/* New form wizard — the server builds the pool, so nothing here
+          passes resident ids. Refreshes the list as soon as a form is saved. */}
+      <CreateEligibilityFormModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onSuccess={() => setRefreshKey((prev) => prev + 1)}
       />
 
     </Box>
