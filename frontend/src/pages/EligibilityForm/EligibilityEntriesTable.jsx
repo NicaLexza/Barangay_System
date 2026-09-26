@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { DataGrid } from "@mui/x-data-grid";
 import {
-  Box, IconButton,
+  Box, IconButton, Typography, Chip,
   Select, MenuItem, FormControl,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -12,6 +12,20 @@ import DeleteEligibilityFormEntriesModal from "../../modals/DeleteEligibilityFor
 import EligibilityEntriesToolbar from "./EligiblitiyEntriesToolbar";
 import InfoPopper from "../../Reusables/InfoPopper.jsx";
 import ReAuthModal from "../../modals/ReAuthModal.jsx";
+
+// Safely turns the entry's `score_breakdown` TEXT column (a JSON array of
+// { factor, label, units, weight, points }, or null for unranked/case-1
+// entries) into an array. Never throws — a malformed value just renders
+// as "no priority factors matched" instead of breaking the tab.
+const parseBreakdown = (raw) => {
+  if (!raw) return [];
+  try {
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
 
 const EligibilityEntriesTable = () => {
   const { formId } = useParams();
@@ -26,6 +40,13 @@ const EligibilityEntriesTable = () => {
   const [infoAnchorEl, setInfoAnchorEl] = useState(null);
   const [searchValue, setSearchValue] = useState('');
   const [filters, setFilters] = useState({ rewardedStatus: 'All' });
+
+  // "Selected" | "Waitlisted" — which selection_status the grid currently
+  // shows. Case-1 ("All Eligible") forms have every entry as Selected, so
+  // the Waitlist tab is simply empty for them rather than hidden — a form
+  // that used to have a waitlist (before entries were promoted/removed)
+  // should stay reachable too.
+  const [activeTab, setActiveTab] = useState("Selected");
 
   // Reversal (Received -> Pending) re-auth flow — Pending -> Received never
   // goes through this, it's applied directly via handleStatusChange below.
@@ -108,25 +129,67 @@ const EligibilityEntriesTable = () => {
 
   const handleApplyFilters = (newFilters) => setFilters(newFilters);
 
-  const filteredRows = rows.filter((row) => {
+  // Split by tab first, then apply search + (Selected-tab-only) status filter.
+  const tabRows = useMemo(
+    () => rows.filter((row) => row.selection_status === activeTab),
+    [rows, activeTab]
+  );
+
+  const filteredRows = tabRows.filter((row) => {
     if (searchValue) {
       const search = searchValue.toLowerCase();
       const matchesSearch = row.fullName?.toLowerCase().includes(search);
       if (!matchesSearch) return false;
     }
-    if (filters.rewardedStatus === 'Received' && row.is_rewarded !== 1) return false;
-    if (filters.rewardedStatus === 'Pending'  && row.is_rewarded !== 0) return false;
+    // The Received/Pending quick filter only means something on the
+    // Selected tab — waitlisted entries are never marked received.
+    if (activeTab === "Selected") {
+      if (filters.rewardedStatus === 'Received' && row.is_rewarded !== 1) return false;
+      if (filters.rewardedStatus === 'Pending' && row.is_rewarded !== 0) return false;
+    }
     return true;
   });
 
+  // Renumber within the current tab/filter view rather than trusting a
+  // number assigned at fetch time, so "No." / "Rank" always starts at 1
+  // for whatever's actually on screen.
+  const displayRows = useMemo(
+    () => filteredRows.map((row, idx) => ({ ...row, no: idx + 1 })),
+    [filteredRows]
+  );
+
+  const selectedCount = useMemo(
+    () => rows.filter((r) => r.selection_status === "Selected").length,
+    [rows]
+  );
+  const waitlistCount = useMemo(
+    () => rows.filter((r) => r.selection_status === "Waitlisted").length,
+    [rows]
+  );
+
   // ── Print handler ────────────────────────────────────────────────────────
+  // Always prints the Selected roster — regardless of which tab is
+  // currently on screen or the Received/Pending quick filter — since this
+  // is the physical signature sheet handed out at distribution. Waitlisted
+  // residents haven't received anything and must never appear on it (see
+  // handoff item: "signature sheet doesn't yet filter out Waitlisted").
+  // The search box still narrows it, since that's a deliberate "print just
+  // this subset" action.
   const handlePrint = () => {
+    const printableRows = rows
+      .filter((row) => row.selection_status === "Selected")
+      .filter((row) => {
+        if (!searchValue) return true;
+        return row.fullName?.toLowerCase().includes(searchValue.toLowerCase());
+      })
+      .map((row, idx) => ({ ...row, no: idx + 1 }));
+
     const formName = state?.form_name || 'Eligibility Form';
     const today = new Date().toLocaleDateString('en-PH', {
       year: 'numeric', month: 'long', day: 'numeric',
     });
 
-    const rowsHtml = filteredRows
+    const rowsHtml = printableRows
       .map(
         (row) => `
           <tr>
@@ -316,7 +379,7 @@ const EligibilityEntriesTable = () => {
   <!-- Meta -->
   <div class="meta-row">
     <span>Date Printed: ${today}</span>
-    <span>Total Entries: ${filteredRows.length}</span>
+    <span>Total Recipients: ${printableRows.length}</span>
   </div>
 
   <!-- Table -->
@@ -357,81 +420,156 @@ const EligibilityEntriesTable = () => {
     };
   };
 
-  // ── Columns ──────────────────────────────────────────────────────────────
-  const columns = [
-    { field: "no",       headerName: "No.",       width: 100, sortable: false },
-    { field: "fullName", headerName: "Full Name",  width: 380 },
-    {
-      field: "is_rewarded",
-      headerName: "Status",
-      width: 250,
-      renderCell: (params) => (
-        <FormControl size="small" sx={{ minWidth: 120, mt: .75 }}>
-          <Select
-            variant="outlined"
-            value={params.row.is_rewarded === 1 ? "received" : "pending"}
-            onChange={(e) => handleSelectChange(params.row, e.target.value)}
-            disabled={isDisabled}
-            onClick={(e) => e.stopPropagation()}
-            sx={{
-              fontSize: "0.875rem",
-              color: params.row.is_rewarded === 1 ? "#2e7d32" : "#999",
-              fontWeight: 500,
-            }}
-          >
-            <MenuItem value="received">Received</MenuItem>
-            <MenuItem value="pending">Pending</MenuItem>
-          </Select>
-        </FormControl>
-      ),
-    },
-    {
-      field: "signature",
-      headerName: "Signature",
-      width: 300,
-      sortable: false,
-      renderCell: () => (
-        <Box
-          sx={{
-            width: "80%",
-            borderBottom: "1px solid #333",
-            height: "100%",
-            display: "flex",
-            alignItems: "flex-end",
-            pb: 0.5,
-          }}
-        />
-      ),
-    },
-    {
-      field: "actions",
-      headerName: "Actions",
-      width: 120,
-      disableColumnMenu: true,
-      renderCell: (params) => {
-        const row = params.row;
-        return (
-          <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
-            <IconButton
-              size="small"
-              color="error"
+  // ── Columns — Selected tab (unchanged behavior: status toggle, delete, signature) ──
+  const selectedColumns = useMemo(
+    () => [
+      { field: "no", headerName: "No.", width: 90, sortable: false },
+      { field: "fullName", headerName: "Full Name", width: 380 },
+      {
+        field: "is_rewarded",
+        headerName: "Status",
+        width: 250,
+        renderCell: (params) => (
+          <FormControl size="small" sx={{ minWidth: 120, mt: .75 }}>
+            <Select
+              variant="outlined"
+              value={params.row.is_rewarded === 1 ? "received" : "pending"}
+              onChange={(e) => handleSelectChange(params.row, e.target.value)}
               disabled={isDisabled}
-              onClick={() => { setSelectedRow(row); setDeleteOpen(true); }}
+              onClick={(e) => e.stopPropagation()}
+              sx={{
+                fontSize: "0.875rem",
+                color: params.row.is_rewarded === 1 ? "#2e7d32" : "#999",
+                fontWeight: 500,
+              }}
             >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="small"
-              onMouseEnter={(e) => handleInfoEnter(e, row)}
-              onMouseLeave={handleInfoLeave}
-            >
-              <InfoOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Box>
-        );
+              <MenuItem value="received">Received</MenuItem>
+              <MenuItem value="pending">Pending</MenuItem>
+            </Select>
+          </FormControl>
+        ),
       },
-    },
-  ];
+      {
+        field: "signature",
+        headerName: "Signature",
+        width: 300,
+        sortable: false,
+        renderCell: () => (
+          <Box
+            sx={{
+              width: "80%",
+              borderBottom: "1px solid #333",
+              height: "100%",
+              display: "flex",
+              alignItems: "flex-end",
+              pb: 0.5,
+            }}
+          />
+        ),
+      },
+      {
+        field: "actions",
+        headerName: "Actions",
+        width: 120,
+        disableColumnMenu: true,
+        renderCell: (params) => {
+          const row = params.row;
+          return (
+            <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+              <IconButton
+                size="small"
+                color="error"
+                disabled={isDisabled}
+                onClick={() => { setSelectedRow(row); setDeleteOpen(true); }}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+              <IconButton
+                size="small"
+                onMouseEnter={(e) => handleInfoEnter(e, row)}
+                onMouseLeave={handleInfoLeave}
+              >
+                <InfoOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          );
+        },
+      },
+    ],
+    [isDisabled]
+  );
+
+  // ── Columns — Waitlist tab (read-only: rank, score, why-not breakdown) ──
+  const waitlistColumns = useMemo(
+    () => [
+      {
+        field: "no",
+        headerName: "Rank",
+        width: 90,
+        sortable: false,
+        renderCell: (params) => (
+          <Chip
+            size="small"
+            label={`#${params.row.rank_no ?? params.row.no}`}
+            sx={{ fontWeight: 700, backgroundColor: "#f1f5f9", color: "#475569" }}
+          />
+        ),
+      },
+      { field: "fullName", headerName: "Full Name", width: 300 },
+      {
+        field: "priority_score",
+        headerName: "Score",
+        width: 100,
+        renderCell: (params) => (
+          <Typography sx={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+            {params.row.priority_score ?? "—"}
+          </Typography>
+        ),
+      },
+      {
+        field: "breakdown",
+        headerName: "Why waitlisted",
+        flex: 1,
+        minWidth: 260,
+        sortable: false,
+        renderCell: (params) => {
+          const items = params.row.breakdown || [];
+          if (items.length === 0) {
+            return (
+              <Typography sx={{ color: "#94a3b8", fontSize: "0.8rem" }}>
+                No priority factors matched
+              </Typography>
+            );
+          }
+          const text = items.map((b) => `${b.label} +${b.points}`).join(", ");
+          return (
+            <Typography sx={{ fontSize: "0.8rem", color: "#4a5568" }} noWrap title={text}>
+              {text}
+            </Typography>
+          );
+        },
+      },
+      {
+        field: "actions",
+        headerName: "",
+        width: 60,
+        disableColumnMenu: true,
+        sortable: false,
+        renderCell: (params) => (
+          <IconButton
+            size="small"
+            onMouseEnter={(e) => handleInfoEnter(e, params.row)}
+            onMouseLeave={handleInfoLeave}
+          >
+            <InfoOutlinedIcon fontSize="small" />
+          </IconButton>
+        ),
+      },
+    ],
+    []
+  );
+
+  const columns = activeTab === "Selected" ? selectedColumns : waitlistColumns;
 
   // ── Fetch ─────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -443,16 +581,23 @@ const EligibilityEntriesTable = () => {
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
-        const fetchedRows = res.data.map((entry, index) => ({
+        const fetchedRows = res.data.map((entry) => ({
           id: entry.entry_id,
           entry_id: entry.entry_id,
-          no: index + 1,
           fullName: [entry.f_name, entry.m_name, entry.l_name, entry.suffix]
             .filter(Boolean)
             .join(" "),
           is_rewarded: entry.is_rewarded,
           processed_by_name: entry.processed_by_name,
           processed_at: entry.processed_at,
+          // Older entries created before migration 02 have no
+          // selection_status at all — treat those as Selected, matching
+          // what they always meant before ranked forms existed.
+          selection_status: entry.selection_status || "Selected",
+          priority_score: entry.priority_score,
+          rank_no: entry.rank_no,
+          breakdown: parseBreakdown(entry.score_breakdown),
+          selection_note: entry.selection_note,
         }));
 
         setRows(fetchedRows);
@@ -464,11 +609,21 @@ const EligibilityEntriesTable = () => {
     fetchEntries();
   }, [formId, refreshKey]);
 
+  // If a form has no waitlist at all and the tab was left on "Waitlisted"
+  // from a previous form (route params changed without unmounting), snap
+  // back to "Selected" rather than showing a permanently empty grid.
+  useEffect(() => {
+    if (activeTab === "Waitlisted" && waitlistCount === 0 && rows.length > 0) {
+      setActiveTab("Selected");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formId]);
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       <DataGrid
-        rows={filteredRows}
+        rows={displayRows}
         columns={columns}
         getRowId={(row) => row.id}
         hideFooter
@@ -481,8 +636,12 @@ const EligibilityEntriesTable = () => {
             onSearchChange: (value) => setSearchValue(value),
             onPrint: handlePrint,
             formName: state?.form_name,
-            entryCount: filteredRows.length,
+            entryCount: displayRows.length,
             isArchived: state?.is_archived ?? false,
+            activeTab,
+            onTabChange: setActiveTab,
+            selectedCount,
+            waitlistCount,
           },
         }}
       />
@@ -491,13 +650,20 @@ const EligibilityEntriesTable = () => {
       <InfoPopper
         open={infoOpen}
         anchorEl={infoAnchorEl}
-        fields={[
-          { label: "Processed by", value: selectedRow?.processed_by_name },
-          { label: "Processed at", value: selectedRow?.processed_at },
-        ]}
+        fields={
+          activeTab === "Selected"
+            ? [
+                { label: "Processed by", value: selectedRow?.processed_by_name },
+                { label: "Processed at", value: selectedRow?.processed_at },
+              ]
+            : [
+                { label: "Rank", value: selectedRow?.rank_no },
+                { label: "Score", value: selectedRow?.priority_score },
+              ]
+        }
       />
 
-      {/* Delete Modal */}
+      {/* Delete Modal — Selected tab only */}
       <DeleteEligibilityFormEntriesModal
         open={deleteOpen}
         onClose={() => { setDeleteOpen(false); setSelectedRow(null); }}

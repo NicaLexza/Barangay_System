@@ -1,18 +1,23 @@
 // CreateEligibilityFormModal.jsx
 //
-// Three-step wizard for creating an eligibility form:
+// Five-state wizard for creating an eligibility form:
 //   1. Details     - name, unit (household / resident), source, quantity, dates
 //   2. Recipients  - who qualifies: EVERYONE (no filters) or SET CRITERIA,
 //                    with a live "pool vs supply" check
-//   3. Review      - summary, then create
+//   3. Selection    - ONLY shown when the pool is bigger than supply. Priority
+//                    factors + weights, a live ranked list, and a tie draw
+//                    when the cutoff falls on a tie
+//   4. Review       - summary, then create
+//   5. Result
 //
-// The server decides who is in the pool (POST /pool-preview) and rebuilds it
-// again on POST /create, so nothing here is trusted for who gets an entry.
-// The preview is debounced and stale answers are discarded.
+// The server decides who is in the pool and how it's ranked — nothing here
+// is trusted for who gets an entry. Both live checks (pool-preview and
+// rank-preview) are debounced and stale answers are discarded.
 //
-// "Who qualifies" has NO default on purpose: it is the most consequential
-// setting on the form, so staff must choose it consciously rather than
-// leaving filters empty by accident.
+// Forms that need selection (Selection was shown) require an Admin's
+// re-auth to finalize, the same pattern as backup/restore and the archived
+// eligibility form actions — weights and the tie draw decide who gets aid,
+// which is as consequential as those actions.
 import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Dialog,
@@ -37,6 +42,7 @@ import {
   Step,
   StepLabel,
   Alert,
+  Chip,
   CircularProgress,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
@@ -51,12 +57,19 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 import axios from "axios";
 import ModalLogoBadge from "../Reusables/ModalLogoBadge.jsx";
+import ReAuthModal from "./ReAuthModal.jsx";
 
 const NAVY = "#002f59";
 const NAVY_HOVER = "#001c38";
 const API = "http://localhost:5000/api/eligibility-forms";
-const STEPS = ["Details", "Recipients", "Review"];
 const PREVIEW_DEBOUNCE_MS = 400;
+
+const STEP_DETAILS = 0;
+const STEP_RECIPIENTS = 1;
+const STEP_SELECTION = 2;
+const STEP_REVIEW = 3;
+const STEP_RESULT = 4;
+const STEP_LABELS = ["Details", "Recipients", "Selection", "Review"];
 
 const CIVIL_STATUSES = ["Single", "Married", "Widowed", "Divorced", "Separated", "Annulled"];
 const SECTORS = [
@@ -90,8 +103,8 @@ const authHeaders = () => ({
   headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
 });
 
-// Turns the form's editable state into the exact shape the API expects,
-// leaving out anything that isn't restricting anything.
+// Turns the form's editable criteria state into the exact shape the API
+// expects, leaving out anything that isn't restricting anything.
 const buildCriteriaPayload = (c) => {
   const out = {};
   if (c.ageMin !== "") out.ageMin = Number(c.ageMin);
@@ -125,26 +138,43 @@ const toggleGroupSx = {
 };
 
 const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(STEP_DETAILS);
   const [details, setDetails] = useState(EMPTY_DETAILS);
   const [startDate, setStartDate] = useState(() => dayjs());
   const [endDate, setEndDate] = useState(null);
-  const [audience, setAudience] = useState(null); // "everyone" | "criteria" | null (not chosen yet)
+  const [audience, setAudience] = useState(null); // "everyone" | "criteria" | null
   const [criteria, setCriteria] = useState(EMPTY_CRITERIA);
   const [streetOptions, setStreetOptions] = useState([]);
 
-  // key = the request this answer belongs to. If it doesn't match the
-  // current key, the answer is stale and the UI shows "checking".
+  // ── Recipients step: pool-vs-supply preview ──────────────────────────
   const [preview, setPreview] = useState({ key: null, data: null, error: "" });
   const [refreshTick, setRefreshTick] = useState(0);
   const [notice, setNotice] = useState("");
-
   const [detailsError, setDetailsError] = useState("");
+  const latestKeyRef = useRef(null);
+
+  // ── Selection step: priority factors + ranking ────────────────────────
+  const [cameFromSelection, setCameFromSelection] = useState(false);
+  const [priorityFactors, setPriorityFactors] = useState([]);
+  const [priorityFactorsLoading, setPriorityFactorsLoading] = useState(false);
+  const [priorityConfig, setPriorityConfig] = useState({ factors: {}, lookbackDays: 90 });
+  const [rankPreview, setRankPreview] = useState({ key: null, data: null, error: "" });
+  const [rankRefreshTick, setRankRefreshTick] = useState(0);
+  const [seed, setSeed] = useState(null);
+  const [drawLoading, setDrawLoading] = useState(false);
+  const [drawError, setDrawError] = useState("");
+  const lastLoadedUnitRef = useRef(null);
+  const latestRankKeyRef = useRef(null);
+
+  // ── Create (plain, non-ranked) ─────────────────────────────────────────
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState("");
   const [result, setResult] = useState(null);
 
-  const latestKeyRef = useRef(null);
+  // ── Create (ranked, Admin re-auth) ─────────────────────────────────────
+  const [reAuthOpen, setReAuthOpen] = useState(false);
+  const [reAuthLoading, setReAuthLoading] = useState(false);
+  const [reAuthError, setReAuthError] = useState("");
 
   const unit = details.distribution_unit;
   const unitNoun = unit === "Household" ? "household" : "resident";
@@ -160,6 +190,24 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
   const currentKey = useMemo(
     () => JSON.stringify([unit, criteriaPayload, refreshTick]),
     [unit, criteriaPayload, refreshTick]
+  );
+
+  const priorityConfigPayload = useMemo(() => {
+    if (priorityFactors.length === 0) return null;
+    const factors = {};
+    priorityFactors.forEach((f) => {
+      const setting = priorityConfig.factors[f.id];
+      factors[f.id] = {
+        enabled: setting ? setting.enabled : f.defaultEnabled,
+        weight: setting ? setting.weight : f.defaultWeight,
+      };
+    });
+    return { factors, lookbackDays: priorityConfig.lookbackDays };
+  }, [priorityFactors, priorityConfig]);
+
+  const rankKey = useMemo(
+    () => JSON.stringify([unit, criteriaPayload, qty, priorityConfigPayload, rankRefreshTick]),
+    [unit, criteriaPayload, qty, priorityConfigPayload, rankRefreshTick]
   );
 
   // ── Street options, loaded once each time the dialog opens ──────────────
@@ -179,9 +227,40 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
     };
   }, [open]);
 
-  // ── Live pool preview (only on the recipients step, once a choice is made) ─
+  // ── Priority factor catalogue, (re)loaded whenever the unit changes ────
   useEffect(() => {
-    if (!open || step !== 1 || !audience) return undefined;
+    if (!open) return undefined;
+    if (lastLoadedUnitRef.current === unit) return undefined;
+    let cancelled = false;
+
+    setPriorityFactorsLoading(true);
+    axios
+      .get(`${API}/priority-factors?unit=${unit}`, authHeaders())
+      .then(({ data }) => {
+        if (cancelled) return;
+        lastLoadedUnitRef.current = unit;
+        setPriorityFactors(data.factors);
+        const factors = {};
+        data.factors.forEach((f) => {
+          factors[f.id] = { enabled: f.defaultEnabled, weight: f.defaultWeight };
+        });
+        setPriorityConfig({ factors, lookbackDays: 90 });
+        setSeed(null);
+        setRankPreview({ key: null, data: null, error: "" });
+      })
+      .catch((err) => console.error("Failed to load priority factors:", err))
+      .finally(() => {
+        if (!cancelled) setPriorityFactorsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, unit]);
+
+  // ── Live pool preview (Recipients step, once an audience is chosen) ────
+  useEffect(() => {
+    if (!open || step !== STEP_RECIPIENTS || !audience) return undefined;
 
     const key = currentKey;
     latestKeyRef.current = key;
@@ -193,7 +272,7 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
           { distribution_unit: unit, criteria: criteriaPayload },
           authHeaders()
         );
-        if (latestKeyRef.current !== key) return; // a newer request superseded this one
+        if (latestKeyRef.current !== key) return;
         setPreview({ key, data, error: "" });
       } catch (err) {
         if (latestKeyRef.current !== key) return;
@@ -208,6 +287,39 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
     return () => clearTimeout(timer);
   }, [open, step, audience, currentKey, unit, criteriaPayload]);
 
+  // ── Live ranking (Selection step). Always clears any prior draw's seed —
+  // a seed only survives via the Draw button setting rankPreview directly,
+  // never through this effect. ──────────────────────────────────────────
+  useEffect(() => {
+    if (!open || step !== STEP_SELECTION || !priorityConfigPayload) return undefined;
+
+    const key = rankKey;
+    latestRankKeyRef.current = key;
+
+    const timer = setTimeout(async () => {
+      try {
+        const { data } = await axios.post(
+          `${API}/rank-preview`,
+          { distribution_unit: unit, criteria: criteriaPayload, priority_config: priorityConfigPayload, target_quantity: qty },
+          authHeaders()
+        );
+        if (latestRankKeyRef.current !== key) return;
+        setSeed(null);
+        setRankPreview({ key, data, error: "" });
+      } catch (err) {
+        if (latestRankKeyRef.current !== key) return;
+        setSeed(null);
+        setRankPreview({
+          key,
+          data: null,
+          error: err.response?.data?.message || "Could not build the ranking. Try again.",
+        });
+      }
+    }, PREVIEW_DEBOUNCE_MS);
+
+    return () => clearTimeout(timer);
+  }, [open, step, rankKey, unit, criteriaPayload, qty, priorityConfigPayload]);
+
   // ── Derived state ───────────────────────────────────────────────────────
   const isChecking = preview.key !== currentKey;
   const poolReady = !isChecking && !preview.error && preview.data;
@@ -215,12 +327,15 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
   const overSupply = poolSize !== null && qtyValid && poolSize > qty;
 
   const anyFilterSet = Object.keys(criteriaPayload).length > 0;
-  // "Set criteria" with nothing filled in would silently mean everyone, so
-  // it is blocked: pick Everyone on purpose, or fill in at least one filter.
   const needsFilters = audience === "criteria" && !anyFilterSet;
 
   const canContinueFromRecipients =
-    audience !== null && !needsFilters && poolSize !== null && poolSize > 0 && qtyValid && !overSupply;
+    audience !== null && !needsFilters && poolSize !== null && poolSize > 0 && qtyValid;
+
+  const isRanking = rankPreview.key !== rankKey;
+  const rankReady = !isRanking && !rankPreview.error && rankPreview.data;
+  const tie = rankReady ? rankPreview.data.tie : null;
+  const canContinueFromSelection = rankReady && (!tie || tie.needsDraw === false);
 
   const columns = useMemo(() => {
     const base = [
@@ -244,6 +359,41 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
     return base;
   }, [unit]);
 
+  const rankColumns = useMemo(
+    () => [
+      { field: "rank_no", headerName: "#", width: 56 },
+      { field: "full_name", headerName: "Name", flex: 1, minWidth: 180 },
+      { field: "score", headerName: "Score", width: 80 },
+      {
+        field: "breakdown",
+        headerName: "Why",
+        flex: 1.4,
+        minWidth: 220,
+        sortable: false,
+        valueGetter: (value, row) => (row.breakdown || []).map((b) => `${b.label} +${b.points}`).join(", ") || "—",
+      },
+      {
+        field: "status",
+        headerName: "Status",
+        width: 120,
+        sortable: false,
+        renderCell: (params) => (
+          <Chip
+            size="small"
+            label={params.value}
+            sx={{
+              fontWeight: 600,
+              fontSize: "0.7rem",
+              backgroundColor: params.value === "Selected" ? "#e8f5e9" : "#f1f5f9",
+              color: params.value === "Selected" ? "#2e7d32" : "#64748b",
+            }}
+          />
+        ),
+      },
+    ],
+    []
+  );
+
   // ── Handlers ────────────────────────────────────────────────────────────
   const handleDetailChange = (e) => {
     const { name, value } = e.target;
@@ -258,6 +408,13 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
       sectors: prev.sectors.includes(value)
         ? prev.sectors.filter((s) => s !== value)
         : [...prev.sectors, value],
+    }));
+  };
+
+  const setFactorField = (id, key, value) => {
+    setPriorityConfig((prev) => ({
+      ...prev,
+      factors: { ...prev.factors, [id]: { ...prev.factors[id], [key]: value } },
     }));
   };
 
@@ -277,17 +434,46 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
   const goFromDetails = () => {
     const message = validateDetails();
     setDetailsError(message);
-    if (!message) setStep(1);
+    if (!message) setStep(STEP_RECIPIENTS);
   };
 
-  const goToReview = () => {
+  const goFromRecipients = () => {
     if (!canContinueFromRecipients) return;
     setNotice("");
-    setStep(2);
+    if (overSupply) {
+      setCameFromSelection(true);
+      setStep(STEP_SELECTION);
+    } else {
+      setCameFromSelection(false);
+      setStep(STEP_REVIEW);
+    }
+  };
+
+  const goFromSelection = () => {
+    if (!canContinueFromSelection) return;
+    setStep(STEP_REVIEW);
+  };
+
+  const handleDraw = async () => {
+    setDrawLoading(true);
+    setDrawError("");
+    try {
+      const { data } = await axios.post(
+        `${API}/rank-draw`,
+        { distribution_unit: unit, criteria: criteriaPayload, priority_config: priorityConfigPayload, target_quantity: qty },
+        authHeaders()
+      );
+      setSeed(data.seed);
+      setRankPreview({ key: rankKey, data, error: "" });
+    } catch (err) {
+      setDrawError(err.response?.data?.message || "Could not draw. Try again.");
+    } finally {
+      setDrawLoading(false);
+    }
   };
 
   const resetAll = () => {
-    setStep(0);
+    setStep(STEP_DETAILS);
     setDetails(EMPTY_DETAILS);
     setStartDate(dayjs());
     setEndDate(null);
@@ -297,17 +483,31 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
     setRefreshTick(0);
     setNotice("");
     setDetailsError("");
+    latestKeyRef.current = null;
+
+    setCameFromSelection(false);
+    setPriorityFactors([]);
+    setPriorityConfig({ factors: {}, lookbackDays: 90 });
+    setRankPreview({ key: null, data: null, error: "" });
+    setRankRefreshTick(0);
+    setSeed(null);
+    setDrawError("");
+    lastLoadedUnitRef.current = null;
+    latestRankKeyRef.current = null;
+
     setCreateError("");
     setResult(null);
-    latestKeyRef.current = null;
+    setReAuthOpen(false);
+    setReAuthError("");
   };
 
   const handleClose = () => {
-    if (createLoading) return;
+    if (createLoading || reAuthLoading) return;
     resetAll();
     onClose();
   };
 
+  // Plain create (no ranking needed) — unchanged from before.
   const handleCreate = async () => {
     setCreateLoading(true);
     setCreateError("");
@@ -330,22 +530,87 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
       );
 
       setResult(data);
-      setStep(3);
+      setStep(STEP_RESULT);
       onSuccess?.();
     } catch (err) {
       const code = err.response?.data?.code;
       const message = err.response?.data?.message || "Could not create the form. Try again.";
 
       if (POOL_ERROR_CODES.includes(code)) {
-        // The pool you reviewed is no longer valid: go back and re-check it.
         setNotice(message);
         setRefreshTick((t) => t + 1);
-        setStep(1);
+        setStep(STEP_RECIPIENTS);
       } else {
         setCreateError(message);
       }
     } finally {
       setCreateLoading(false);
+    }
+  };
+
+  // Ranked create — gated behind Admin re-auth.
+  const handleReAuthClose = () => {
+    if (reAuthLoading) return;
+    setReAuthOpen(false);
+    setReAuthError("");
+  };
+
+  const handleRankedCreate = async ({ username, password }) => {
+    setReAuthLoading(true);
+    setReAuthError("");
+
+    try {
+      const { data } = await axios.post(
+        `${API}/create-ranked`,
+        {
+          form_name: details.form_name.trim(),
+          source_details: details.source_details.trim(),
+          distribution_details: details.distribution_details.trim(),
+          start_date: startDate.format("YYYY-MM-DD"),
+          end_date: endDate.format("YYYY-MM-DD"),
+          distribution_unit: unit,
+          criteria: criteriaPayload,
+          priority_config: priorityConfigPayload,
+          target_quantity: qty,
+          expected_pool_size: rankPreview.data.pool_size,
+          seed: seed || null,
+          username,
+          password,
+        },
+        authHeaders()
+      );
+
+      setReAuthOpen(false);
+      setResult(data);
+      setStep(STEP_RESULT);
+      onSuccess?.();
+    } catch (err) {
+      const code = err.response?.data?.code;
+      const message = err.response?.data?.message || "Could not create the form. Try again.";
+
+      if (code === "POOL_CHANGED") {
+        setReAuthOpen(false);
+        setNotice(message);
+        setRankRefreshTick((t) => t + 1);
+        setStep(STEP_SELECTION);
+      } else if (code === "NO_SELECTION_NEEDED") {
+        setReAuthOpen(false);
+        setNotice(message);
+        setRefreshTick((t) => t + 1);
+        setStep(STEP_RECIPIENTS);
+      } else if (code === "TIE_UNRESOLVED") {
+        setReAuthOpen(false);
+        setSeed(null);
+        setNotice(message);
+        setRankRefreshTick((t) => t + 1);
+        setStep(STEP_SELECTION);
+      } else {
+        // Wrong credentials, not an Admin, inactive account, server error — stay
+        // on the re-auth dialog and show it there, matching backup/restore.
+        setReAuthError(message);
+      }
+    } finally {
+      setReAuthLoading(false);
     }
   };
 
@@ -378,8 +643,7 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
       banner = (
         <Alert severity="warning">
           {poolSize} {nounFor(unit, poolSize)} qualify but only {qty} can receive (short by {poolSize - qty}).
-          Raise the target quantity{audience === "criteria" ? " or narrow the criteria" : ""}. Choosing among
-          them is not available yet.
+          The next step lets you rank them by priority to decide who gets it.
         </Alert>
       );
     } else {
@@ -401,25 +665,82 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
           : "A resident qualifies if they match every filled field."
         : "Choose Everyone for goods every household or resident gets. Choose Set criteria when only some qualify, such as students or seniors.";
 
+  // ── Selection-step banner ───────────────────────────────────────────────
+  let rankBanner = null;
+  if (isRanking) {
+    rankBanner = (
+      <Alert severity="info" icon={<CircularProgress size={18} />}>
+        Building the ranking...
+      </Alert>
+    );
+  } else if (rankPreview.error) {
+    rankBanner = <Alert severity="error">{rankPreview.error}</Alert>;
+  } else if (tie) {
+    rankBanner = (
+      <Alert
+        severity="warning"
+        action={
+          tie.needsDraw ? (
+            <Button size="small" onClick={handleDraw} disabled={drawLoading} sx={{ whiteSpace: "nowrap" }}>
+              {drawLoading ? "Drawing..." : "Draw lots"}
+            </Button>
+          ) : null
+        }
+      >
+        {tie.tiedCount} {nounFor(unit, tie.tiedCount)} are tied at {tie.atScore} points, competing for{" "}
+        {tie.slotsAtStake} remaining slot{tie.slotsAtStake === 1 ? "" : "s"}.
+        {!tie.needsDraw && seed ? ` Resolved by a recorded draw (seed ${seed}).` : ""}
+      </Alert>
+    );
+  } else if (rankReady) {
+    const selectedCount = rankPreview.data.ranked.filter((c) => c.status === "Selected").length;
+    const waitlistedCount = rankPreview.data.ranked.length - selectedCount;
+    rankBanner = (
+      <Alert severity="success">
+        Ranking ready — {selectedCount} selected, {waitlistedCount} waitlisted.
+      </Alert>
+    );
+  }
+
   // ── Review summary rows ─────────────────────────────────────────────────
-  const summaryRows =
-    step === 2 && poolReady
-      ? [
-          ["Form name", details.form_name.trim()],
-          ["Distribute per", unit === "Household" ? "Household" : "Resident"],
-          [
-            "Who qualifies",
-            audience === "everyone"
-              ? `Everyone (every active ${unitNoun})`
-              : preview.data.criteria_description,
-          ],
-          ["Recipients", `${poolSize} ${nounFor(unit, poolSize)}`],
-          ["Target quantity", String(qty)],
-          ["Schedule", `${startDate.format("MMM D, YYYY")} to ${endDate.format("MMM D, YYYY")}`],
-          ["Source", details.source_details.trim()],
-          ["Distributing", details.distribution_details.trim()],
-        ]
-      : [];
+  let summaryRows = [];
+  if (step === STEP_REVIEW) {
+    if (cameFromSelection && rankReady) {
+      const selectedCount = rankPreview.data.ranked.filter((c) => c.status === "Selected").length;
+      const waitlistedCount = rankPreview.data.ranked.length - selectedCount;
+      summaryRows = [
+        ["Form name", details.form_name.trim()],
+        ["Distribute per", unit === "Household" ? "Household" : "Resident"],
+        [
+          "Who qualifies",
+          audience === "everyone" ? `Everyone (every active ${unitNoun})` : rankPreview.data.criteria_description,
+        ],
+        ["Selection", `Ranked by priority — ${selectedCount} selected of ${rankPreview.data.pool_size}, ${waitlistedCount} waitlisted`],
+        ["Priority factors", rankPreview.data.priority_description],
+        ["Target quantity", String(qty)],
+        ["Schedule", `${startDate.format("MMM D, YYYY")} to ${endDate.format("MMM D, YYYY")}`],
+        ["Source", details.source_details.trim()],
+        ["Distributing", details.distribution_details.trim()],
+      ];
+    } else if (poolReady) {
+      summaryRows = [
+        ["Form name", details.form_name.trim()],
+        ["Distribute per", unit === "Household" ? "Household" : "Resident"],
+        [
+          "Who qualifies",
+          audience === "everyone" ? `Everyone (every active ${unitNoun})` : preview.data.criteria_description,
+        ],
+        ["Recipients", `${poolSize} ${nounFor(unit, poolSize)}`],
+        ["Target quantity", String(qty)],
+        ["Schedule", `${startDate.format("MMM D, YYYY")} to ${endDate.format("MMM D, YYYY")}`],
+        ["Source", details.source_details.trim()],
+        ["Distributing", details.distribution_details.trim()],
+      ];
+    }
+  }
+
+  const selectedCountForReAuth = rankReady ? rankPreview.data.ranked.filter((c) => c.status === "Selected").length : 0;
+  const waitlistedCountForReAuth = rankReady ? rankPreview.data.ranked.length - selectedCountForReAuth : 0;
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
@@ -428,9 +749,9 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
       </DialogTitle>
 
       <DialogContent sx={{ px: 4, py: 3 }}>
-        {step < 3 && (
+        {step < STEP_RESULT && (
           <Stepper activeStep={step} sx={{ mt: 1, mb: 3 }}>
-            {STEPS.map((label) => (
+            {STEP_LABELS.map((label) => (
               <Step key={label}>
                 <StepLabel>{label}</StepLabel>
               </Step>
@@ -438,8 +759,8 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
           </Stepper>
         )}
 
-        {/* ── Step 1: Details ─────────────────────────────────────────── */}
-        {step === 0 && (
+        {/* ── Step: Details ──────────────────────────────────────────── */}
+        {step === STEP_DETAILS && (
           <Stack spacing={2.5}>
             <TextField
               label="Form name *"
@@ -508,7 +829,7 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
               onChange={handleDetailChange}
               fullWidth
               inputProps={{ min: 1 }}
-              helperText="How many will be given. Everyone who qualifies must fit within it."
+              helperText="How many will be given. If more qualify than this, you'll be able to rank them by priority."
             />
 
             <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -539,8 +860,8 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
           </Stack>
         )}
 
-        {/* ── Step 2: Recipients (everyone or criteria) + live pool ───── */}
-        {step === 1 && (
+        {/* ── Step: Recipients (everyone or criteria) + live pool ─────── */}
+        {step === STEP_RECIPIENTS && (
           <Stack spacing={2}>
             {notice && (
               <Alert severity="warning" onClose={() => setNotice("")}>
@@ -719,8 +1040,114 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
           </Stack>
         )}
 
-        {/* ── Step 3: Review ─────────────────────────────────────────── */}
-        {step === 2 && (
+        {/* ── Step: Selection (only when pool > supply) ────────────────── */}
+        {step === STEP_SELECTION && (
+          <Stack spacing={2}>
+            {notice && (
+              <Alert severity="warning" onClose={() => setNotice("")}>
+                {notice}
+              </Alert>
+            )}
+
+            <Box>
+              <Typography variant="subtitle1" fontWeight="bold">
+                Choose who gets priority
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {poolSize !== null ? `${poolSize} ${nounFor(unit, poolSize)} qualify, but only ${qty} can receive.` : ""}{" "}
+                Turn a factor on and set how much it counts — higher scores rank first. Everyone below the cutoff
+                becomes an ordered waitlist.
+              </Typography>
+            </Box>
+
+            {priorityFactorsLoading ? (
+              <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
+                <CircularProgress size={24} />
+              </Box>
+            ) : (
+              <Stack spacing={1}>
+                {priorityFactors.map((f) => {
+                  const setting = priorityConfig.factors[f.id] || { enabled: f.defaultEnabled, weight: f.defaultWeight };
+                  return (
+                    <Box
+                      key={f.id}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.5,
+                        flexWrap: "wrap",
+                        py: 0.5,
+                        borderBottom: "1px solid #f1f5f9",
+                      }}
+                    >
+                      <FormControlLabel
+                        sx={{ minWidth: 230 }}
+                        control={
+                          <Checkbox
+                            checked={setting.enabled}
+                            onChange={(e) => setFactorField(f.id, "enabled", e.target.checked)}
+                          />
+                        }
+                        label={f.label}
+                      />
+                      <TextField
+                        label="Weight"
+                        type="number"
+                        size="small"
+                        value={setting.weight}
+                        onChange={(e) => setFactorField(f.id, "weight", e.target.value)}
+                        disabled={!setting.enabled}
+                        inputProps={{ min: 0, max: 5 }}
+                        sx={{ width: 90 }}
+                      />
+                      {f.hasLookback && (
+                        <TextField
+                          label="Within (days)"
+                          type="number"
+                          size="small"
+                          value={priorityConfig.lookbackDays}
+                          onChange={(e) =>
+                            setPriorityConfig((prev) => ({ ...prev, lookbackDays: e.target.value }))
+                          }
+                          disabled={!setting.enabled}
+                          inputProps={{ min: 1, max: 365 }}
+                          sx={{ width: 130 }}
+                        />
+                      )}
+                      <Typography variant="caption" color="text.secondary">
+                        up to {f.cap} point{f.cap === 1 ? "" : "s"}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+              </Stack>
+            )}
+
+            {rankBanner}
+            {drawError && (
+              <Typography color="error" variant="body2">
+                {drawError}
+              </Typography>
+            )}
+
+            <Box sx={{ height: 320, opacity: isRanking ? 0.5 : 1, transition: "opacity 0.15s ease" }}>
+              <DataGrid
+                rows={rankReady ? rankPreview.data.ranked : []}
+                columns={rankColumns}
+                getRowId={(row) => row.resident_id}
+                density="compact"
+                hideFooter
+                disableRowSelectionOnClick
+                getRowClassName={(params) => (params.row.status === "Waitlisted" ? "row-waitlisted" : "")}
+                sx={{ "& .row-waitlisted": { opacity: 0.6 } }}
+                localeText={{ noRowsLabel: "Nobody to show yet." }}
+              />
+            </Box>
+          </Stack>
+        )}
+
+        {/* ── Step: Review ─────────────────────────────────────────────── */}
+        {step === STEP_REVIEW && (
           <Stack spacing={2}>
             <Box
               sx={{
@@ -746,14 +1173,16 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
               ))}
             </Box>
             <Typography variant="caption" color="text.secondary">
-              Who qualifies is decided when you create the form. It does not update if residents change later.
+              {cameFromSelection
+                ? "Creating this form requires admin confirmation, since the ranking decides who gets it."
+                : "Who qualifies is decided when you create the form. It does not update if residents change later."}
             </Typography>
             {createError && <Alert severity="error">{createError}</Alert>}
           </Stack>
         )}
 
         {/* ── Result ─────────────────────────────────────────────────── */}
-        {step === 3 && result && (
+        {step === STEP_RESULT && result && (
           <Stack spacing={2} alignItems="center" sx={{ py: 3 }}>
             <CheckCircleOutlineIcon sx={{ fontSize: 56, color: "#2e7d32" }} />
             <Typography variant="h6" fontWeight={600}>
@@ -762,6 +1191,11 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
             <Typography variant="body2" color="text.secondary" align="center">
               {result.message}
             </Typography>
+            {result.selected_count !== undefined && (
+              <Typography variant="body2" color="text.secondary">
+                {result.selected_count} selected · {result.waitlisted_count} waitlisted
+              </Typography>
+            )}
             {result.warnings?.map((w) => (
               <Alert key={w.code} severity="warning" sx={{ width: "100%" }}>
                 {w.message}
@@ -774,7 +1208,7 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
       <DialogActions sx={{ px: 3, pb: 3, justifyContent: "space-between", alignItems: "center" }}>
         <ModalLogoBadge />
         <Box sx={{ display: "flex", gap: 1 }}>
-          {step === 0 && (
+          {step === STEP_DETAILS && (
             <>
               <Button onClick={handleClose}>Cancel</Button>
               <Button variant="contained" onClick={goFromDetails} sx={navyButtonSx}>
@@ -782,12 +1216,12 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
               </Button>
             </>
           )}
-          {step === 1 && (
+          {step === STEP_RECIPIENTS && (
             <>
-              <Button onClick={() => setStep(0)}>Back</Button>
+              <Button onClick={() => setStep(STEP_DETAILS)}>Back</Button>
               <Button
                 variant="contained"
-                onClick={goToReview}
+                onClick={goFromRecipients}
                 disabled={!canContinueFromRecipients}
                 sx={navyButtonSx}
               >
@@ -795,14 +1229,30 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
               </Button>
             </>
           )}
-          {step === 2 && (
+          {step === STEP_SELECTION && (
             <>
-              <Button onClick={() => setStep(1)} disabled={createLoading}>
+              <Button onClick={() => setStep(STEP_RECIPIENTS)}>Back</Button>
+              <Button
+                variant="contained"
+                onClick={goFromSelection}
+                disabled={!canContinueFromSelection}
+                sx={navyButtonSx}
+              >
+                Next
+              </Button>
+            </>
+          )}
+          {step === STEP_REVIEW && (
+            <>
+              <Button
+                onClick={() => setStep(cameFromSelection ? STEP_SELECTION : STEP_RECIPIENTS)}
+                disabled={createLoading}
+              >
                 Back
               </Button>
               <Button
                 variant="contained"
-                onClick={handleCreate}
+                onClick={cameFromSelection ? () => setReAuthOpen(true) : handleCreate}
                 disabled={createLoading}
                 startIcon={createLoading ? <CircularProgress size={16} color="inherit" /> : null}
                 sx={navyButtonSx}
@@ -811,13 +1261,26 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
               </Button>
             </>
           )}
-          {step === 3 && (
+          {step === STEP_RESULT && (
             <Button variant="contained" onClick={handleClose} sx={navyButtonSx}>
               Done
             </Button>
           )}
         </Box>
       </DialogActions>
+
+      {/* Admin re-auth — only forms that went through ranked selection need this */}
+      <ReAuthModal
+        open={reAuthOpen}
+        onClose={handleReAuthClose}
+        onConfirm={handleRankedCreate}
+        loading={reAuthLoading}
+        error={reAuthError}
+        title="Confirm Ranked Selection"
+        description={`This finalizes the ranking for "${details.form_name.trim()}" — ${selectedCountForReAuth} selected, ${waitlistedCountForReAuth} waitlisted. Enter your admin credentials to proceed.`}
+        confirmLabel="Create form"
+        confirmColor="primary"
+      />
     </Dialog>
   );
 };

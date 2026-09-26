@@ -19,7 +19,6 @@ import {
 import FilterListIcon from '@mui/icons-material/FilterList';
 import ArchiveIcon from '@mui/icons-material/Archive';
 import AddResidentModal from '../../modals/AddResidentModal';
-import AddEligibilityFormModal from '../../modals/AddEligibilityFormModal';
 import ImportResidentModal from '../../modals/ImportResidentModal';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import ResidentStatsModal from '../../modals/ResidentStatsModal';
@@ -28,10 +27,13 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useNavigate } from 'react-router-dom';
 
+// NOTE: eligibility forms are no longer created from this page. They are
+// created from the Eligibility page's "New Form" wizard, where the server
+// builds the pool from criteria. `filteredRows` is still passed in because
+// the Statistics modal reports on the current filtered view.
 export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filteredRows, onSearchChange }) {
   const [quickFilterValue, setQuickFilterValue] = useState('');
   const [openModal, setOpenModal] = useState(false);
-  const [openAddEligibilityModal, setOpenAddEligibilityModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const openFilter = Boolean(anchorEl);
@@ -160,15 +162,6 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
             onClick={() => setOpenModal(true)}
           >
             + New Resident
-          </Button>
-
-          <Button
-            variant="contained"
-            size="small"
-            sx={{ backgroundColor: '#002f59', '&:hover': { backgroundColor: '#001c38' } }}
-            onClick={() => setOpenAddEligibilityModal(true)}
-          >
-            + Eligibility Form
           </Button>
 
           <Button
@@ -320,13 +313,6 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
         open={openModal}
         onClose={() => setOpenModal(false)}
         onSuccess={onAddSuccess}
-      />
-
-      <AddEligibilityFormModal
-        open={openAddEligibilityModal}
-        onClose={() => setOpenAddEligibilityModal(false)}
-        onSuccess={onAddSuccess}
-        filteredRows={filteredRows}
       />
 
       <ImportResidentModal

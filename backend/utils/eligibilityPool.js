@@ -223,7 +223,8 @@ const buildPool = (unit, criteria, callback) => {
     const matches = compilePredicate(criteria);
 
     if (unit === "Resident") {
-      const candidates = people.filter(matches).map((p) => ({
+      const matched = people.filter(matches);
+      const candidates = matched.map((p) => ({
         resident_id: p.resident_id,
         full_name: p.full_name,
         age: p.age,
@@ -231,7 +232,10 @@ const buildPool = (unit, criteria, callback) => {
         address: p.address,
         is_household_head: p.is_household_head,
       }));
-      return callback(null, { candidates, warnings: [] });
+      // scoringCandidates mirrors `candidates` 1:1 (same order, same
+      // resident_id) but keeps the full person record — flags, occupation —
+      // that only the priority scorer needs. Never sent to the client as-is.
+      return callback(null, { candidates, scoringCandidates: matched, warnings: [] });
     }
 
     // Household unit: group active residents under their head.
@@ -249,6 +253,7 @@ const buildPool = (unit, criteria, callback) => {
     });
 
     const candidates = [];
+    const scoringCandidates = [];
     households.forEach(({ head, members }) => {
       const matched = members.filter(matches);
       if (matched.length === 0) return;
@@ -264,6 +269,15 @@ const buildPool = (unit, criteria, callback) => {
         matching_members: matched.length,
         matched_names: matched.map((m) => m.full_name),
       });
+
+      // Every active member (not just the ones matching criteria) — priority
+      // factors look at the household's whole makeup, not just who tripped
+      // the eligibility filter. Eligibility and priority are separate.
+      scoringCandidates.push({
+        resident_id: head.resident_id,
+        household_size: members.length,
+        members,
+      });
     });
 
     const warnings = [];
@@ -274,7 +288,7 @@ const buildPool = (unit, criteria, callback) => {
       });
     }
 
-    callback(null, { candidates, warnings });
+    callback(null, { candidates, scoringCandidates, warnings });
   });
 };
 

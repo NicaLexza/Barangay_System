@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 20, 2026 at 09:21 PM
+-- Generation Time: Sep 25, 2026 at 12:54 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -242,7 +242,16 @@ INSERT INTO `activity_logs` (`log_id`, `entity_type`, `entity_id`, `entity_name`
 (203, 'Eligibility Form', 1, 'Caliao Fam (auto-locked)', NULL, 'disabled', NULL, '2026-09-21 02:05:00', NULL),
 (204, 'Eligibility Form', 2, 'School Supplies (auto-locked)', NULL, 'disabled', NULL, '2026-09-21 02:05:00', NULL),
 (205, 'Database', NULL, 'barangay_backup_2026-09-21_022151.sql.enc', '{\"status\":\"success\",\"expected\":{\"residents\":11,\"accounts\":13,\"eligibility_forms\":2,\"eligibility_entries\":5},\"actual\":{\"residents\":11,\"accounts\":13,\"eligibility_forms\":2,\"eligibility_entries\":5},\"missing\":{}}', 'restored', 5, '2026-09-21 02:22:21', NULL),
-(206, 'Eligibility Form', 3, 'Ayuda', NULL, 'created', 5, '2026-09-21 02:29:02', NULL);
+(206, 'Eligibility Form', 3, 'Ayuda', NULL, 'created', 5, '2026-09-21 02:29:02', NULL),
+(207, 'Eligibility Form', 4, 'School Supply', '\"Per resident · 2 in pool · target 50 · Age 6–16 · Occupation contains \\\"Student\\\"\"', 'created', 5, '2026-09-21 14:44:51', NULL),
+(208, 'Eligibility Form', 5, 'Xmas Box', '\"Per household · 4 in pool · target 10 · No restrictions (all active households)\"', 'created', 5, '2026-09-21 17:17:29', NULL),
+(209, 'Eligibility Form', 5, 'Xmas Box (auto-locked)', NULL, 'disabled', NULL, '2026-09-22 01:30:11', NULL),
+(210, 'Database', NULL, 'barangay_backup_2026-09-22_152633.sql.enc', '{\"status\":\"success\",\"expected\":{\"eligibility_forms\":5,\"eligibility_entries\":19,\"accounts\":13,\"residents\":11},\"actual\":{\"eligibility_forms\":5,\"eligibility_entries\":19,\"accounts\":13,\"residents\":11},\"missing\":{}}', 'backup_created', 5, '2026-09-22 15:26:33', NULL),
+(211, 'Eligibility Form', 3, 'Ayuda (auto-locked)', NULL, 'disabled', NULL, '2026-09-23 20:19:57', NULL),
+(212, 'Eligibility Form', 4, 'School Supply (auto-locked)', NULL, 'disabled', NULL, '2026-09-23 20:19:57', NULL),
+(213, 'Eligibility Form', 1, 'Caliao Fam', NULL, 'enabled', 5, '2026-09-23 20:20:13', NULL),
+(214, 'Eligibility Form', 1, 'Caliao Fam (auto-locked)', NULL, 'disabled', NULL, '2026-09-23 20:20:13', NULL),
+(215, 'Eligibility Form', 6, 'Pet supply', '\"Per household · Ranked selection · 3 selected of 4 in pool · target 3 · No restrictions (all active households) · PWD +3 · Senior citizen +3 · Solo parent +3 · No working adult +2 · Large household +1 · Not helped recently (90d) +2 · tie-break seed 8cb5586f52a99087\"', 'created', 5, '2026-09-25 15:36:21', NULL);
 
 -- --------------------------------------------------------
 
@@ -260,17 +269,25 @@ CREATE TABLE `eligibility_forms` (
   `end_date` date DEFAULT NULL,
   `status` enum('Enabled','Disabled','Archived') NOT NULL DEFAULT 'Enabled',
   `created_by` int(11) DEFAULT NULL,
-  `created_at` datetime DEFAULT current_timestamp()
+  `created_at` datetime DEFAULT current_timestamp(),
+  `distribution_unit` enum('Resident','Household') NOT NULL DEFAULT 'Resident',
+  `list_type` enum('All Eligible','Prioritized','Provided List') NOT NULL DEFAULT 'All Eligible',
+  `criteria_snapshot` text DEFAULT NULL,
+  `pool_size` int(11) DEFAULT NULL,
+  `priority_config` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `eligibility_forms`
 --
 
-INSERT INTO `eligibility_forms` (`form_id`, `form_name`, `source_details`, `distribution_details`, `target_quantity`, `start_date`, `end_date`, `status`, `created_by`, `created_at`) VALUES
-(1, 'Caliao Fam', 'Riot', '3000 VP', 3, '2026-09-19', '2026-09-20', 'Disabled', 5, '2026-09-19 01:25:16'),
-(2, 'School Supplies', 'Deped', 'School Supplies', 100, '2026-09-19', '2026-09-20', 'Disabled', 5, '2026-09-19 01:54:06'),
-(3, 'Ayuda', 'Never Grow Old', '10k', 5, '2026-09-21', '2026-09-22', 'Enabled', 5, '2026-09-21 02:29:02');
+INSERT INTO `eligibility_forms` (`form_id`, `form_name`, `source_details`, `distribution_details`, `target_quantity`, `start_date`, `end_date`, `status`, `created_by`, `created_at`, `distribution_unit`, `list_type`, `criteria_snapshot`, `pool_size`, `priority_config`) VALUES
+(1, 'Caliao Fam', 'Riot', '3000 VP', 3, '2026-09-19', '2026-09-20', 'Disabled', 5, '2026-09-19 01:25:16', 'Resident', 'All Eligible', NULL, 3, NULL),
+(2, 'School Supplies', 'Deped', 'School Supplies', 100, '2026-09-19', '2026-09-20', 'Disabled', 5, '2026-09-19 01:54:06', 'Resident', 'All Eligible', NULL, 2, NULL),
+(3, 'Ayuda', 'Never Grow Old', '10k', 5, '2026-09-21', '2026-09-22', 'Disabled', 5, '2026-09-21 02:29:02', 'Resident', 'All Eligible', NULL, 8, NULL),
+(4, 'School Supply', 'Cong. Maceda', 'School Supplies', 50, '2026-09-21', '2026-09-22', 'Disabled', 5, '2026-09-21 14:44:51', 'Resident', 'All Eligible', '{\"ageMin\":6,\"ageMax\":16,\"occupationContains\":\"Student\"}', 2, NULL),
+(5, 'Xmas Box', 'Barangay', 'Noche Buena Box', 10, '2026-09-21', '2026-09-21', 'Disabled', 5, '2026-09-21 17:17:29', 'Household', 'All Eligible', '{}', 4, NULL),
+(6, 'Pet supply', 'Glen', 'Cats/Dogs essentials', 3, '2026-09-25', '2026-09-25', 'Enabled', 5, '2026-09-25 15:36:21', 'Household', 'Prioritized', '{}', 4, '{\"factors\":{\"pwd\":{\"enabled\":true,\"weight\":3},\"senior\":{\"enabled\":true,\"weight\":3},\"solop\":{\"enabled\":true,\"weight\":3},\"noWorkingAdult\":{\"enabled\":true,\"weight\":2},\"largeHousehold\":{\"enabled\":true,\"weight\":1},\"children\":{\"enabled\":false,\"weight\":1},\"notHelpedRecently\":{\"enabled\":true,\"weight\":2}},\"lookbackDays\":90,\"seed\":\"8cb5586f52a99087\"}');
 
 -- --------------------------------------------------------
 
@@ -284,27 +301,42 @@ CREATE TABLE `eligibility_forms_entries` (
   `resident_id` int(11) DEFAULT NULL,
   `is_rewarded` tinyint(1) NOT NULL DEFAULT 0,
   `processed_by` int(11) DEFAULT NULL,
-  `processed_at` datetime DEFAULT NULL ON UPDATE current_timestamp()
+  `processed_at` datetime DEFAULT NULL ON UPDATE current_timestamp(),
+  `selection_status` enum('Selected','Waitlisted','Not Selected','Removed') NOT NULL DEFAULT 'Selected',
+  `priority_score` decimal(6,2) DEFAULT NULL,
+  `rank_no` int(11) DEFAULT NULL,
+  `score_breakdown` text DEFAULT NULL,
+  `selection_note` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `eligibility_forms_entries`
 --
 
-INSERT INTO `eligibility_forms_entries` (`entry_id`, `form_id`, `resident_id`, `is_rewarded`, `processed_by`, `processed_at`) VALUES
-(1, 1, 5, 1, 5, '2026-09-19 02:02:54'),
-(2, 1, 6, 0, NULL, NULL),
-(3, 1, 7, 0, NULL, NULL),
-(4, 2, 11, 0, NULL, NULL),
-(5, 2, 10, 0, NULL, NULL),
-(6, 3, 11, 0, NULL, NULL),
-(7, 3, 5, 0, NULL, NULL),
-(8, 3, 10, 0, NULL, NULL),
-(9, 3, 6, 0, NULL, NULL),
-(10, 3, 7, 0, NULL, NULL),
-(11, 3, 9, 0, NULL, NULL),
-(12, 3, 8, 0, NULL, NULL),
-(13, 3, 2, 0, NULL, NULL);
+INSERT INTO `eligibility_forms_entries` (`entry_id`, `form_id`, `resident_id`, `is_rewarded`, `processed_by`, `processed_at`, `selection_status`, `priority_score`, `rank_no`, `score_breakdown`, `selection_note`) VALUES
+(1, 1, 5, 1, 5, '2026-09-19 02:02:54', 'Selected', NULL, NULL, NULL, NULL),
+(2, 1, 6, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
+(3, 1, 7, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
+(4, 2, 11, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
+(5, 2, 10, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
+(6, 3, 11, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
+(7, 3, 5, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
+(8, 3, 10, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
+(9, 3, 6, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
+(10, 3, 7, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
+(11, 3, 9, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
+(12, 3, 8, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
+(13, 3, 2, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
+(14, 4, 11, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
+(15, 4, 10, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
+(16, 5, 5, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
+(17, 5, 6, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
+(18, 5, 8, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
+(19, 5, 2, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
+(20, 6, 8, 0, NULL, NULL, 'Selected', 5.00, 1, '[{\"factor\":\"solop\",\"label\":\"Solo parent\",\"units\":1,\"weight\":3,\"points\":3},{\"factor\":\"notHelpedRecently\",\"label\":\"Not helped recently (no prior record)\",\"units\":1,\"weight\":2,\"points\":2}]', NULL),
+(21, 6, 5, 0, NULL, NULL, 'Selected', 4.00, 2, '[{\"factor\":\"noWorkingAdult\",\"label\":\"No working adult\",\"units\":1,\"weight\":2,\"points\":2},{\"factor\":\"notHelpedRecently\",\"label\":\"Not helped recently (no prior record)\",\"units\":1,\"weight\":2,\"points\":2}]', NULL),
+(22, 6, 6, 0, NULL, NULL, 'Selected', 4.00, 3, '[{\"factor\":\"noWorkingAdult\",\"label\":\"No working adult\",\"units\":1,\"weight\":2,\"points\":2},{\"factor\":\"notHelpedRecently\",\"label\":\"Not helped recently (no prior record)\",\"units\":1,\"weight\":2,\"points\":2}]', NULL),
+(23, 6, 2, 0, NULL, NULL, 'Waitlisted', 4.00, 4, '[{\"factor\":\"noWorkingAdult\",\"label\":\"No working adult\",\"units\":1,\"weight\":2,\"points\":2},{\"factor\":\"notHelpedRecently\",\"label\":\"Not helped recently (no prior record)\",\"units\":1,\"weight\":2,\"points\":2}]', NULL);
 
 -- --------------------------------------------------------
 
@@ -424,7 +456,9 @@ ALTER TABLE `eligibility_forms_entries`
   ADD UNIQUE KEY `unique_form_resident` (`form_id`,`resident_id`),
   ADD KEY `eligibility_forms_entries_ibfk_3` (`processed_by`),
   ADD KEY `idx_form_id` (`form_id`),
-  ADD KEY `eligibility_forms_entries_ibfk_2` (`resident_id`);
+  ADD KEY `eligibility_forms_entries_ibfk_2` (`resident_id`),
+  ADD KEY `idx_form_selection` (`form_id`,`selection_status`),
+  ADD KEY `idx_resident_rewarded` (`resident_id`,`is_rewarded`);
 
 --
 -- Indexes for table `residents`
@@ -454,19 +488,19 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=207;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=216;
 
 --
 -- AUTO_INCREMENT for table `eligibility_forms`
 --
 ALTER TABLE `eligibility_forms`
-  MODIFY `form_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `form_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `eligibility_forms_entries`
 --
 ALTER TABLE `eligibility_forms_entries`
-  MODIFY `entry_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `entry_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- AUTO_INCREMENT for table `residents`

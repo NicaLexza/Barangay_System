@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Box, Button, TextField, IconButton, Popover, Stack,
   Typography, FormControl, FormLabel, RadioGroup,
-  FormControlLabel, Radio, Divider,
+  FormControlLabel, Radio, Divider, Tabs, Tab, Badge,
 } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -16,6 +16,10 @@ export default function EligibilityEntriesToolbar({
   formName,
   entryCount,
   isArchived,
+  activeTab = "Selected",
+  onTabChange,
+  selectedCount = 0,
+  waitlistCount = 0,
 }) {
   const [quickFilterValue, setQuickFilterValue] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
@@ -75,10 +79,51 @@ export default function EligibilityEntriesToolbar({
               {formName || 'Eligibility Form'}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              {entryCount} {entryCount === 1 ? 'entry' : 'entries'}
+              {entryCount} {entryCount === 1 ? (activeTab === 'Selected' ? 'recipient' : 'entry') : (activeTab === 'Selected' ? 'recipients' : 'entries')}
             </Typography>
           </Box>
         </Box>
+
+        {/* Selected / Waitlist tabs — Waitlist only exists for ranked
+            (case 2) forms, but stays visible even at 0 so a form that
+            once had a waitlist (before promotions/removals) is still
+            reachable. */}
+        <Tabs
+          value={activeTab}
+          onChange={(e, val) => onTabChange?.(val)}
+          sx={{
+            px: 2,
+            minHeight: 40,
+            '& .MuiTabs-indicator': { backgroundColor: '#002f59' },
+          }}
+        >
+          <Tab
+            value="Selected"
+            sx={{ minHeight: 40, textTransform: 'none', fontWeight: 600 }}
+            label={
+              <Badge
+                badgeContent={selectedCount}
+                color="primary"
+                sx={{ '& .MuiBadge-badge': { right: -14, backgroundColor: '#002f59' } }}
+              >
+                <Box sx={{ pr: 1 }}>Selected</Box>
+              </Badge>
+            }
+          />
+          <Tab
+            value="Waitlisted"
+            sx={{ minHeight: 40, textTransform: 'none', fontWeight: 600 }}
+            label={
+              <Badge
+                badgeContent={waitlistCount}
+                color="default"
+                sx={{ '& .MuiBadge-badge': { right: -14, backgroundColor: '#78716c', color: '#fff' } }}
+              >
+                <Box sx={{ pr: 1 }}>Waitlist</Box>
+              </Badge>
+            }
+          />
+        </Tabs>
 
         {/* Bottom row — search + filter + print */}
         <Box
@@ -102,9 +147,13 @@ export default function EligibilityEntriesToolbar({
               '& .MuiOutlinedInput-root': { borderRadius: 1 },
             }}
           />
-          <IconButton onClick={handleFilterClick} sx={{ color: 'white' }}>
-            <FilterListIcon />
-          </IconButton>
+          {/* Received/Pending quick filter only applies to the Selected
+              tab — waitlisted entries are never marked received. */}
+          {activeTab === 'Selected' && (
+            <IconButton onClick={handleFilterClick} sx={{ color: 'white' }}>
+              <FilterListIcon />
+            </IconButton>
+          )}
           <Button
             variant="contained"
             size="small"
