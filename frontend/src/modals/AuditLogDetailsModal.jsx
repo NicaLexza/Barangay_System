@@ -212,6 +212,42 @@ const AuditLogDetailsModal = ({ open, onClose, log }) => {
           </>
         )}
 
+        {detail.type === "eligibility_entry" && (() => {
+          const d = detail.data;
+          const rows = [];
+          if (d.form_name) rows.push(["Form", d.form_name]);
+          if (d.reason)    rows.push(["Reason", d.reason]);
+          if (d.promoted_resident)    rows.push(["Promoted", d.promoted_resident]);
+          if (d.replaced_by_resident) rows.push(["Replaced by", d.replaced_by_resident]);
+          if (d.replaced_resident)    rows.push(["Replaced", d.replaced_resident]);
+          if (d.rank_no != null)      rows.push(["Rank", `#${d.rank_no}`]);
+
+          return (
+            <Box
+              sx={{
+                p: 1.5,
+                backgroundColor: SURFACE,
+                border: `1px solid ${BORDER}`,
+                borderRadius: "6px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 0.75,
+              }}
+            >
+              {rows.map(([label, value]) => (
+                <Box key={label} sx={{ display: "flex", gap: 1 }}>
+                  <Typography sx={{ fontSize: "0.78rem", color: INK_3, fontWeight: 600, minWidth: 80 }}>
+                    {label}
+                  </Typography>
+                  <Typography sx={{ fontSize: "0.82rem", color: INK, lineHeight: 1.5, wordBreak: "break-word" }}>
+                    {value}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          );
+        })()}
+
         {detail.type === "import" && (
           <ImportBody added={detail.data.added} updated={detail.data.updated} />
         )}

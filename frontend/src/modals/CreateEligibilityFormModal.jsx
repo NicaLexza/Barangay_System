@@ -25,6 +25,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  IconButton,
   TextField,
   Stack,
   Typography,
@@ -50,6 +51,8 @@ import HomeIcon from "@mui/icons-material/Home";
 import PersonIcon from "@mui/icons-material/Person";
 import GroupsIcon from "@mui/icons-material/Groups";
 import TuneIcon from "@mui/icons-material/Tune";
+import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -142,9 +145,15 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
   const [details, setDetails] = useState(EMPTY_DETAILS);
   const [startDate, setStartDate] = useState(() => dayjs());
   const [endDate, setEndDate] = useState(null);
-  const [audience, setAudience] = useState(null); // "everyone" | "criteria" | null
+  const [audience, setAudience] = useState(null); // "everyone" | "criteria" | "provided" | null
   const [criteria, setCriteria] = useState(EMPTY_CRITERIA);
   const [streetOptions, setStreetOptions] = useState([]);
+
+  // ── Provided list state (Case 3 manual selection) ─────────────────────
+  const [selectedResidents, setSelectedResidents] = useState([]);
+  const [providedCandidates, setProvidedCandidates] = useState([]);
+  const [providedLoading, setProvidedLoading] = useState(false);
+  const [candidateSearchInput, setCandidateSearchInput] = useState("");
 
   // ── Recipients step: pool-vs-supply preview ──────────────────────────
   const [preview, setPreview] = useState({ key: null, data: null, error: "" });
@@ -258,9 +267,45 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
     };
   }, [open, unit]);
 
+  // ── Reset selections when distribution unit changes ──────────────────
+  useEffect(() => {
+    setSelectedResidents([]);
+    setProvidedCandidates([]);
+    setCandidateSearchInput("");
+  }, [unit]);
+
+  // ── Load candidates for Provided List ──────────────────────────────────
+  useEffect(() => {
+    if (!open || step !== STEP_RECIPIENTS || audience !== "provided") return undefined;
+    let cancelled = false;
+    setProvidedLoading(true);
+
+    axios
+      .get("http://localhost:5000/api/residents", authHeaders())
+      .then(({ data }) => {
+        if (cancelled) return;
+        const list = Array.isArray(data) ? data : [];
+        if (unit === "Household") {
+          setProvidedCandidates(list.filter((r) => r.is_household_head === 1));
+        } else {
+          setProvidedCandidates(list);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load resident candidates:", err);
+      })
+      .finally(() => {
+        if (!cancelled) setProvidedLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, step, audience, unit]);
+
   // ── Live pool preview (Recipients step, once an audience is chosen) ────
   useEffect(() => {
-    if (!open || step !== STEP_RECIPIENTS || !audience) return undefined;
+    if (!open || step !== STEP_RECIPIENTS || !audience || audience === "provided") return undefined;
 
     const key = currentKey;
     latestKeyRef.current = key;
@@ -329,13 +374,82 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
   const anyFilterSet = Object.keys(criteriaPayload).length > 0;
   const needsFilters = audience === "criteria" && !anyFilterSet;
 
+  const availableCandidates = useMemo(() => {
+    const selectedSet = new Set(selectedResidents.map((r) => r.resident_id));
+    return providedCandidates.filter((c) => !selectedSet.has(c.resident_id));
+  }, [providedCandidates, selectedResidents]);
+
   const canContinueFromRecipients =
-    audience !== null && !needsFilters && poolSize !== null && poolSize > 0 && qtyValid;
+    audience === "provided"
+      ? selectedResidents.length > 0 && qtyValid && selectedResidents.length <= qty
+      : audience !== null && !needsFilters && poolSize !== null && poolSize > 0 && qtyValid;
 
   const isRanking = rankPreview.key !== rankKey;
   const rankReady = !isRanking && !rankPreview.error && rankPreview.data;
   const tie = rankReady ? rankPreview.data.tie : null;
   const canContinueFromSelection = rankReady && (!tie || tie.needsDraw === false);
+
+  const providedColumns = useMemo(
+    () => [
+      {
+        field: "_idx",
+        headerName: "#",
+        width: 50,
+        renderCell: (params) => {
+          const idx = selectedResidents.findIndex((r) => r.resident_id === params.row.resident_id);
+          return idx + 1;
+        },
+      },
+      { field: "fullName", headerName: "Name", flex: 1, minWidth: 180 },
+      { field: "address", headerName: "Address", flex: 1, minWidth: 160 },
+      ...(unit === "Household"
+        ? [
+            {
+              field: "member_count",
+              headerName: "Members",
+              width: 90,
+              valueGetter: (value, row) => (row.member_count ? `${row.member_count} members` : "1 member"),
+            },
+          ]
+        : [
+            { field: "sex", headerName: "Sex", width: 80 },
+          ]),
+      {
+        field: "specialSector",
+        headerName: "Sector",
+        width: 120,
+        renderCell: (params) =>
+          params.value?.trim() ? (
+            <Chip
+              size="small"
+              label={params.value.trim().replace(/,\s*$/, "")}
+              sx={{ fontSize: "0.68rem", height: 20 }}
+            />
+          ) : (
+            "—"
+          ),
+      },
+      {
+        field: "_action",
+        headerName: "Action",
+        width: 75,
+        sortable: false,
+        renderCell: (params) => (
+          <IconButton
+            size="small"
+            color="error"
+            onClick={() => {
+              setSelectedResidents((prev) => prev.filter((r) => r.resident_id !== params.row.resident_id));
+            }}
+            title="Remove from list"
+          >
+            <DeleteOutlineIcon fontSize="small" />
+          </IconButton>
+        ),
+      },
+    ],
+    [unit, selectedResidents]
+  );
 
   const columns = useMemo(() => {
     const base = [
@@ -440,6 +554,11 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
   const goFromRecipients = () => {
     if (!canContinueFromRecipients) return;
     setNotice("");
+    if (audience === "provided") {
+      setCameFromSelection(false);
+      setStep(STEP_REVIEW);
+      return;
+    }
     if (overSupply) {
       setCameFromSelection(true);
       setStep(STEP_SELECTION);
@@ -485,6 +604,10 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
     setDetailsError("");
     latestKeyRef.current = null;
 
+    setSelectedResidents([]);
+    setProvidedCandidates([]);
+    setCandidateSearchInput("");
+
     setCameFromSelection(false);
     setPriorityFactors([]);
     setPriorityConfig({ factors: {}, lookbackDays: 90 });
@@ -507,12 +630,34 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
     onClose();
   };
 
-  // Plain create (no ranking needed) — unchanged from before.
+  // Plain or Provided create (no ranking needed)
   const handleCreate = async () => {
     setCreateLoading(true);
     setCreateError("");
 
     try {
+      if (audience === "provided") {
+        const { data } = await axios.post(
+          `${API}/create-provided`,
+          {
+            form_name: details.form_name.trim(),
+            source_details: details.source_details.trim(),
+            distribution_details: details.distribution_details.trim(),
+            target_quantity: qty,
+            start_date: startDate.format("YYYY-MM-DD"),
+            end_date: endDate.format("YYYY-MM-DD"),
+            distribution_unit: unit,
+            resident_ids: selectedResidents.map((r) => r.resident_id),
+          },
+          authHeaders()
+        );
+
+        setResult(data);
+        setStep(STEP_RESULT);
+        onSuccess?.();
+        return;
+      }
+
       const { data } = await axios.post(
         `${API}/create`,
         {
@@ -663,7 +808,9 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
         ? unit === "Household"
           ? "A household qualifies if at least one of its members matches every filled field."
           : "A resident qualifies if they match every filled field."
-        : "Choose Everyone for goods every household or resident gets. Choose Set criteria when only some qualify, such as students or seniors.";
+        : audience === "provided"
+          ? `Manually search and select active ${unit === "Household" ? "household heads" : "residents"} from records to copy an external agency's roster.`
+          : "Choose Everyone for general distribution. Choose Set criteria to filter. Choose Provided list to manually select from an external roster.";
 
   // ── Selection-step banner ───────────────────────────────────────────────
   let rankBanner = null;
@@ -705,7 +852,18 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
   // ── Review summary rows ─────────────────────────────────────────────────
   let summaryRows = [];
   if (step === STEP_REVIEW) {
-    if (cameFromSelection && rankReady) {
+    if (audience === "provided") {
+      summaryRows = [
+        ["Form name", details.form_name.trim()],
+        ["Distribute per", unit === "Household" ? "Household" : "Resident"],
+        ["Who qualifies", "Provided list (External agency pre-approved roster)"],
+        ["Recipients", `${selectedResidents.length} selected ${nounFor(unit, selectedResidents.length)}`],
+        ["Target quantity", String(qty)],
+        ["Schedule", `${startDate.format("MMM D, YYYY")} to ${endDate.format("MMM D, YYYY")}`],
+        ["Source", details.source_details.trim()],
+        ["Distributing", details.distribution_details.trim()],
+      ];
+    } else if (cameFromSelection && rankReady) {
       const selectedCount = rankPreview.data.ranked.filter((c) => c.status === "Selected").length;
       const waitlistedCount = rankPreview.data.ranked.length - selectedCount;
       summaryRows = [
@@ -890,11 +1048,150 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
                   <TuneIcon sx={{ mr: 1 }} />
                   Set criteria
                 </ToggleButton>
+                <ToggleButton value="provided">
+                  <PlaylistAddCheckIcon sx={{ mr: 1 }} />
+                  Provided list
+                </ToggleButton>
               </ToggleButtonGroup>
               <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
                 {audienceHint}
               </Typography>
             </Box>
+
+            {/* ── Provided List Manual Selection ── */}
+            {audience === "provided" && (
+              <>
+                <Autocomplete
+                  size="small"
+                  options={availableCandidates}
+                  getOptionLabel={(option) => `${option.fullName} — ${option.address || "No address"}`}
+                  filterOptions={(options, state) => {
+                    const term = state.inputValue.toLowerCase().trim();
+                    if (!term) return options.slice(0, 50);
+                    return options
+                      .filter((opt) => {
+                        const nameMatch = opt.fullName?.toLowerCase().includes(term);
+                        const addrMatch = opt.address?.toLowerCase().includes(term);
+                        const sectorMatch = opt.specialSector?.toLowerCase().includes(term);
+                        const occMatch = opt.occupation?.toLowerCase().includes(term);
+                        return nameMatch || addrMatch || sectorMatch || occMatch;
+                      })
+                      .slice(0, 50);
+                  }}
+                  value={null}
+                  inputValue={candidateSearchInput}
+                  onInputChange={(event, newInputValue, reason) => {
+                    if (reason === "reset") {
+                      setCandidateSearchInput("");
+                    } else {
+                      setCandidateSearchInput(newInputValue);
+                    }
+                  }}
+                  onChange={(e, value) => {
+                    if (value) {
+                      setSelectedResidents((prev) => [...prev, value]);
+                      setCandidateSearchInput("");
+                    }
+                  }}
+                  clearOnBlur
+                  blurOnSelect={false}
+                  autoHighlight
+                  loading={providedLoading}
+                  noOptionsText={providedLoading ? "Loading resident records..." : "No matching active records found"}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      placeholder={`Type to search and add active ${unit === "Household" ? "household heads" : "residents"} by name, address, or sector...`}
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {providedLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
+                  )}
+                  renderOption={(props, option) => (
+                    <Box component="li" {...props} key={option.resident_id} sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", py: 0.75 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%", justifyContent: "space-between" }}>
+                        <Typography variant="body2" fontWeight={600}>
+                          {option.fullName}
+                        </Typography>
+                        <Box sx={{ display: "flex", gap: 0.5 }}>
+                          {unit === "Household" && option.member_count > 1 && (
+                            <Chip size="small" label={`${option.member_count} members`} sx={{ fontSize: "0.68rem", height: 20 }} />
+                          )}
+                          {option.specialSector?.trim() && (
+                            <Chip size="small" color="primary" variant="outlined" label={option.specialSector.trim().replace(/,\s*$/, "")} sx={{ fontSize: "0.68rem", height: 20 }} />
+                          )}
+                        </Box>
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        {option.address || "No address on record"}
+                        {option.occupation ? ` · ${option.occupation}` : ""}
+                      </Typography>
+                    </Box>
+                  )}
+                />
+
+                <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start", flexWrap: "wrap" }}>
+                  <Box sx={{ flex: "1 1 420px", minWidth: 0 }}>
+                    {selectedResidents.length === 0 ? (
+                      <Alert severity="info">
+                        Search and select {unit === "Household" ? "household heads" : "residents"} above to copy the external agency's list into the system.
+                      </Alert>
+                    ) : selectedResidents.length < qty ? (
+                      <Alert severity="info">
+                        {selectedResidents.length} of {qty} selected ({qty - selectedResidents.length} more needed to reach target quantity).
+                      </Alert>
+                    ) : selectedResidents.length === qty ? (
+                      <Alert severity="success">
+                        Target reached: exactly {selectedResidents.length} of {qty} selected.
+                      </Alert>
+                    ) : (
+                      <Alert severity="warning">
+                        {selectedResidents.length} selected exceeds target quantity of {qty} by {selectedResidents.length - qty}. Remove {selectedResidents.length - qty} or increase target quantity.
+                      </Alert>
+                    )}
+                  </Box>
+                  <TextField
+                    label="Target quantity"
+                    name="target_quantity"
+                    type="number"
+                    size="small"
+                    value={details.target_quantity}
+                    onChange={handleDetailChange}
+                    inputProps={{ min: 1 }}
+                    sx={{ width: 150 }}
+                  />
+                </Box>
+
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <Typography variant="body2" fontWeight={600} color="text.secondary">
+                    Selected recipients ({selectedResidents.length} / {qty})
+                  </Typography>
+                  {selectedResidents.length > 0 && (
+                    <Button size="small" color="error" onClick={() => setSelectedResidents([])}>
+                      Clear all
+                    </Button>
+                  )}
+                </Box>
+
+                <Box sx={{ height: 300 }}>
+                  <DataGrid
+                    rows={selectedResidents}
+                    columns={providedColumns}
+                    getRowId={(row) => row.resident_id}
+                    density="compact"
+                    hideFooter
+                    disableRowSelectionOnClick
+                    localeText={{ noRowsLabel: "No recipients selected yet. Search and select names above." }}
+                  />
+                </Box>
+              </>
+            )}
 
             {audience === "criteria" && (
               <>
@@ -998,7 +1295,7 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
               </>
             )}
 
-            {audience && (
+            {audience && audience !== "provided" && (
               <>
                 <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start", flexWrap: "wrap" }}>
                   <Box sx={{ flex: "1 1 420px", minWidth: 0 }}>{banner}</Box>
@@ -1173,7 +1470,9 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
               ))}
             </Box>
             <Typography variant="caption" color="text.secondary">
-              {cameFromSelection
+              {audience === "provided"
+                ? "All selected recipients will be enrolled with status 'Selected'. No ranking or waitlist applies."
+                : cameFromSelection
                 ? "Creating this form requires admin confirmation, since the ranking decides who gets it."
                 : "Who qualifies is decided when you create the form. It does not update if residents change later."}
             </Typography>
@@ -1194,6 +1493,11 @@ const CreateEligibilityFormModal = ({ open, onClose, onSuccess }) => {
             {result.selected_count !== undefined && (
               <Typography variant="body2" color="text.secondary">
                 {result.selected_count} selected · {result.waitlisted_count} waitlisted
+              </Typography>
+            )}
+            {result.pool_size !== undefined && result.selected_count === undefined && (
+              <Typography variant="body2" color="text.secondary">
+                {result.pool_size} {nounFor(result.distribution_unit || unit, result.pool_size)} selected
               </Typography>
             )}
             {result.warnings?.map((w) => (

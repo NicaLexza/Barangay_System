@@ -8,10 +8,13 @@ import {
 import DeleteIcon from "@mui/icons-material/Delete";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import axios from "axios";
-import DeleteEligibilityFormEntriesModal from "../../modals/DeleteEligibilityFormEntriesModal";
+import RemoveEligibilityFormEntryModal from "../../modals/RemoveEligibilityFormEntryModal";
+import OverridePromoteModal from "../../modals/OverridePromoteModal";
 import EligibilityEntriesToolbar from "./EligiblitiyEntriesToolbar";
 import InfoPopper from "../../Reusables/InfoPopper.jsx";
 import ReAuthModal from "../../modals/ReAuthModal.jsx";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import { printSelectionReport } from "../../utils/SelectionReportGenerator";
 
 // Safely turns the entry's `score_breakdown` TEXT column (a JSON array of
 // { factor, label, units, weight, points }, or null for unranked/case-1
@@ -56,6 +59,10 @@ const EligibilityEntriesTable = () => {
   const [reAuthLoading, setReAuthLoading] = useState(false);
   const [reAuthError, setReAuthError] = useState("");
   const [pendingReversalEntryId, setPendingReversalEntryId] = useState(null);
+
+  // Override promote flow — Waitlist tab only.
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const [overrideTarget, setOverrideTarget] = useState(null);
 
   const infoOpen = Boolean(infoAnchorEl);
 
@@ -138,7 +145,9 @@ const EligibilityEntriesTable = () => {
   const filteredRows = tabRows.filter((row) => {
     if (searchValue) {
       const search = searchValue.toLowerCase();
-      const matchesSearch = row.fullName?.toLowerCase().includes(search);
+      const matchesSearch =
+        row.fullName?.toLowerCase().includes(search) ||
+        row.selection_note?.toLowerCase().includes(search);
       if (!matchesSearch) return false;
     }
     // The Received/Pending quick filter only means something on the
@@ -166,21 +175,34 @@ const EligibilityEntriesTable = () => {
     () => rows.filter((r) => r.selection_status === "Waitlisted").length,
     [rows]
   );
+  const removedCount = useMemo(
+    () => rows.filter((r) => r.selection_status === "Removed").length,
+    [rows]
+  );
+  const archivedNeedsReplacementCount = useMemo(
+    () => rows.filter((r) => r.selection_status === "Selected" && r.resident_is_archived).length,
+    [rows]
+  );
 
-  // ── Print handler ────────────────────────────────────────────────────────
-  // Always prints the Selected roster — regardless of which tab is
-  // currently on screen or the Received/Pending quick filter — since this
-  // is the physical signature sheet handed out at distribution. Waitlisted
-  // residents haven't received anything and must never appear on it (see
-  // handoff item: "signature sheet doesn't yet filter out Waitlisted").
-  // The search box still narrows it, since that's a deliberate "print just
-  // this subset" action.
+  // ── Print handler (Contextual to activeTab) ─────────────────────────────
+  // Prints whatever list is currently on screen:
+  //  - Selected Tab  → Beneficiary Distribution & Signature Sheet
+  //  - Waitlist Tab  → Official Waitlist Roster (Rank Order)
+  //  - Removed Tab   → Removed / Disqualified Entries Log with reasons
   const handlePrint = () => {
+    const isSelected = activeTab === "Selected";
+    const isWaitlist = activeTab === "Waitlisted";
+    const isRemoved  = activeTab === "Removed";
+
     const printableRows = rows
-      .filter((row) => row.selection_status === "Selected")
+      .filter((row) => row.selection_status === activeTab)
       .filter((row) => {
         if (!searchValue) return true;
-        return row.fullName?.toLowerCase().includes(searchValue.toLowerCase());
+        const search = searchValue.toLowerCase();
+        return (
+          row.fullName?.toLowerCase().includes(search) ||
+          row.selection_note?.toLowerCase().includes(search)
+        );
       })
       .map((row, idx) => ({ ...row, no: idx + 1 }));
 
@@ -189,22 +211,80 @@ const EligibilityEntriesTable = () => {
       year: 'numeric', month: 'long', day: 'numeric',
     });
 
-    const rowsHtml = printableRows
-      .map(
-        (row) => `
+    let documentTitle = `${formName} — Distribution Signature Sheet`;
+    let subTitle = "Distribution Signature Sheet (Selected Beneficiaries)";
+    let metaCountLabel = "Total Recipients";
+    let theadHtml = `
+      <tr>
+        <th class="col-no">No.</th>
+        <th class="col-name">Name</th>
+        <th class="col-status">Status</th>
+        <th class="col-sig">Signature</th>
+      </tr>`;
+
+    let rowsHtml = "";
+
+    if (isSelected) {
+      documentTitle = `${formName} — Distribution Signature Sheet`;
+      subTitle = "Distribution Signature Sheet (Selected Beneficiaries)";
+      metaCountLabel = "Total Recipients";
+      rowsHtml = printableRows.map((row) => `
+        <tr>
+          <td class="col-no">${row.no}</td>
+          <td class="col-name">${row.fullName || ''}</td>
+          <td class="col-status">
+            <div class="checkbox-cell">
+              <span class="checkbox-box"></span>
+              <span class="checkbox-label">Received</span>
+            </div>
+          </td>
+          <td class="col-sig"></td>
+        </tr>
+      `).join('');
+    } else if (isWaitlist) {
+      documentTitle = `${formName} — Official Waitlist Roster`;
+      subTitle = "Official Waitlist Roster (In Rank Order)";
+      metaCountLabel = "Total Waitlisted";
+      theadHtml = `
+        <tr>
+          <th class="col-no" style="width: 10%;">Rank</th>
+          <th class="col-name" style="width: 35%;">Resident Name</th>
+          <th class="col-score" style="width: 15%; text-align: center;">Score</th>
+          <th class="col-factors" style="width: 40%;">Matched Priority Criteria</th>
+        </tr>`;
+      rowsHtml = printableRows.map((row) => {
+        const factorsText = (row.breakdown || []).map((b) => `${b.label} (+${b.points})`).join(', ') || 'No factors matched';
+        return `
           <tr>
-            <td class="col-no">${row.no}</td>
-            <td class="col-name">${row.fullName || ''}</td>
-            <td class="col-status">
-              <div class="checkbox-cell">
-                <span class="checkbox-box"></span>
-                <span class="checkbox-label">Received</span>
-              </div>
-            </td>
-            <td class="col-sig"></td>
-          </tr>`
-      )
-      .join('');
+            <td class="col-no" style="font-weight: bold; text-align: center;">#${row.rank_no ?? row.no}</td>
+            <td class="col-name" style="font-weight: 600;">${row.fullName || ''}</td>
+            <td class="col-score" style="text-align: center; font-weight: bold;">${row.priority_score ?? '—'}</td>
+            <td class="col-factors" style="font-size: 9pt; color: #475569;">${factorsText}</td>
+          </tr>
+        `;
+      }).join('');
+    } else if (isRemoved) {
+      documentTitle = `${formName} — Removed Entries Log`;
+      subTitle = "Removed / Disqualified Entries Log";
+      metaCountLabel = "Total Removed";
+      theadHtml = `
+        <tr>
+          <th class="col-no" style="width: 6%;">#</th>
+          <th class="col-name" style="width: 30%;">Resident Name</th>
+          <th class="col-rank" style="width: 12%; text-align: center;">Orig. Rank</th>
+          <th class="col-reason" style="width: 36%;">Reason for Removal</th>
+          <th class="col-processed" style="width: 16%;">Processed By</th>
+        </tr>`;
+      rowsHtml = printableRows.map((row) => `
+        <tr>
+          <td class="col-no" style="text-align: center;">${row.no}</td>
+          <td class="col-name" style="font-weight: 600;">${row.fullName || ''}</td>
+          <td class="col-rank" style="text-align: center;">${row.rank_no != null ? `#${row.rank_no}` : '—'}</td>
+          <td class="col-reason" style="color: #b91c1c; font-weight: 500;">${row.selection_note || 'No reason recorded'}</td>
+          <td class="col-processed" style="font-size: 9pt;">${row.processed_by_name || 'Admin'}</td>
+        </tr>
+      `).join('');
+    }
 
     const html = `<!DOCTYPE html>
 <html>
@@ -372,28 +452,23 @@ const EligibilityEntriesTable = () => {
 
   <!-- Form title -->
   <div class="form-title-section">
-    <div class="label">Eligibility Form</div>
+    <div class="label">${subTitle}</div>
     <div class="form-name">${formName}</div>
   </div>
 
   <!-- Meta -->
   <div class="meta-row">
     <span>Date Printed: ${today}</span>
-    <span>Total Recipients: ${printableRows.length}</span>
+    <span>${metaCountLabel}: ${printableRows.length}</span>
   </div>
 
   <!-- Table -->
   <table>
     <thead>
-      <tr>
-        <th class="col-no">No.</th>
-        <th class="col-name">Name</th>
-        <th class="col-status">Status</th>
-        <th class="col-sig">Signature</th>
-      </tr>
+      ${theadHtml}
     </thead>
     <tbody>
-      ${rowsHtml}
+      ${rowsHtml || '<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 18px;">No entries match current view.</td></tr>'}
     </tbody>
   </table>
 
@@ -420,11 +495,95 @@ const EligibilityEntriesTable = () => {
     };
   };
 
+  // ── Official Selection Report Handler ──────────────────────────────────────
+  // Generates and prints the complete audit document containing criteria,
+  // weights, cutoff line, tie-breaker seed, all rosters, and overrides trail.
+  const handleGenerateReport = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(
+        `http://localhost:5000/api/eligibility-forms/${formId}/report`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      printSelectionReport(res.data);
+    } catch (err) {
+      console.warn("[handleGenerateReport] Backend endpoint unavailable, compiling fallback report:", err);
+      // Fallback in case backend process hasn't reloaded yet
+      const fallbackData = {
+        form: {
+          form_name: state?.form_name || "Eligibility Form",
+          distribution_unit: state?.distribution_unit || "Individual",
+          list_type: state?.list_type || "Prioritized",
+          target_quantity: state?.target_quantity,
+          created_by_name: state?.created_by_name || "Admin",
+          created_at: state?.created_at,
+          start_date: state?.start_date,
+          end_date: state?.end_date,
+        },
+        summary: {
+          pool_size: state?.pool_size || rows.length,
+          target_quantity: state?.target_quantity,
+          selected_count: rows.filter((r) => r.selection_status === "Selected").length,
+          waitlist_count: rows.filter((r) => r.selection_status === "Waitlisted").length,
+          removed_count: rows.filter((r) => r.selection_status === "Removed").length,
+          rewarded_count: rows.filter((r) => r.selection_status === "Selected" && r.is_rewarded === 1).length,
+        },
+        entries: {
+          selected: rows.filter((r) => r.selection_status === "Selected"),
+          waitlist: rows.filter((r) => r.selection_status === "Waitlisted"),
+          removed: rows.filter((r) => r.selection_status === "Removed"),
+        },
+        audit_trail: [],
+      };
+      printSelectionReport(fallbackData);
+    }
+  };
+
   // ── Columns — Selected tab (unchanged behavior: status toggle, delete, signature) ──
   const selectedColumns = useMemo(
     () => [
-      { field: "no", headerName: "No.", width: 90, sortable: false },
-      { field: "fullName", headerName: "Full Name", width: 380 },
+      { field: "no", headerName: "No.", width: 70, sortable: false },
+      {
+        field: "fullName",
+        headerName: "Full Name",
+        flex: 1,
+        minWidth: 320,
+        renderCell: (params) => {
+          const isArchived = params.row.resident_is_archived;
+          return (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, height: "100%" }}>
+              <Typography sx={{ fontSize: "0.875rem", fontWeight: 500 }}>
+                {params.value}
+              </Typography>
+              {isArchived && (
+                <Chip
+                  size="small"
+                  label="Archived — Needs Replacement"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isDisabled) {
+                      setSelectedRow(params.row);
+                      setDeleteOpen(true);
+                    }
+                  }}
+                  title="Resident was archived in barangay records. Click to remove and promote next waitlisted resident."
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: "0.72rem",
+                    cursor: isDisabled ? "default" : "pointer",
+                    backgroundColor: "#fffbeb",
+                    color: "#b45309",
+                    border: "1px solid #fde68a",
+                    "&:hover": {
+                      backgroundColor: isDisabled ? "#fffbeb" : "#fef3c7",
+                    },
+                  }}
+                />
+              )}
+            </Box>
+          );
+        },
+      },
       {
         field: "is_rewarded",
         headerName: "Status",
@@ -552,24 +711,109 @@ const EligibilityEntriesTable = () => {
       {
         field: "actions",
         headerName: "",
+        width: 110,
+        disableColumnMenu: true,
+        sortable: false,
+        renderCell: (params) => (
+          <Box sx={{ display: "flex", gap: 0.5, mt: 1 }}>
+            <IconButton
+              size="small"
+              disabled={isDisabled}
+              onClick={() => {
+                setOverrideTarget(params.row);
+                setOverrideOpen(true);
+              }}
+              title="Override promote"
+              sx={{ color: "#7c3aed" }}
+            >
+              <ArrowUpwardIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              size="small"
+              onMouseEnter={(e) => handleInfoEnter(e, params.row)}
+              onMouseLeave={handleInfoLeave}
+            >
+              <InfoOutlinedIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        ),
+      },
+    ],
+    [isDisabled]
+  );
+
+  // ── Columns — Removed tab (name, original rank if any, removal reason, info) ──
+  const removedColumns = useMemo(
+    () => [
+      {
+        field: "no",
+        headerName: "#",
+        width: 70,
+        sortable: false,
+      },
+      { field: "fullName", headerName: "Full Name", width: 280 },
+      {
+        field: "rank_no",
+        headerName: "Original Rank",
+        width: 140,
+        renderCell: (params) =>
+          params.row.rank_no != null ? (
+            <Chip
+              size="small"
+              label={`#${params.row.rank_no}`}
+              sx={{ fontWeight: 700, backgroundColor: "#f1f5f9", color: "#64748b" }}
+            />
+          ) : (
+            <Typography sx={{ color: "#94a3b8", fontSize: "0.85rem" }}>—</Typography>
+          ),
+      },
+      {
+        field: "selection_note",
+        headerName: "Reason for Removal",
+        flex: 1,
+        minWidth: 260,
+        renderCell: (params) => (
+          <Typography
+            sx={{
+              fontSize: "0.85rem",
+              color: "#b91c1c",
+              fontWeight: 500,
+              fontStyle: params.row.selection_note ? "normal" : "italic",
+            }}
+            title={params.row.selection_note || "No reason recorded"}
+          >
+            {params.row.selection_note || "No reason recorded"}
+          </Typography>
+        ),
+      },
+      {
+        field: "actions",
+        headerName: "",
         width: 60,
         disableColumnMenu: true,
         sortable: false,
         renderCell: (params) => (
-          <IconButton
-            size="small"
-            onMouseEnter={(e) => handleInfoEnter(e, params.row)}
-            onMouseLeave={handleInfoLeave}
-          >
-            <InfoOutlinedIcon fontSize="small" />
-          </IconButton>
+          <Box sx={{ display: "flex", gap: 0.5, mt: 1 }}>
+            <IconButton
+              size="small"
+              onMouseEnter={(e) => handleInfoEnter(e, params.row)}
+              onMouseLeave={handleInfoLeave}
+            >
+              <InfoOutlinedIcon fontSize="small" />
+            </IconButton>
+          </Box>
         ),
       },
     ],
     []
   );
 
-  const columns = activeTab === "Selected" ? selectedColumns : waitlistColumns;
+  const columns =
+    activeTab === "Selected"
+      ? selectedColumns
+      : activeTab === "Waitlisted"
+      ? waitlistColumns
+      : removedColumns;
 
   // ── Fetch ─────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -588,6 +832,7 @@ const EligibilityEntriesTable = () => {
             .filter(Boolean)
             .join(" "),
           is_rewarded: entry.is_rewarded,
+          resident_is_archived: entry.resident_is_archived === 1 || entry.resident_is_archived === true,
           processed_by_name: entry.processed_by_name,
           processed_at: entry.processed_at,
           // Older entries created before migration 02 have no
@@ -616,6 +861,9 @@ const EligibilityEntriesTable = () => {
     if (activeTab === "Waitlisted" && waitlistCount === 0 && rows.length > 0) {
       setActiveTab("Selected");
     }
+    if (activeTab === "Removed" && removedCount === 0 && rows.length > 0) {
+      setActiveTab("Selected");
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formId]);
 
@@ -635,6 +883,7 @@ const EligibilityEntriesTable = () => {
             onApplyFilters: handleApplyFilters,
             onSearchChange: (value) => setSearchValue(value),
             onPrint: handlePrint,
+            onGenerateReport: handleGenerateReport,
             formName: state?.form_name,
             entryCount: displayRows.length,
             isArchived: state?.is_archived ?? false,
@@ -642,6 +891,8 @@ const EligibilityEntriesTable = () => {
             onTabChange: setActiveTab,
             selectedCount,
             waitlistCount,
+            removedCount,
+            archivedNeedsReplacementCount,
           },
         }}
       />
@@ -656,15 +907,25 @@ const EligibilityEntriesTable = () => {
                 { label: "Processed by", value: selectedRow?.processed_by_name },
                 { label: "Processed at", value: selectedRow?.processed_at },
               ]
-            : [
+            : activeTab === "Waitlisted"
+            ? [
                 { label: "Rank", value: selectedRow?.rank_no },
                 { label: "Score", value: selectedRow?.priority_score },
+              ]
+            : [
+                { label: "Reason", value: selectedRow?.selection_note || "None specified" },
+                { label: "Original Rank", value: selectedRow?.rank_no != null ? `#${selectedRow?.rank_no}` : "—" },
+                { label: "Processed by", value: selectedRow?.processed_by_name },
+                { label: "Processed at", value: selectedRow?.processed_at },
               ]
         }
       />
 
-      {/* Delete Modal — Selected tab only */}
-      <DeleteEligibilityFormEntriesModal
+      {/* Remove-with-reason Modal — Selected tab only.
+          Replaces the old hard-delete modal. The backend soft-removes
+          the entry (selection_status → 'Removed') and auto-promotes
+          the next waitlisted entry in rank order, all in one transaction. */}
+      <RemoveEligibilityFormEntryModal
         open={deleteOpen}
         onClose={() => { setDeleteOpen(false); setSelectedRow(null); }}
         onConfirm={() => setRefreshKey((prev) => prev + 1)}
@@ -683,6 +944,17 @@ const EligibilityEntriesTable = () => {
         description="Reverting a Received status back to Pending requires admin confirmation. Enter your admin credentials to proceed."
         confirmLabel="Revert to Pending"
         confirmColor="error"
+      />
+
+      {/* Override promote modal — Waitlist tab.
+          Admin picks which Selected entry to swap out, provides a reason,
+          and re-authenticates. Both entries are updated in one transaction. */}
+      <OverridePromoteModal
+        open={overrideOpen}
+        onClose={() => { setOverrideOpen(false); setOverrideTarget(null); }}
+        onConfirm={() => setRefreshKey((prev) => prev + 1)}
+        target={overrideTarget}
+        selectedEntries={rows.filter((r) => r.selection_status === "Selected")}
       />
     </Box>
   );

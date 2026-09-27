@@ -2,17 +2,19 @@ import { useState } from 'react';
 import {
   Box, Button, TextField, IconButton, Popover, Stack,
   Typography, FormControl, FormLabel, RadioGroup,
-  FormControlLabel, Radio, Divider, Tabs, Tab, Badge,
+  FormControlLabel, Radio, Divider, Tabs, Tab, Badge, Alert,
 } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PrintIcon from '@mui/icons-material/Print';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import { useNavigate } from 'react-router-dom';
 
 export default function EligibilityEntriesToolbar({
   onApplyFilters,
   onSearchChange,
   onPrint,
+  onGenerateReport,
   formName,
   entryCount,
   isArchived,
@@ -20,6 +22,8 @@ export default function EligibilityEntriesToolbar({
   onTabChange,
   selectedCount = 0,
   waitlistCount = 0,
+  removedCount = 0,
+  archivedNeedsReplacementCount = 0,
 }) {
   const [quickFilterValue, setQuickFilterValue] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
@@ -123,6 +127,19 @@ export default function EligibilityEntriesToolbar({
               </Badge>
             }
           />
+          <Tab
+            value="Removed"
+            sx={{ minHeight: 40, textTransform: 'none', fontWeight: 600 }}
+            label={
+              <Badge
+                badgeContent={removedCount}
+                color="error"
+                sx={{ '& .MuiBadge-badge': { right: -14, backgroundColor: '#dc2626', color: '#fff' } }}
+              >
+                <Box sx={{ pr: 1 }}>Removed</Box>
+              </Badge>
+            }
+          />
         </Tabs>
 
         {/* Bottom row — search + filter + print */}
@@ -154,11 +171,30 @@ export default function EligibilityEntriesToolbar({
               <FilterListIcon />
             </IconButton>
           )}
+          {activeTab === 'Selected' && (
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<DescriptionOutlinedIcon />}
+              onClick={onGenerateReport}
+              sx={{
+                color: '#002f59',
+                borderColor: '#002f59',
+                backgroundColor: '#fff',
+                textTransform: 'none',
+                fontWeight: 600,
+                '&:hover': { backgroundColor: '#f0fdf4', borderColor: '#001c38' },
+              }}
+            >
+              Selection Report
+            </Button>
+          )}
           <Button
             variant="contained"
             size="small"
             startIcon={<PrintIcon />}
             onClick={onPrint}
+            title={`Print ${activeTab} roster`}
             sx={{
               backgroundColor: '#002f59',
               textTransform: 'none',
@@ -166,9 +202,33 @@ export default function EligibilityEntriesToolbar({
               '&:hover': { backgroundColor: '#001c38' },
             }}
           >
-            Print
+            {activeTab === 'Selected'
+              ? 'Print (Selected)'
+              : activeTab === 'Waitlisted'
+              ? 'Print (Waitlist)'
+              : 'Print (Removed)'}
           </Button>
         </Box>
+
+        {activeTab === 'Selected' && archivedNeedsReplacementCount > 0 && (
+          <Box sx={{ px: 2, pb: 1.25 }}>
+            <Alert
+              severity="warning"
+              sx={{
+                py: 0.25,
+                px: 1.5,
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                backgroundColor: '#fffbeb',
+                color: '#92400e',
+                border: '1px solid #fde68a',
+                '& .MuiAlert-icon': { color: '#b45309', py: 0.25 },
+              }}
+            >
+              {archivedNeedsReplacementCount} selected {archivedNeedsReplacementCount === 1 ? 'recipient has' : 'recipients have'} been archived in barangay records and {archivedNeedsReplacementCount === 1 ? 'needs' : 'need'} replacement.
+            </Alert>
+          </Box>
+        )}
       </Box>
 
       {/* Filter Panel */}

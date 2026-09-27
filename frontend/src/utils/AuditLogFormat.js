@@ -25,6 +25,10 @@ const ACTION_META = {
   removed_from_household: { label: "Removed from Household", color: "#b45309", bg: "#fffbeb" },
   marked_received:        { label: "Marked Received",       color: "#16a34a", bg: "#f0fdf4" },
   reverted_to_pending:    { label: "Reverted to Pending",   color: "#b45309", bg: "#fffbeb" },
+  removed:                { label: "Removed",               color: "#dc2626", bg: "#fef2f2" },
+  promoted_from_waitlist: { label: "Promoted from Waitlist", color: "#7c3aed", bg: "#f5f3ff" },
+  override_removed:      { label: "Override Removed",      color: "#dc2626", bg: "#fef2f2" },
+  override_promoted:     { label: "Override Promoted",     color: "#7c3aed", bg: "#f5f3ff" },
   backup_created:         { label: "Backup Created",        color: "#0891b2", bg: "#ecfeff" },
   "Password Reset":       { label: "Password Reset",        color: "#b45309", bg: "#fffbeb" },
   "Password Changed":     { label: "Password Changed",      color: "#7c3aed", bg: "#f5f3ff" },
@@ -115,6 +119,32 @@ export const getLogDetail = (log) => {
       data: changes,
       summary: `Changed: ${changes.map((c) => c.field).join(", ")}`,
     };
+  }
+
+  // Eligibility entry actions — remove-with-reason, auto-promotion,
+  // override-remove, and override-promote. The details object shape varies
+  // slightly between normal and override actions, so we use action_type to
+  // pick the right summary text.
+  if (
+    log.entity_type === "Eligibility Entry" &&
+    isPlainObject(details) &&
+    (details.reason || details.replaced_entry_id != null || details.replaced_by_entry_id != null)
+  ) {
+    let summary;
+    const at = log.action_type;
+    if (at === "override_removed") {
+      summary = `Override removed — replaced by ${details.replaced_by_resident || "promoted entry"}`;
+    } else if (at === "override_promoted") {
+      summary = `Override promoted (rank #${details.rank_no ?? "?"}) — replaced ${details.replaced_resident || "removed entry"}`;
+    } else if (at === "promoted_from_waitlist") {
+      summary = `Promoted (rank #${details.rank_no ?? "?"}) — replaced ${details.replaced_resident || "removed entry"}`;
+    } else {
+      // Normal "removed" action
+      summary = details.promoted_resident
+        ? `Removed — ${details.promoted_resident} promoted`
+        : "Removed (no promotion)";
+    }
+    return { type: "eligibility_entry", data: details, summary };
   }
 
   if (typeof details === "string" && details.trim()) {

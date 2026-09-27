@@ -31,6 +31,7 @@ const getEntries = (req, res) => {
       efe.selection_note,
       DATE_FORMAT(efe.processed_at, '%Y-%m-%d %H:%i:%s') AS processed_at,
       r.f_name, r.m_name, r.l_name, r.suffix,
+      r.is_archived AS resident_is_archived,
       u.fullname AS processed_by_name
     FROM eligibility_forms_entries efe
     LEFT JOIN residents r ON efe.resident_id = r.resident_id
