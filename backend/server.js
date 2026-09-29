@@ -30,7 +30,6 @@ const eligibilityFormArchiveRoutes = require("./routes/eligibilityFormArchiveRou
 
 const eligibilityFormEntriesRoutes = require("./routes/eligibilityFormEntriesRoutes");
 const eligibilityFormEntriesUpdateRoutes = require("./routes/eligibilityFormEntriesUpdateRoutes");
-const eligibilityFormEntriesDeleteRoutes = require("./routes/eligibilityFormEntriesDeleteRoutes");
 const eligibilityFormEntriesRemoveRoutes = require("./routes/eligibilityFormEntriesRemoveRoutes");
 const eligibilityFormEntriesOverrideRoutes = require("./routes/eligibilityFormEntriesOverrideRoutes");
 
@@ -67,7 +66,6 @@ app.use("/api/eligibility-forms", eligibilityFormDeleteRoutes);
 
 app.use("/api/eligibility-forms", eligibilityFormEntriesRoutes);
 app.use("/api/eligibility-forms", eligibilityFormEntriesUpdateRoutes);
-app.use("/api/eligibility-forms", eligibilityFormEntriesDeleteRoutes);
 app.use("/api/eligibility-forms", eligibilityFormEntriesRemoveRoutes);
 app.use("/api/eligibility-forms", eligibilityFormEntriesOverrideRoutes);
 

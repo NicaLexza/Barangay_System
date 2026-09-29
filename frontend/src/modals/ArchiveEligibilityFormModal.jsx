@@ -1,4 +1,4 @@
-// DeleteEligibilityFormModal.jsx
+// ArchiveEligibilityFormModal.jsx
 import React, { useState } from "react";
 import {
   Dialog,
@@ -14,10 +14,10 @@ import axios from "axios";
 
 /**
  * Soft-deletes the form by setting its status to 'Archived'.
- * The backend DELETE endpoint now performs a soft-delete (status = 'Archived')
+ * The backend DELETE endpoint performs a soft-delete (status = 'Archived')
  * so this modal's HTTP call remains the same.
  */
-const DeleteEligibilityFormModal = ({ open, onClose, onConfirm, target }) => {
+const ArchiveEligibilityFormModal = ({ open, onClose, onConfirm, target }) => {
   const [loading, setLoading] = useState(false);
 
   const handleArchive = async () => {
@@ -120,4 +120,4 @@ const DeleteEligibilityFormModal = ({ open, onClose, onConfirm, target }) => {
   );
 };
 
-export default DeleteEligibilityFormModal;
+export default ArchiveEligibilityFormModal;

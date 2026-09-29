@@ -10,7 +10,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import axios from "axios";
 import RemoveEligibilityFormEntryModal from "../../modals/RemoveEligibilityFormEntryModal";
 import OverridePromoteModal from "../../modals/OverridePromoteModal";
-import EligibilityEntriesToolbar from "./EligiblitiyEntriesToolbar";
+import EligibilityEntriesToolbar from "./EligibilityEntriesToolbar.jsx";
 import InfoPopper from "../../Reusables/InfoPopper.jsx";
 import ReAuthModal from "../../modals/ReAuthModal.jsx";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";

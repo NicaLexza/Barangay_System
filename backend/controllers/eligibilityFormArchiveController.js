@@ -11,8 +11,8 @@ const getArchivedForms = (req, res) => {
       ef.status,
       ef.created_at,
       u.fullname AS created_by_name,
-      COUNT(efe.entry_id)  AS total_entries,
-      SUM(efe.is_rewarded) AS rewarded_count
+      COUNT(CASE WHEN efe.selection_status = 'Selected' THEN 1 END) AS total_entries,
+      COUNT(CASE WHEN efe.selection_status = 'Selected' AND efe.is_rewarded = 1 THEN 1 END) AS rewarded_count
     FROM eligibility_forms ef
     LEFT JOIN users u
       ON ef.created_by = u.user_id

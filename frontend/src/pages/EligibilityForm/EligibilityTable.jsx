@@ -9,8 +9,9 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
-import DeleteEligibilityFormModal from "../../modals/DeleteEligibilityFormModal";
+import ArchiveEligibilityFormModal from "../../modals/ArchiveEligibilityFormModal";
 import CreateEligibilityFormModal from "../../modals/CreateEligibilityFormModal";
+import EditEligibilityFormModal from "../../modals/EditEligibilityFormModal";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
 import ArchiveIcon from "@mui/icons-material/Archive";
 import AddIcon from "@mui/icons-material/Add";
@@ -26,6 +27,7 @@ const EligibilityTable = () => {
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [selectedForm, setSelectedForm] = useState(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const navigate = useNavigate();
@@ -372,6 +374,14 @@ const EligibilityTable = () => {
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
+        {/* Edit keeps selectedForm (only closes the menu) so the modal knows
+            which form it's editing — same pattern as Archive below. */}
+        <MenuItem onClick={() => { setEditOpen(true); setMenuAnchor(null); }}>
+          Edit details
+        </MenuItem>
+
+        <Divider />
+
         <MenuItem
           onClick={() => handleToggleStatus("Enabled")}
           disabled={selectedForm?.status === "Enabled"}
@@ -396,9 +406,16 @@ const EligibilityTable = () => {
         </MenuItem>
       </Menu>
 
-      {/* Archive (soft-delete) confirmation modal — reuses DeleteEligibilityFormModal
-          with updated wording supplied by its new props */}
-      <DeleteEligibilityFormModal
+      {/* Edit details modal */}
+      <EditEligibilityFormModal
+        open={editOpen}
+        onClose={() => { setEditOpen(false); setSelectedForm(null); }}
+        onSuccess={() => setRefreshKey((prev) => prev + 1)}
+        target={selectedForm}
+      />
+
+      {/* Archive (soft-delete) confirmation modal */}
+      <ArchiveEligibilityFormModal
         open={archiveOpen}
         onClose={() => { setArchiveOpen(false); setSelectedForm(null); }}
         onConfirm={() => setRefreshKey((prev) => prev + 1)}
