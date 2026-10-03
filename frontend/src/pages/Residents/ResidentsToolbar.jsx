@@ -7,13 +7,6 @@ import {
   Popover,
   Stack,
   Typography,
-  FormControl,
-  FormLabel,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
-  Checkbox,
-  FormGroup,
   Divider,
 } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
@@ -26,6 +19,12 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useNavigate } from 'react-router-dom';
+import {
+  FilterSection,
+  FilterToggle,
+  FilterChips,
+  filterPopoverPaperSx,
+} from '../../Reusables/FilterControls.jsx';
 
 // NOTE: eligibility forms are no longer created from this page. They are
 // created from the Eligibility page's "New Form" wizard, where the server
@@ -107,25 +106,6 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
             Residents
           </Typography>
 
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<ArchiveIcon fontSize="small" />}
-            onClick={() => navigate('/Residents/Archived')}
-            sx={{
-              textTransform: 'none',
-              borderColor: '#78716c',
-              color: '#57534e',
-              fontWeight: 500,
-              backgroundColor: '#fff',
-              '&:hover': {
-                borderColor: '#57534e',
-                backgroundColor: '#f5f5f4',
-              },
-            }}
-          >
-            View Archived
-          </Button>
         </Box>
 
         {/* Bottom row — Search, Filter, Buttons */}
@@ -182,123 +162,126 @@ export default function ResidentsToolbar({ onAddSuccess, onApplyFilters, filtere
           >
             Statistics
           </Button>
+
+          {/* Archived/Active toggle — pinned to the right end of this row.
+              The archived page puts its "View Active" button in the same spot. */}
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<ArchiveIcon fontSize="small" />}
+            onClick={() => navigate('/Residents/Archived')}
+            sx={{
+              ml: 'auto',
+              textTransform: 'none',
+              borderColor: '#78716c',
+              color: '#57534e',
+              fontWeight: 500,
+              backgroundColor: '#fff',
+              '&:hover': {
+                borderColor: '#57534e',
+                backgroundColor: '#f5f5f4',
+              },
+            }}
+          >
+            View Archived
+          </Button>
         </Box>
       </Box>
 
-      {/* Filter Panel */}
+      {/* Filter Panel — compact controls shared with Accounts / Entries */}
       <Popover
         open={openFilter}
         anchorEl={anchorEl}
         onClose={handleFilterClose}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
         transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-        PaperProps={{ sx: { width: 320, p: 2, boxShadow: 3 } }}
+        PaperProps={{ sx: filterPopoverPaperSx }}
       >
-        <Typography variant="h6" gutterBottom>
+        <Typography variant="subtitle1" fontWeight={700} color="#002f59" gutterBottom>
           Quick Filters
         </Typography>
 
-        <Stack spacing={2.5}>
-          <FormControl>
-            <FormLabel>Age Range</FormLabel>
+        <Stack spacing={2}>
+          <FilterSection label="Age Range">
             <Stack direction="row" spacing={1}>
-              <TextField label="Min" type="number" value={ageMin} onChange={(e) => setAgeMin(e.target.value)} size="small" sx={{ width: 120 }} />
-              <TextField label="Max" type="number" value={ageMax} onChange={(e) => setAgeMax(e.target.value)} size="small" sx={{ width: 120 }} />
+              <TextField label="Min" type="number" value={ageMin} onChange={(e) => setAgeMin(e.target.value)} size="small" sx={{ flex: 1 }} />
+              <TextField label="Max" type="number" value={ageMax} onChange={(e) => setAgeMax(e.target.value)} size="small" sx={{ flex: 1 }} />
             </Stack>
-          </FormControl>
+          </FilterSection>
 
-          <FormControl>
-            <FormLabel>Gender</FormLabel>
-            <RadioGroup row value={gender} onChange={(e) => setGender(e.target.value)}>
-              <FormControlLabel value="All"    control={<Radio />} label="All" />
-              <FormControlLabel value="Male"   control={<Radio />} label="Male" />
-              <FormControlLabel value="Female" control={<Radio />} label="Female" />
-              <FormControlLabel value="Other"  control={<Radio />} label="Other" />
-            </RadioGroup>
-          </FormControl>
+          <FilterSection label="Gender">
+            <FilterToggle
+              value={gender}
+              onChange={setGender}
+              options={['All', 'Male', 'Female', 'Other'].map((v) => ({ value: v, label: v }))}
+            />
+          </FilterSection>
 
-          <FormControl>
-            <FormLabel>Civil Status</FormLabel>
-            <FormGroup row>
-              {['Single', 'Married', 'Widowed', 'Divorced', 'Separated', 'Annulled'].map(status => (
-                <FormControlLabel
-                  key={status}
-                  control={
-                    <Checkbox
-                      checked={civilStatuses.includes(status)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setCivilStatuses([...civilStatuses, status]);
-                        } else {
-                          setCivilStatuses(civilStatuses.filter(s => s !== status));
-                        }
-                      }}
-                    />
-                  }
-                  label={status}
-                />
-              ))}
-            </FormGroup>
-          </FormControl>
+          <FilterSection label="Civil Status">
+            <FilterChips
+              selected={civilStatuses}
+              onToggle={(status) =>
+                setCivilStatuses((prev) =>
+                  prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]
+                )
+              }
+              options={['Single', 'Married', 'Widowed', 'Divorced', 'Separated', 'Annulled'].map((v) => ({ value: v, label: v }))}
+            />
+          </FilterSection>
 
-          <FormControl>
-            <FormLabel>Employment Status</FormLabel>
-            <RadioGroup row value={employment} onChange={(e) => setEmployment(e.target.value)}>
-              <FormControlLabel value="All"        control={<Radio />} label="All" />
-              <FormControlLabel value="Employed"   control={<Radio />} label="Employed" />
-              <FormControlLabel value="Unemployed" control={<Radio />} label="Unemployed" />
-            </RadioGroup>
-          </FormControl>
+          <FilterSection label="Employment Status">
+            <FilterToggle
+              value={employment}
+              onChange={setEmployment}
+              options={['All', 'Employed', 'Unemployed'].map((v) => ({ value: v, label: v }))}
+            />
+          </FilterSection>
 
-          <FormControl>
-            <FormLabel>Special Sector</FormLabel>
-            <FormGroup row>
-              <FormControlLabel
-                control={<Checkbox checked={sectors.pwd}    onChange={e => setSectors({ ...sectors, pwd: e.target.checked })} />}
-                label="PWD"
-              />
-              <FormControlLabel
-                control={<Checkbox checked={sectors.senior} onChange={e => setSectors({ ...sectors, senior: e.target.checked })} />}
-                label="Senior"
-              />
-              <FormControlLabel
-                control={<Checkbox checked={sectors.solop}  onChange={e => setSectors({ ...sectors, solop: e.target.checked })} />}
-                label="Solo Parent"
-              />
-            </FormGroup>
-          </FormControl>
+          <FilterSection label="Special Sector">
+            <FilterChips
+              selected={Object.keys(sectors).filter((k) => sectors[k])}
+              onToggle={(key) => setSectors((prev) => ({ ...prev, [key]: !prev[key] }))}
+              options={[
+                { value: 'pwd', label: 'PWD' },
+                { value: 'senior', label: 'Senior' },
+                { value: 'solop', label: 'Solo Parent' },
+              ]}
+            />
+          </FilterSection>
 
-          <FormControl>
-            <FormLabel>Household</FormLabel>
-            <RadioGroup row value={household} onChange={(e) => setHousehold(e.target.value)}>
-              <FormControlLabel value="All"     control={<Radio />} label="All" />
-              <FormControlLabel value="Heads"   control={<Radio />} label="Heads Only" />
-              <FormControlLabel value="Members" control={<Radio />} label="Members Only" />
-            </RadioGroup>
-          </FormControl>
+          <FilterSection label="Household">
+            <FilterToggle
+              value={household}
+              onChange={setHousehold}
+              options={[
+                { value: 'All', label: 'All' },
+                { value: 'Heads', label: 'Heads Only' },
+                { value: 'Members', label: 'Members Only' },
+              ]}
+            />
+          </FilterSection>
 
-          <FormControl>
-            <FormLabel>Date Registered</FormLabel>
+          <FilterSection label="Date Registered">
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <Stack direction="row" spacing={1}>
                 <DatePicker
                   label="From"
                   value={dateFrom}
                   onChange={(newValue) => setDateFrom(newValue)}
-                  slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
+                  slotProps={{ textField: { size: 'small', sx: { flex: 1, minWidth: 0 } } }}
                   format="MM/DD/YYYY"
                 />
                 <DatePicker
                   label="To"
                   value={dateTo}
                   onChange={(newValue) => setDateTo(newValue)}
-                  slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
+                  slotProps={{ textField: { size: 'small', sx: { flex: 1, minWidth: 0 } } }}
                   format="MM/DD/YYYY"
                   minDate={dateFrom || undefined}
                 />
               </Stack>
             </LocalizationProvider>
-          </FormControl>
+          </FilterSection>
 
           <Divider />
 

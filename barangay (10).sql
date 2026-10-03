@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 26, 2026 at 05:54 PM
+-- Generation Time: Sep 29, 2026 at 06:42 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -274,7 +274,32 @@ INSERT INTO `activity_logs` (`log_id`, `entity_type`, `entity_id`, `entity_name`
 (235, 'Eligibility Entry', 33, 'Test2 User2', '{\"form_id\":9,\"form_name\":\"Cellphone\",\"reason\":\"Resident record was archived in barangay records\",\"promoted_entry_id\":36,\"promoted_resident\":\"Ginger Caliao\"}', 'removed', 5, '2026-09-26 22:53:42', NULL),
 (236, 'Eligibility Entry', 36, 'Ginger Caliao', '{\"form_id\":9,\"form_name\":\"Cellphone\",\"replaced_entry_id\":33,\"replaced_resident\":\"Test2 User2\",\"rank_no\":5}', 'promoted_from_waitlist', 5, '2026-09-26 22:53:42', NULL),
 (237, 'Eligibility Form', 10, 'Senior Subsidy', '\"Per household · Provided List (3 selected) · target 3\"', 'created', 5, '2026-09-26 23:23:03', NULL),
-(238, 'Eligibility Entry', 40, 'Marco Eljan Sr', '{\"form_id\":10,\"form_name\":\"Senior Subsidy\",\"reason\":\"Tegiboom na\",\"promoted_entry_id\":null,\"promoted_resident\":null}', 'removed', 5, '2026-09-26 23:23:28', NULL);
+(238, 'Eligibility Entry', 40, 'Marco Eljan Sr', '{\"form_id\":10,\"form_name\":\"Senior Subsidy\",\"reason\":\"Tegiboom na\",\"promoted_entry_id\":null,\"promoted_resident\":null}', 'removed', 5, '2026-09-26 23:23:28', NULL),
+(239, 'Eligibility Form', 7, 'Cat distribution (auto-locked)', NULL, 'disabled', NULL, '2026-09-27 14:36:21', NULL),
+(240, 'Eligibility Form', 8, 'Dog Distribution (auto-locked)', NULL, 'disabled', NULL, '2026-09-27 14:36:21', NULL),
+(241, 'Eligibility Form', 10, 'Senior Subsidy (auto-locked)', NULL, 'disabled', NULL, '2026-09-27 14:36:21', NULL),
+(242, 'Eligibility Form', 9, 'Cellphone', NULL, 'archived', 5, '2026-09-27 14:39:18', NULL),
+(243, 'Eligibility Form', 9, 'Cellphone', NULL, 'restored', 5, '2026-09-27 14:40:30', NULL),
+(244, 'Eligibility Form', 10, 'Senior Subsidy', NULL, 'enabled', 5, '2026-09-27 14:42:32', NULL),
+(245, 'Eligibility Form', 10, 'Senior Subsidy (auto-locked)', NULL, 'disabled', NULL, '2026-09-27 14:42:32', NULL),
+(246, 'Eligibility Form', 10, 'Senior Subsidy', NULL, 'enabled', 5, '2026-09-27 14:42:43', NULL),
+(247, 'Eligibility Form', 10, 'Senior Subsidy (auto-locked)', NULL, 'disabled', NULL, '2026-09-27 14:42:43', NULL),
+(248, 'Eligibility Form', 11, 'sample', '\"Per household · 3 in pool · target 3 · No restrictions (all active households)\"', 'created', 5, '2026-09-27 14:43:21', NULL),
+(249, 'Eligibility Entry', 41, 'Fred Caliao', '{\"form_id\":11,\"form_name\":\"sample\",\"reason\":\"Ayaw baskitbol\",\"promoted_entry_id\":null,\"promoted_resident\":null}', 'removed', 5, '2026-09-27 14:43:37', NULL),
+(250, 'Eligibility Form', 10, 'Senior Subsidy', NULL, 'archived', 5, '2026-09-27 15:08:57', NULL),
+(251, 'Eligibility Form', 12, 'Laptop', '\"Per resident · Ranked selection · 1 selected of 2 in pool · target 1 · Occupation contains \\\"student\\\" · PWD +3 · Senior citizen +3 · Solo parent +3 · No working adult +2 · Not helped recently (90d) +2 · tie-break seed 5d240f7e4b1c6679\"', 'created', 5, '2026-09-27 15:14:08', NULL),
+(252, 'Resident', 10, 'Ginger Caliao', NULL, 'archived', 5, '2026-09-27 15:15:42', NULL),
+(253, 'Eligibility Entry', 44, 'Ginger Caliao', '{\"form_id\":12,\"form_name\":\"Laptop\",\"reason\":\"Slot opened\",\"replaced_by_entry_id\":45,\"replaced_by_resident\":\"Callie Caliao\"}', 'override_removed', 5, '2026-09-27 15:18:28', NULL),
+(254, 'Eligibility Entry', 45, 'Callie Caliao', '{\"form_id\":12,\"form_name\":\"Laptop\",\"reason\":\"Slot opened\",\"rank_no\":2,\"replaced_entry_id\":44,\"replaced_resident\":\"Ginger Caliao\"}', 'override_promoted', 5, '2026-09-27 15:18:28', NULL),
+(255, 'Eligibility Form', 12, 'Laptops', NULL, 'updated', 5, '2026-09-28 17:02:23', '[{\"field\":\"Form Name\",\"from\":\"Laptop\",\"to\":\"Laptops\"}]'),
+(256, 'Eligibility Form', 7, 'Cat distribution', NULL, 'updated', 5, '2026-09-28 17:03:20', '[{\"field\":\"Source\",\"from\":\"Petshop\",\"to\":\"Petshops\"}]'),
+(257, 'Eligibility Form', 10, 'Senior Subsidy', NULL, 'restored', 5, '2026-09-28 17:04:06', NULL),
+(258, 'Database', NULL, 'barangay_backup_2026-09-28_170925.sql.enc', '{\"status\":\"success\",\"expected\":{\"residents\":11,\"accounts\":13,\"eligibility_forms\":12,\"eligibility_entries\":44},\"actual\":{\"residents\":11,\"accounts\":13,\"eligibility_forms\":12,\"eligibility_entries\":44},\"missing\":{}}', 'restored', 5, '2026-09-28 17:09:37', NULL),
+(259, 'Eligibility Entry', 42, 'Leon Caliao', NULL, 'marked_received', NULL, '2026-09-28 17:37:30', NULL),
+(260, 'Account', 19, 'cos', NULL, 'deleted', 5, '2026-09-28 17:37:45', NULL),
+(261, 'Eligibility Form', 11, 'sample', NULL, 'disabled', 5, '2026-09-28 18:12:10', NULL),
+(262, 'Eligibility Form', 11, 'sample', NULL, 'enabled', 5, '2026-09-28 18:12:13', NULL),
+(263, 'Eligibility Form', 13, 'dsad', '\"Per household · 3 in pool · target 3 · No restrictions (all active households)\"', 'created', 5, '2026-09-29 12:04:57', NULL);
 
 -- --------------------------------------------------------
 
@@ -311,10 +336,13 @@ INSERT INTO `eligibility_forms` (`form_id`, `form_name`, `source_details`, `dist
 (4, 'School Supply', 'Cong. Maceda', 'School Supplies', 50, '2026-09-21', '2026-09-22', 'Disabled', 5, '2026-09-21 14:44:51', 'Resident', 'All Eligible', '{\"ageMin\":6,\"ageMax\":16,\"occupationContains\":\"Student\"}', 2, NULL),
 (5, 'Xmas Box', 'Barangay', 'Noche Buena Box', 10, '2026-09-21', '2026-09-21', 'Disabled', 5, '2026-09-21 17:17:29', 'Household', 'All Eligible', '{}', 4, NULL),
 (6, 'Pet supply', 'Glen', 'Cats/Dogs essentials', 3, '2026-09-25', '2026-09-25', 'Disabled', 5, '2026-09-25 15:36:21', 'Household', 'Prioritized', '{}', 4, '{\"factors\":{\"pwd\":{\"enabled\":true,\"weight\":3},\"senior\":{\"enabled\":true,\"weight\":3},\"solop\":{\"enabled\":true,\"weight\":3},\"noWorkingAdult\":{\"enabled\":true,\"weight\":2},\"largeHousehold\":{\"enabled\":true,\"weight\":1},\"children\":{\"enabled\":false,\"weight\":1},\"notHelpedRecently\":{\"enabled\":true,\"weight\":2}},\"lookbackDays\":90,\"seed\":\"8cb5586f52a99087\"}'),
-(7, 'Cat distribution', 'Petshop', 'Kittens', 3, '2026-09-26', '2026-09-26', 'Enabled', 5, '2026-09-26 19:00:14', 'Household', 'Prioritized', '{}', 4, '{\"factors\":{\"pwd\":{\"enabled\":true,\"weight\":3},\"senior\":{\"enabled\":true,\"weight\":3},\"solop\":{\"enabled\":true,\"weight\":3},\"noWorkingAdult\":{\"enabled\":true,\"weight\":2},\"largeHousehold\":{\"enabled\":true,\"weight\":1},\"children\":{\"enabled\":false,\"weight\":1},\"notHelpedRecently\":{\"enabled\":true,\"weight\":2}},\"lookbackDays\":90,\"seed\":\"60dbbeeb8d18ad5b\"}'),
-(8, 'Dog Distribution', 'Petshop', 'Puppies', 2, '2026-09-26', '2026-09-26', 'Enabled', 5, '2026-09-26 21:30:29', 'Household', 'Prioritized', '{}', 4, '{\"factors\":{\"pwd\":{\"enabled\":true,\"weight\":3},\"senior\":{\"enabled\":true,\"weight\":3},\"solop\":{\"enabled\":true,\"weight\":3},\"noWorkingAdult\":{\"enabled\":true,\"weight\":2},\"largeHousehold\":{\"enabled\":true,\"weight\":1},\"children\":{\"enabled\":false,\"weight\":1},\"notHelpedRecently\":{\"enabled\":true,\"weight\":2}},\"lookbackDays\":90,\"seed\":\"7078add69761214c\"}'),
-(9, 'Cellphone', 'baranggay', 'Cellphone', 3, '2026-09-26', '2026-09-29', 'Enabled', 5, '2026-09-26 22:49:14', 'Resident', 'Prioritized', '{\"sex\":\"Male\"}', 6, '{\"factors\":{\"pwd\":{\"enabled\":true,\"weight\":3},\"senior\":{\"enabled\":true,\"weight\":3},\"solop\":{\"enabled\":true,\"weight\":3},\"noWorkingAdult\":{\"enabled\":true,\"weight\":2},\"notHelpedRecently\":{\"enabled\":true,\"weight\":2}},\"lookbackDays\":90,\"seed\":\"4f0a7b0e98c04192\"}'),
-(10, 'Senior Subsidy', 'DOST', '3000', 3, '2026-09-26', '2026-09-26', 'Enabled', 5, '2026-09-26 23:23:02', 'Household', 'Provided List', '{\"mode\":\"provided_list\",\"count\":3,\"note\":\"Manually entered from external agency provided list\"}', 3, NULL);
+(7, 'Cat distribution', 'Petshops', 'Kittens', 3, '2026-09-26', '2026-09-26', 'Disabled', 5, '2026-09-26 19:00:14', 'Household', 'Prioritized', '{}', 4, '{\"factors\":{\"pwd\":{\"enabled\":true,\"weight\":3},\"senior\":{\"enabled\":true,\"weight\":3},\"solop\":{\"enabled\":true,\"weight\":3},\"noWorkingAdult\":{\"enabled\":true,\"weight\":2},\"largeHousehold\":{\"enabled\":true,\"weight\":1},\"children\":{\"enabled\":false,\"weight\":1},\"notHelpedRecently\":{\"enabled\":true,\"weight\":2}},\"lookbackDays\":90,\"seed\":\"60dbbeeb8d18ad5b\"}'),
+(8, 'Dog Distribution', 'Petshop', 'Puppies', 2, '2026-09-26', '2026-09-26', 'Disabled', 5, '2026-09-26 21:30:29', 'Household', 'Prioritized', '{}', 4, '{\"factors\":{\"pwd\":{\"enabled\":true,\"weight\":3},\"senior\":{\"enabled\":true,\"weight\":3},\"solop\":{\"enabled\":true,\"weight\":3},\"noWorkingAdult\":{\"enabled\":true,\"weight\":2},\"largeHousehold\":{\"enabled\":true,\"weight\":1},\"children\":{\"enabled\":false,\"weight\":1},\"notHelpedRecently\":{\"enabled\":true,\"weight\":2}},\"lookbackDays\":90,\"seed\":\"7078add69761214c\"}'),
+(9, 'Cellphone', 'baranggay', 'Cellphone', 3, '2026-09-26', '2026-09-29', 'Disabled', 5, '2026-09-26 22:49:14', 'Resident', 'Prioritized', '{\"sex\":\"Male\"}', 6, '{\"factors\":{\"pwd\":{\"enabled\":true,\"weight\":3},\"senior\":{\"enabled\":true,\"weight\":3},\"solop\":{\"enabled\":true,\"weight\":3},\"noWorkingAdult\":{\"enabled\":true,\"weight\":2},\"notHelpedRecently\":{\"enabled\":true,\"weight\":2}},\"lookbackDays\":90,\"seed\":\"4f0a7b0e98c04192\"}'),
+(10, 'Senior Subsidy', 'DOST', '3000', 3, '2026-09-26', '2026-09-26', 'Disabled', 5, '2026-09-26 23:23:02', 'Household', 'Provided List', '{\"mode\":\"provided_list\",\"count\":3,\"note\":\"Manually entered from external agency provided list\"}', 3, NULL),
+(11, 'sample', 'lebron', 'bula', 3, '2026-09-27', '2026-09-30', 'Enabled', 5, '2026-09-27 14:43:21', 'Household', 'All Eligible', '{}', 3, NULL),
+(12, 'Laptops', 'Carlos Ernanie', 'MacBook', 1, '2026-09-27', '2026-09-29', 'Enabled', 5, '2026-09-27 15:14:08', 'Resident', 'Prioritized', '{\"occupationContains\":\"student\"}', 2, '{\"factors\":{\"pwd\":{\"enabled\":true,\"weight\":3},\"senior\":{\"enabled\":true,\"weight\":3},\"solop\":{\"enabled\":true,\"weight\":3},\"noWorkingAdult\":{\"enabled\":true,\"weight\":2},\"notHelpedRecently\":{\"enabled\":true,\"weight\":2}},\"lookbackDays\":90,\"seed\":\"5d240f7e4b1c6679\"}'),
+(13, 'dsad', 'ds', 'qsad', 3, '2026-09-29', '2026-09-29', 'Enabled', 5, '2026-09-29 12:04:57', 'Household', 'All Eligible', '{}', 3, NULL);
 
 -- --------------------------------------------------------
 
@@ -379,7 +407,15 @@ INSERT INTO `eligibility_forms_entries` (`entry_id`, `form_id`, `resident_id`, `
 (37, 9, 7, 0, NULL, NULL, 'Waitlisted', 2.00, 6, '[{\"factor\":\"notHelpedRecently\",\"label\":\"Not helped recently (no prior record)\",\"units\":1,\"weight\":2,\"points\":2}]', NULL),
 (38, 10, 5, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
 (39, 10, 6, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
-(40, 10, 8, 0, NULL, '2026-09-26 23:23:28', 'Removed', NULL, NULL, NULL, 'Tegiboom na');
+(40, 10, 8, 0, NULL, '2026-09-26 23:23:28', 'Removed', NULL, NULL, NULL, 'Tegiboom na'),
+(41, 11, 5, 0, NULL, '2026-09-27 14:43:37', 'Removed', NULL, NULL, NULL, 'Ayaw baskitbol'),
+(42, 11, 6, 1, NULL, '2026-09-28 17:37:30', 'Selected', NULL, NULL, NULL, NULL),
+(43, 11, 8, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
+(44, 12, 10, 0, NULL, '2026-09-27 15:18:28', 'Removed', 2.00, 1, '[{\"factor\":\"notHelpedRecently\",\"label\":\"Not helped recently (no prior record)\",\"units\":1,\"weight\":2,\"points\":2}]', 'Slot opened'),
+(45, 12, 11, 0, NULL, '2026-09-27 15:18:28', 'Selected', 2.00, 2, '[{\"factor\":\"notHelpedRecently\",\"label\":\"Not helped recently (no prior record)\",\"units\":1,\"weight\":2,\"points\":2}]', NULL),
+(46, 13, 5, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
+(47, 13, 6, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL),
+(48, 13, 8, 0, NULL, NULL, 'Selected', NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -429,7 +465,7 @@ INSERT INTO `residents` (`resident_id`, `f_name`, `m_name`, `l_name`, `suffix`, 
 (7, 'Voldemort', NULL, 'Caliao', NULL, 'Male', '2020-09-27', 'Manila', NULL, NULL, 'Single', NULL, 'Filipino', 0, 0, 0, 0, 6, 0, NULL, NULL, 5, '2026-09-18 21:21:44', NULL, '2026-09-18 13:22:00'),
 (8, 'Marco', NULL, 'Eljan', 'Sr', 'Male', '2004-09-03', 'Nueva Ecija', '14', 'Angeles', 'Divorced', 'Gingineer', 'Bisaya', 0, 0, 1, 1, NULL, 0, NULL, NULL, 5, '2026-09-18 22:16:27', 5, '2026-09-18 17:07:35'),
 (9, 'Christian', NULL, 'Cosme', NULL, 'Male', '2005-08-15', 'Quezon City', NULL, NULL, 'Single', 'Pro Pliyer', 'Bisaya', 0, 0, 0, 0, 8, 0, NULL, NULL, 5, '2026-09-18 22:26:37', 5, '2026-09-26 14:52:58'),
-(10, 'Ginger', NULL, 'Caliao', NULL, 'Male', '2010-09-22', 'Manila', NULL, NULL, 'Single', 'Student', 'Filipino', 0, 0, 0, 0, 5, 0, NULL, NULL, 5, '2026-09-19 01:52:20', NULL, NULL),
+(10, 'Ginger', NULL, 'Caliao', NULL, 'Male', '2010-09-22', 'Manila', NULL, NULL, 'Single', 'Student', 'Filipino', 0, 0, 0, 0, 5, 1, 5, '2026-09-27 15:15:42', 5, '2026-09-19 01:52:20', NULL, '2026-09-27 07:15:42'),
 (11, 'Callie', NULL, 'Caliao', NULL, 'Female', '2011-09-27', 'Manila', NULL, NULL, 'Single', 'Student', 'Filipino', 0, 0, 0, 0, 5, 0, NULL, NULL, 5, '2026-09-19 01:53:00', NULL, NULL);
 
 -- --------------------------------------------------------
@@ -468,7 +504,6 @@ INSERT INTO `users` (`user_id`, `username`, `password`, `fullname`, `role`, `sta
 (16, 'brodie', '$2b$10$J9zRJgKJCWWEM/4kTDaALuR4BQEHet6YV4Tgm6/jne903FV0TqSnG', 'bru', 'Admin', 'Active', 4, '2026-04-28 00:44:16', 5, '2026-09-20 19:27:08', 1),
 (17, 'mong', '$2b$10$5BSfOvozi1tVG1gQsJtaAOJodSou7hghdFHA1NM53ka1cuwuS.prq', 'mong yaw', 'Staff', 'Active', 5, '2026-06-22 16:15:42', 17, '2026-06-22 16:16:15', 0),
 (18, 'potchi', '$2b$10$k0t4gDpgX..s.5J4OhvddeSI25kOEImcTU4JsY1VZUhu7tSPPXBH.', 'potchi', 'Staff', 'Active', 5, '2026-06-22 16:30:25', 18, '2026-06-22 16:30:39', 0),
-(19, 'cos', '$2b$10$0/FJQuchNDYGFk1/UWfzke2gQG45uj1OFuDJvMKFnXMAgVLQsKZLa', 'cosme ', 'Admin', 'Active', 5, '2026-07-02 15:39:15', 19, '2026-09-07 22:39:54', 0),
 (20, 'kiw', '$2b$10$O9yx7PnAtvYR9DRusqCnr.Pwvzx01qh3oDivi8eIXXgCRgOGRjBf6', 'kiw', 'Staff', 'Active', 5, '2026-09-04 18:04:47', 20, '2026-09-04 18:05:48', 0);
 
 --
@@ -531,19 +566,19 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=239;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=264;
 
 --
 -- AUTO_INCREMENT for table `eligibility_forms`
 --
 ALTER TABLE `eligibility_forms`
-  MODIFY `form_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `form_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `eligibility_forms_entries`
 --
 ALTER TABLE `eligibility_forms_entries`
-  MODIFY `entry_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+  MODIFY `entry_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
 
 --
 -- AUTO_INCREMENT for table `residents`

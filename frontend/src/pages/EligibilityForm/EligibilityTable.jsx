@@ -9,7 +9,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
-import ArchiveEligibilityFormModal from "../../modals/ArchiveEligibilityFormModal";
+import ActionAuthModal from "../../modals/ActionAuthModal";
 import CreateEligibilityFormModal from "../../modals/CreateEligibilityFormModal";
 import EditEligibilityFormModal from "../../modals/EditEligibilityFormModal";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
@@ -19,17 +19,33 @@ import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import SourceOutlinedIcon from "@mui/icons-material/SourceOutlined";
 import EventOutlinedIcon from "@mui/icons-material/EventOutlined";
 import axios from "axios";
+import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom";
+
+const API = "http://localhost:5000/api/eligibility-forms";
+
+// UI-only check — the server independently decides whether an end date is
+// required (updateFormStatus in EligibilityFormController.js).
+const isExpiredForm = (form) =>
+  !!form?.end_date && form.end_date < dayjs().format("YYYY-MM-DD");
+
+// Earliest allowed new end date: today, or the form's start date if that's later.
+const minEndDateFor = (form) => {
+  const today = dayjs().startOf("day");
+  const start = form?.start_date ? dayjs(form.start_date) : null;
+  return start && start.isAfter(today) ? start : today;
+};
 
 const EligibilityTable = () => {
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [selectedForm, setSelectedForm] = useState(null);
-  const [archiveOpen, setArchiveOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  // { type: "enable" | "disable" | "archive", form } — drives the credential modal
+  const [pendingAction, setPendingAction] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,7 +53,7 @@ const EligibilityTable = () => {
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:5000/api/eligibility-forms", {
+        const res = await axios.get(API, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setForms(res.data);
@@ -62,21 +78,66 @@ const EligibilityTable = () => {
     setSelectedForm(null);
   };
 
-  const handleToggleStatus = async (status) => {
-    try {
-      const token = localStorage.getItem("token");
-      await axios.put(
-        `http://localhost:5000/api/eligibility-forms/${selectedForm.form_id}/status`,
-        { status },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setRefreshKey((prev) => prev + 1);
-    } catch (err) {
-      console.error("Failed to update status:", err);
-    } finally {
-      handleKebabClose();
-    }
+  // Captures the form NOW (before the menu's close handler clears it).
+  const openAction = (type) => {
+    setPendingAction({ type, form: selectedForm });
+    setMenuAnchor(null);
+    setSelectedForm(null);
   };
+
+  // Throws on failure so ActionAuthModal can show the error and count
+  // credential rejections; closes itself (via state) on success.
+  const handleActionSubmit = async ({ username, password, end_date }) => {
+    const { type, form } = pendingAction;
+    const headers = { Authorization: `Bearer ${localStorage.getItem("token")}` };
+
+    if (type === "archive") {
+      await axios.delete(`${API}/delete/${form.form_id}`, {
+        headers,
+        data: { username, password },
+      });
+    } else {
+      await axios.put(
+        `${API}/${form.form_id}/status`,
+        {
+          status: type === "enable" ? "Enabled" : "Disabled",
+          username,
+          password,
+          ...(end_date ? { end_date } : {}),
+        },
+        { headers }
+      );
+    }
+
+    setPendingAction(null);
+    setRefreshKey((prev) => prev + 1);
+  };
+
+  const actionCopy = {
+    enable: {
+      title: "Confirm Enable",
+      confirmLabel: "Enable form",
+      confirmColor: "primary",
+      description: (form) =>
+        isExpiredForm(form)
+          ? `"${form?.form_name}" has passed its end date. Set a new end date and enter credentials to re-enable it.`
+          : `Enter credentials to enable "${form?.form_name}".`,
+    },
+    disable: {
+      title: "Confirm Disable",
+      confirmLabel: "Disable form",
+      confirmColor: "primary",
+      description: (form) => `Enter credentials to disable "${form?.form_name}". It becomes read-only until re-enabled.`,
+    },
+    archive: {
+      title: "Confirm Archive",
+      confirmLabel: "Archive form",
+      confirmColor: "warning",
+      description: (form) =>
+        `"${form?.form_name}" will be moved to the archive and become read-only. An admin can restore it later. Enter credentials to continue.`,
+    },
+  };
+  const copy = pendingAction ? actionCopy[pendingAction.type] : null;
 
   const handleCardClick = (form) => {
     navigate(`/Eligibility/${form.form_id}`, { 
@@ -96,8 +157,7 @@ const EligibilityTable = () => {
   };
 
   // Days remaining until end_date — used to surface an "Ending soon" nudge
-  // on active forms so staff notice before the auto-lock kicks in, rather
-  // than being surprised when it silently flips to Disabled.
+  // on active forms so staff notice before the auto-lock kicks in.
   const daysUntilEnd = (endDate) => {
     if (!endDate) return null;
     const end = new Date(endDate);
@@ -375,7 +435,7 @@ const EligibilityTable = () => {
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
         {/* Edit keeps selectedForm (only closes the menu) so the modal knows
-            which form it's editing — same pattern as Archive below. */}
+            which form it's editing. */}
         <MenuItem onClick={() => { setEditOpen(true); setMenuAnchor(null); }}>
           Edit details
         </MenuItem>
@@ -383,13 +443,13 @@ const EligibilityTable = () => {
         <Divider />
 
         <MenuItem
-          onClick={() => handleToggleStatus("Enabled")}
+          onClick={() => openAction("enable")}
           disabled={selectedForm?.status === "Enabled"}
         >
           Enable
         </MenuItem>
         <MenuItem
-          onClick={() => handleToggleStatus("Disabled")}
+          onClick={() => openAction("disable")}
           disabled={selectedForm?.status === "Disabled"}
         >
           Disable
@@ -397,16 +457,12 @@ const EligibilityTable = () => {
 
         <Divider />
 
-        {/* "Archive" replaces the old "Delete" — soft-delete via the existing delete endpoint */}
-        <MenuItem
-          onClick={() => { setArchiveOpen(true); setMenuAnchor(null); }}
-          sx={{ color: "#78716c" }}
-        >
+        <MenuItem onClick={() => openAction("archive")} sx={{ color: "#78716c" }}>
           Archive
         </MenuItem>
       </Menu>
 
-      {/* Edit details modal */}
+      {/* Edit details modal (asks for credentials itself on save) */}
       <EditEligibilityFormModal
         open={editOpen}
         onClose={() => { setEditOpen(false); setSelectedForm(null); }}
@@ -414,12 +470,18 @@ const EligibilityTable = () => {
         target={selectedForm}
       />
 
-      {/* Archive (soft-delete) confirmation modal */}
-      <ArchiveEligibilityFormModal
-        open={archiveOpen}
-        onClose={() => { setArchiveOpen(false); setSelectedForm(null); }}
-        onConfirm={() => setRefreshKey((prev) => prev + 1)}
-        target={selectedForm}
+      {/* Enable / Disable / Archive — credential gate. For an expired form,
+          Enable also collects a new end date. */}
+      <ActionAuthModal
+        open={Boolean(pendingAction)}
+        onClose={() => setPendingAction(null)}
+        onSubmit={handleActionSubmit}
+        title={copy?.title}
+        description={copy ? copy.description(pendingAction.form) : ""}
+        confirmLabel={copy?.confirmLabel}
+        confirmColor={copy?.confirmColor}
+        requireEndDate={pendingAction?.type === "enable" && isExpiredForm(pendingAction.form)}
+        minEndDate={pendingAction ? minEndDateFor(pendingAction.form) : null}
       />
 
       {/* New form wizard — the server builds the pool, so nothing here

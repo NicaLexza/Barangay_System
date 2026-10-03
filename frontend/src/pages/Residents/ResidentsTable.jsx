@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { uppercaseGridSx } from '../../Reusables/tableStyles.js';
 import { DataGrid } from '@mui/x-data-grid';
 import { Box, IconButton, Typography, Chip } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
@@ -144,7 +145,15 @@ const ResidentsTable = () => {
     { field: "birthplace", headerName: "Birthplace", width: 120 },
     { field: "address", headerName: "Address", width: 150 },
     { field: "civilStatus", headerName: "Civil Status", width: 130 },
-    { field: "occupation", headerName: "Occupation", width: 160 },
+    {
+      // Display-only default: a blank occupation SHOWS as "Unemployed" but is
+      // never stored that way, and row.occupation stays raw so the Employment
+      // filter and Statistics keep working off the real value.
+      field: "occupation",
+      headerName: "Occupation",
+      width: 160,
+      valueGetter: (value, row) => (row.occupation?.trim() ? row.occupation : "Unemployed"),
+    },
     { field: "citizenship", headerName: "Citizenship", width: 140 },
     { field: "specialSector", headerName: "Special Sector", width: 130 },
     {
@@ -279,7 +288,7 @@ const ResidentsTable = () => {
         row.birthplace?.toLowerCase().includes(search) ||
         row.address?.toLowerCase().includes(search) ||
         row.civilStatus?.toLowerCase().includes(search) ||
-        row.occupation?.toLowerCase().includes(search) ||
+        (row.occupation?.trim() ? row.occupation : "Unemployed").toLowerCase().includes(search) ||
         row.citizenship?.toLowerCase().includes(search) ||
         row.specialSector?.toLowerCase().includes(search);
 
@@ -307,8 +316,8 @@ const ResidentsTable = () => {
     
     // Employment filter
     if (filters.employment !== 'All') {
-      if (filters.employment === 'Employed' && !row.occupation) return false;
-      if (filters.employment === 'Unemployed' && row.occupation) return false;
+      if (filters.employment === 'Employed' && !row.occupation?.trim()) return false;
+      if (filters.employment === 'Unemployed' && row.occupation?.trim()) return false;
     }
 
     // Household filter
@@ -400,7 +409,7 @@ const ResidentsTable = () => {
         getRowId={(row) => row.id}
         hideFooter
         showToolbar
-        sx={{ flex: 1, minHeight: 0 }}
+        sx={{ flex: 1, minHeight: 0, ...uppercaseGridSx }}
         slots={{
           toolbar: ResidentsToolbar,
         }}

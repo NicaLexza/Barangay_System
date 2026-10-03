@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { uppercaseGridSx } from '../../Reusables/tableStyles.js';
 import { DataGrid, useGridApiRef } from "@mui/x-data-grid";
 import {
   Box,
@@ -79,8 +80,17 @@ const datePickerSlotProps = {
 };
 
 // ── Cell renderers ─────────────────────────────────────────────────────
+// DataGrid centers PLAIN-text cells with a row-height line-height. Custom
+// renderCell content doesn't get that, so it hugs the top of the row —
+// every custom cell is wrapped in this to center it vertically.
+const CenterCell = ({ children }) => (
+  <Box sx={{ height: "100%", display: "flex", alignItems: "center", minWidth: 0, width: "100%" }}>
+    {children}
+  </Box>
+);
+
 const EntityCell = ({ row }) => (
-  <Box sx={{ display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 0, width: "100%" }}>
+  <Box sx={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 0, width: "100%" }}>
     <Typography noWrap sx={{ fontSize: "0.85rem", fontWeight: 600, color: INK, lineHeight: 1.35 }}>
       {row.entity_name || "—"}
     </Typography>
@@ -95,11 +105,13 @@ const EntityCell = ({ row }) => (
 const ActionCell = ({ row }) => {
   const meta = getActionMeta(row.action_type);
   return (
-    <Chip
-      size="small"
-      label={meta.label}
-      sx={{ backgroundColor: meta.bg, color: meta.color, fontWeight: 600, fontSize: "0.72rem" }}
-    />
+    <CenterCell>
+      <Chip
+        size="small"
+        label={meta.label}
+        sx={{ backgroundColor: meta.bg, color: meta.color, fontWeight: 600, fontSize: "0.72rem" }}
+      />
+    </CenterCell>
   );
 };
 
@@ -107,12 +119,17 @@ const DetailsCell = ({ row, onOpen }) => {
   const detail = row._detail;
 
   if (detail.type === "none") {
-    return <Typography sx={{ color: INK_3 }}>—</Typography>;
+    return (
+      <CenterCell>
+        <Typography sx={{ color: INK_3 }}>—</Typography>
+      </CenterCell>
+    );
   }
 
   // Button only — no summary text — so it always sits at the left edge of
   // the column, at the same spot on every row.
   return (
+    <CenterCell>
     <Button
       size="small"
       variant="outlined"
@@ -128,6 +145,7 @@ const DetailsCell = ({ row, onOpen }) => {
     >
       {detail.type === "report" ? "View report" : "View details"}
     </Button>
+    </CenterCell>
   );
 };
 
@@ -345,9 +363,11 @@ export default function AuditLogsTable() {
         headerName: "Date & Time",
         width: 180,
         renderCell: ({ row }) => (
-          <Typography noWrap sx={{ fontSize: "0.8rem", color: INK_2 }}>
-            {formatLogTime(row.action_time)}
-          </Typography>
+          <CenterCell>
+            <Typography noWrap sx={{ fontSize: "0.8rem", color: INK_2 }}>
+              {formatLogTime(row.action_time)}
+            </Typography>
+          </CenterCell>
         ),
       },
       {
@@ -355,17 +375,20 @@ export default function AuditLogsTable() {
         field: "performed_by",
         headerName: "Performed By",
         width: 170,
-        renderCell: ({ row }) =>
-          row.performed_by ? (
-            <Typography noWrap sx={{ fontSize: "0.85rem", color: INK }}>
-              {row.performed_by}
-            </Typography>
-          ) : (
-            // Null performed_by = system action (e.g. auto-locked forms)
-            <Typography sx={{ fontSize: "0.85rem", color: INK_3, fontStyle: "italic" }}>
-              System
-            </Typography>
-          ),
+        renderCell: ({ row }) => (
+          <CenterCell>
+            {row.performed_by ? (
+              <Typography noWrap sx={{ fontSize: "0.85rem", color: INK }}>
+                {row.performed_by}
+              </Typography>
+            ) : (
+              // Null performed_by = system action (e.g. auto-locked forms)
+              <Typography sx={{ fontSize: "0.85rem", color: INK_3, fontStyle: "italic" }}>
+                System
+              </Typography>
+            )}
+          </CenterCell>
+        ),
       },
       {
         ...base,
@@ -549,6 +572,7 @@ export default function AuditLogsTable() {
           disableRowSelectionOnClick
           localeText={{ noRowsLabel: "No audit logs found." }}
           sx={{
+            ...uppercaseGridSx,
             flex: 1,
             minHeight: 0,
             border: 0,

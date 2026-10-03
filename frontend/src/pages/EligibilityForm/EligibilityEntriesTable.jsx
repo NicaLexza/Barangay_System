@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { uppercaseGridSx } from "../../Reusables/tableStyles.js";
 import { useParams, useLocation } from "react-router-dom";
 import { DataGrid } from "@mui/x-data-grid";
 import {
@@ -507,35 +508,14 @@ const EligibilityEntriesTable = () => {
       );
       printSelectionReport(res.data);
     } catch (err) {
-      console.warn("[handleGenerateReport] Backend endpoint unavailable, compiling fallback report:", err);
-      // Fallback in case backend process hasn't reloaded yet
-      const fallbackData = {
-        form: {
-          form_name: state?.form_name || "Eligibility Form",
-          distribution_unit: state?.distribution_unit || "Individual",
-          list_type: state?.list_type || "Prioritized",
-          target_quantity: state?.target_quantity,
-          created_by_name: state?.created_by_name || "Admin",
-          created_at: state?.created_at,
-          start_date: state?.start_date,
-          end_date: state?.end_date,
-        },
-        summary: {
-          pool_size: state?.pool_size || rows.length,
-          target_quantity: state?.target_quantity,
-          selected_count: rows.filter((r) => r.selection_status === "Selected").length,
-          waitlist_count: rows.filter((r) => r.selection_status === "Waitlisted").length,
-          removed_count: rows.filter((r) => r.selection_status === "Removed").length,
-          rewarded_count: rows.filter((r) => r.selection_status === "Selected" && r.is_rewarded === 1).length,
-        },
-        entries: {
-          selected: rows.filter((r) => r.selection_status === "Selected"),
-          waitlist: rows.filter((r) => r.selection_status === "Waitlisted"),
-          removed: rows.filter((r) => r.selection_status === "Removed"),
-        },
-        audit_trail: [],
-      };
-      printSelectionReport(fallbackData);
+      // No client-side fallback on purpose: a locally-compiled report would
+      // have an empty audit trail yet look like an official, complete
+      // document. Better to fail loudly and let the user retry.
+      console.error("[handleGenerateReport] Failed to load report:", err);
+      alert(
+        err.response?.data?.message ||
+          "Could not load the Selection Report from the server, so nothing was printed. Please try again."
+      );
     }
   };
 
@@ -876,7 +856,7 @@ const EligibilityEntriesTable = () => {
         getRowId={(row) => row.id}
         hideFooter
         showToolbar
-        sx={{ flex: 1, minHeight: 0 }}
+        sx={{ flex: 1, minHeight: 0, ...uppercaseGridSx }}
         slots={{ toolbar: EligibilityEntriesToolbar }}
         slotProps={{
           toolbar: {

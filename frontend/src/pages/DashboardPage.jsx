@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Box,
-  Grid,
   Typography,
   Divider,
   Table,
@@ -10,17 +9,14 @@ import {
   TableBody,
   TableRow,
   TableCell,
-  List,
-  ListItem,
-  ListItemText,
   Skeleton,
   Tooltip,
   Chip,
   Button,
-  CircularProgress,
+  Checkbox,
+  FormControlLabel,
   Snackbar,
   Alert,
-  Collapse,
   IconButton,
 } from "@mui/material";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
@@ -38,10 +34,7 @@ import PeopleOutlineIcon from "@mui/icons-material/PeopleOutline";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import BackupIcon from "@mui/icons-material/Backup";
 import RestoreIcon from "@mui/icons-material/Restore";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import ClearIcon from "@mui/icons-material/Clear";
-import DateRangeIcon from "@mui/icons-material/DateRange";
 import axios from "axios";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -52,7 +45,6 @@ import Navbar from "../Reusables/Navbar.jsx";
 import Footer from "../Reusables/Footer.jsx";
 import ReAuthModal from "../modals/ReAuthModal.jsx";
 import BackupRestoreResultModal from "../modals/BackupRestoreResultModal.jsx";
-import ActivityRow from "../Reusables/ActivityRow.jsx";
 
 dayjs.extend(relativeTime);
 
@@ -71,8 +63,6 @@ const WHITE = "#ffffff";
 const AGE_COLORS = ["#1e3a5f", "#1d5096", "#2563eb", "#60a5fa", "#bfdbfe"];
 const GENDER_COLORS = { Male: "#1d4ed8", Female: "#be185d", Other: "#047857" };
 
-
-
 const RECORD_TYPE_STYLES = {
   Resident: { color: "#1d4ed8", bg: "#eff6ff", Icon: PeopleOutlineIcon },
   Head: { color: "#16a34a", bg: "#f0fdf4", Icon: HomeOutlinedIcon },
@@ -82,7 +72,7 @@ const pct = (n, total) =>
   total > 0 ? Math.round((Number(n) / Number(total)) * 100) : 0;
 
 // Turns the backend's { residents, accounts, eligibility_forms, eligibility_entries }
-// shape into one readable sentence, reused for both backup and restore snackbars.
+// shape into one readable sentence.
 const formatCountsSummary = (counts) => {
   if (!counts) return null;
   return `${counts.residents} residents, ${counts.accounts} accounts, ${counts.eligibility_forms} eligibility forms, and ${counts.eligibility_entries} entries`;
@@ -267,27 +257,24 @@ const BarRow = ({ label, count, total, color, loading }) => {
   );
 };
 
-
-
 // ─── Dashboard page ───────────────────────────────────────────────────────────
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
-  const [activity, setActivity] = useState([]);
   const [loadS, setLoadS] = useState(true);
-  const [loadA, setLoadA] = useState(true);
 
   // Custom date-range filter — scopes every resident-based stat card and
   // chart to a strict window (created_at BETWEEN dateFrom AND dateTo)
-  // instead of the default all-time cumulative view. Recent Activity and
-  // Recently Added Records are intentionally NEVER affected by this filter
-  // (see dashboardController.js) — they always show the current latest.
+  // instead of the default all-time cumulative view. Recently Added Records
+  // is intentionally NEVER affected by this filter (see dashboardController.js).
   const [dateFrom, setDateFrom] = useState(null); // dayjs | null
   const [dateTo, setDateTo] = useState(null);     // dayjs | null
   const hasDateFilter = !!(dateFrom && dateTo);
 
-  // Backup re-auth flow state — mirrors the restore flow below. Backup now
-  // requires the same credential confirmation restore already required,
-  // instead of firing straight off the button click.
+  // Archived residents are excluded from every resident-based figure
+  // (cards, breakdowns, Recently Added) unless this is checked.
+  const [includeArchived, setIncludeArchived] = useState(false);
+
+  // Backup re-auth flow state — mirrors the restore flow below.
   const [backupReAuthOpen, setBackupReAuthOpen] = useState(false);
   const [backupReAuthLoading, setBackupReAuthLoading] = useState(false);
   const [backupReAuthError, setBackupReAuthError] = useState("");
@@ -299,32 +286,29 @@ const Dashboard = () => {
   const [reAuthError, setReAuthError] = useState("");
   const fileInputRef = useRef(null);
 
-  // Shared result feedback for both backup and restore
+  // Transient feedback (e.g. a local disk-save failure)
   const [snackbar, setSnackbar] = useState({ open: false, severity: "success", message: "" });
   const closeSnackbar = () => setSnackbar((prev) => ({ ...prev, open: false }));
 
   // Durable results modal for backup — shown every time a backup finishes
-  // (success or warning), independent of the transient save-to-disk
-  // outcome captured separately in `saveNote`. Restore's equivalent is
-  // rendered on LoginPage after the forced redirect (see postRestoreNotice).
+  // (success or warning). Restore's equivalent is rendered on LoginPage
+  // after the forced redirect (see postRestoreNotice). Past reports can
+  // still be re-opened from the Audit Logs page.
   const [backupResult, setBackupResult] = useState(null); // { report, filename, saveNote, requestedSummary } | null
-
-  // Re-opens the same results modal for a PAST backup/restore, using the
-  // report already persisted in activity_logs.details — kept as separate
-  // state from backupResult since a historical view has no saveNote or
-  // requestedSummary (those only exist right after a fresh operation).
-  const [activityReportView, setActivityReportView] = useState(null); // { report, operation, filename } | null
 
   const adminName = localStorage.getItem("username") ?? "Admin";
   const today = dayjs().format("dddd, MMMM D, YYYY");
 
   // Accepts an optional { startDate, endDate } ('YYYY-MM-DD' strings) —
-  // when omitted, the backend returns the default all-time cumulative view.
-  const fetchStats = useCallback(async (range) => {
+  // when omitted, the backend returns the default all-time cumulative view —
+  // and an includeArchived flag (omitted from the request when false, since
+  // the backend default is active-only).
+  const fetchStats = useCallback(async (range, withArchived = false) => {
     setLoadS(true);
     try {
       const token = localStorage.getItem("token");
       const params = {};
+      if (withArchived) params.includeArchived = true;
       if (range?.startDate && range?.endDate) {
         params.startDate = range.startDate;
         params.endDate = range.endDate;
@@ -344,50 +328,28 @@ const Dashboard = () => {
     }
   }, []);
 
-  const fetchActivity = useCallback(async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const { data } = await axios.get(
-        "http://localhost:5000/api/dashboard/recent-activity",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-      setActivity(data);
-    } catch (e) {
-      console.error("Activity error:", e);
-    } finally {
-      setLoadA(false);
-    }
-  }, []);
-
-  // Recent Activity is fetched once and never depends on the date filter.
-  useEffect(() => {
-    fetchActivity();
-  }, [fetchActivity]);
-
-  // Stats refetch whenever the date range changes — including on mount
-  // (both null → unfiltered all-time view) and whenever either endpoint
-  // is cleared (immediately reverts to all-time rather than requiring a
-  // separate "Clear" action, though a Clear button is still offered below
-  // for convenience).
+  // Stats refetch whenever the date range or the archived toggle changes —
+  // including on mount (no range, active-only).
   useEffect(() => {
     if (hasDateFilter) {
-      fetchStats({
-        startDate: dateFrom.format("YYYY-MM-DD"),
-        endDate: dateTo.format("YYYY-MM-DD"),
-      });
+      fetchStats(
+        {
+          startDate: dateFrom.format("YYYY-MM-DD"),
+          endDate: dateTo.format("YYYY-MM-DD"),
+        },
+        includeArchived,
+      );
     } else {
-      fetchStats();
+      fetchStats(undefined, includeArchived);
     }
-  }, [dateFrom, dateTo, hasDateFilter, fetchStats]);
+  }, [dateFrom, dateTo, hasDateFilter, includeArchived, fetchStats]);
 
   const clearDateFilter = () => {
     setDateFrom(null);
     setDateTo(null);
   };
 
-  // ── Backup — now gated behind re-auth ─────────────────────────────────────
+  // ── Backup — gated behind re-auth ─────────────────────────────────────────
   const handleBackupReAuthClose = () => {
     if (backupReAuthLoading) return;
     setBackupReAuthOpen(false);
@@ -410,8 +372,7 @@ const Dashboard = () => {
 
       // Step 2: generate + verify server-side. Returns JSON (not a file) —
       // the dump is buffered and diffed against the live DB before the
-      // browser ever starts downloading anything, so a discrepancy is
-      // known upfront instead of only being discoverable after the fact.
+      // browser ever starts downloading anything.
       const generateRes = await axios.post(
         "http://localhost:5000/api/backup/generate",
         { username, password },
@@ -429,21 +390,16 @@ const Dashboard = () => {
       const saveFilename = `${filename}.enc`;
 
       setBackupReAuthOpen(false);
-      fetchActivity();
 
-      // The verification report (success or warning) is already final —
-      // it was computed server-side before this point, and is already
-      // persisted to activity_logs.details. Everything below only affects
-      // whether the file made it to disk, which is a separate concern
-      // surfaced as `saveNote` inside the same results modal rather than
-      // a second, competing message.
+      // The verification report (success or warning) is already final and
+      // already persisted to activity_logs.details. Everything below only
+      // affects whether the file made it to disk, surfaced as `saveNote`
+      // inside the same results modal.
       let saveNote = "";
 
       // showSaveFilePicker's promise only resolves AFTER the user actually
       // finishes the native save dialog — a real completion signal, unlike
-      // an <a download> click which hands off to the browser instantly with
-      // no way to know what happens next. Chrome/Edge/Opera desktop only;
-      // Firefox and Safari don't implement it (Firefox has declined to).
+      // an <a download> click. Chrome/Edge/Opera desktop only.
       if (window.showSaveFilePicker) {
         try {
           const handle = await window.showSaveFilePicker({
@@ -457,8 +413,7 @@ const Dashboard = () => {
           saveNote = `Saved to disk as "${saveFilename}".`;
         } catch (saveErr) {
           // AbortError = user clicked Cancel on the save dialog. That's not
-          // a failure of the backup itself — it was already generated and
-          // verified server-side — just nothing was written to disk.
+          // a failure of the backup itself.
           if (saveErr.name !== "AbortError") {
             console.error("Save error:", saveErr);
             setSnackbar({
@@ -471,9 +426,8 @@ const Dashboard = () => {
           }
         }
       } else {
-        // Fallback for Firefox/Safari/mobile — no completion signal exists
-        // here at all, so the note is worded to not claim the save is
-        // done, only that it was handed off to the browser's downloader.
+        // Fallback for Firefox/Safari/mobile — no completion signal exists,
+        // so the note doesn't claim the save is done.
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
@@ -486,10 +440,6 @@ const Dashboard = () => {
         saveNote = "Download started — check your browser's downloads to confirm it finished saving.";
       }
 
-      // The results modal is the durable, detailed surface for the
-      // verification outcome — shown every time, not just when something
-      // is wrong, so "everything checked out" is just as visible as a
-      // discrepancy would be.
       setBackupResult({
         report: verification,
         filename: saveFilename,
@@ -557,11 +507,7 @@ const Dashboard = () => {
 
       // Stash in sessionStorage (not localStorage — that's about to be
       // wiped below) so LoginPage can show the full results modal AFTER
-      // the forced redirect lands. The full identity-level report travels
-      // here now, not just a summary string — LoginPage renders it with
-      // the same BackupRestoreResultModal the Dashboard uses for backup,
-      // and the same report is already persisted server-side in
-      // activity_logs.details regardless of whether this notice survives.
+      // the forced redirect lands.
       sessionStorage.setItem(
         "postRestoreNotice",
         JSON.stringify({
@@ -739,8 +685,7 @@ const Dashboard = () => {
               {/* Custom date-range filter — resident stat cards, age/gender/
                   civil-status breakdowns, and special sectors all scope to
                   this range (strict window) when both dates are set.
-                  Recent Activity / Recently Added Records intentionally
-                  ignore this filter entirely. */}
+                  Recently Added Records intentionally ignores it. */}
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DatePicker
                   label="From"
@@ -784,6 +729,28 @@ const Dashboard = () => {
                   <ClearIcon fontSize="small" />
                 </IconButton>
               )}
+
+              <FormControlLabel
+                sx={{
+                  m: 0,
+                  pr: 1.5,
+                  backgroundColor: WHITE,
+                  border: `1px solid ${BORDER}`,
+                  borderRadius: "8px",
+                }}
+                control={
+                  <Checkbox
+                    size="small"
+                    checked={includeArchived}
+                    onChange={(e) => setIncludeArchived(e.target.checked)}
+                  />
+                }
+                label={
+                  <Typography sx={{ fontSize: "0.78rem", color: INK_2, fontWeight: 500 }}>
+                    Include archived residents
+                  </Typography>
+                }
+              />
 
               <Box
                 sx={{
@@ -846,638 +813,494 @@ const Dashboard = () => {
             </Box>
           </Box>
 
-          {/* ── Main two-column layout (flexbox — reliable in MUI v7) ── */}
-          <Box sx={{ display: "flex", gap: 2, alignItems: "stretch" }}>
-            {/* ════════════════════════  LEFT COLUMN  (≈58%)  ════════════════════════ */}
-            <Box sx={{ flex: "0 0 58%", minWidth: 0 }}>
-              {/* Row 1 — four stat cards */}
-              <Box sx={{ display: "flex", gap: 1.5, mb: 2 }}>
-                {statCards.map((c) => (
-                  <Box key={c.label} sx={{ flex: 1, minWidth: 0 }}>
-                    <StatCard {...c} loading={loadS} />
-                  </Box>
-                ))}
+          {/* Row 1 — four stat cards (full width) */}
+          <Box sx={{ display: "flex", gap: 1.5, mb: 2 }}>
+            {statCards.map((c) => (
+              <Box key={c.label} sx={{ flex: 1, minWidth: 0 }}>
+                <StatCard {...c} loading={loadS} />
               </Box>
+            ))}
+          </Box>
 
-              {/* Row 2 — Age Distribution + Gender + Special Sectors */}
-              <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-                {/* Age Distribution */}
-                <Box sx={{ ...card, p: 2.5, flex: 1, minWidth: 0 }}>
-                  <SectionLabel>Age Distribution</SectionLabel>
-                  {ageGroups.map((g) => (
-                    <BarRow
-                      key={g.label}
-                      label={g.label}
-                      count={Number(g.value ?? 0)}
-                      total={totalR}
-                      color={g.color}
-                      loading={loadS}
-                    />
-                  ))}
-                  <Box
-                    sx={{
-                      mt: 1.25,
-                      pt: 1.25,
-                      borderTop: `1px solid ${BORDER}`,
-                    }}
-                  >
-                    <Typography sx={{ fontSize: "0.7rem", color: INK_3 }}>
-                      {totalR} residents total
-                    </Typography>
+          {/* Row 2 — Age Distribution + Gender + Special Sectors/Civil Status */}
+          <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+            {/* Age Distribution */}
+            <Box sx={{ ...card, p: 2.5, flex: 1, minWidth: 0 }}>
+              <SectionLabel>Age Distribution</SectionLabel>
+              {ageGroups.map((g) => (
+                <BarRow
+                  key={g.label}
+                  label={g.label}
+                  count={Number(g.value ?? 0)}
+                  total={totalR}
+                  color={g.color}
+                  loading={loadS}
+                />
+              ))}
+              <Box
+                sx={{
+                  mt: 1.25,
+                  pt: 1.25,
+                  borderTop: `1px solid ${BORDER}`,
+                }}
+              >
+                <Typography sx={{ fontSize: "0.7rem", color: INK_3 }}>
+                  {totalR} residents total
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Gender */}
+            <Box sx={{ ...card, p: 2.5, flex: 1, minWidth: 0 }}>
+              <SectionLabel>Gender</SectionLabel>
+              {loadS ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <Box key={i} mb={1.5}>
+                    <Skeleton height={13} sx={{ mb: 0.5, borderRadius: 1 }} />
+                    <Skeleton height={6} sx={{ borderRadius: 4 }} />
                   </Box>
-                </Box>
-
-                {/* Gender */}
-                <Box sx={{ ...card, p: 2.5, flex: 1, minWidth: 0 }}>
-                  <SectionLabel>Gender</SectionLabel>
-                  {loadS ? (
-                    Array.from({ length: 3 }).map((_, i) => (
-                      <Box key={i} mb={1.5}>
-                        <Skeleton
-                          height={13}
-                          sx={{ mb: 0.5, borderRadius: 1 }}
-                        />
-                        <Skeleton height={6} sx={{ borderRadius: 4 }} />
-                      </Box>
-                    ))
-                  ) : genders.length === 0 ? (
-                    <Typography sx={{ fontSize: "0.8rem", color: INK_3 }}>
-                      No data.
-                    </Typography>
-                  ) : (
-                    genders.map((g) => {
-                      const GIcon =
-                        g.sex === "Male"
-                          ? MaleIcon
-                          : g.sex === "Female"
-                            ? FemaleIcon
-                            : WcIcon;
-                      return (
-                        <Box key={g.sex} mb={1.5}>
-                          <Box
-                            display="flex"
-                            justifyContent="space-between"
-                            alignItems="center"
-                            mb={0.5}
-                          >
-                            <Box display="flex" alignItems="center" gap={0.6}>
-                              <GIcon
-                                sx={{
-                                  fontSize: 14,
-                                  color: GENDER_COLORS[g.sex] ?? INK_3,
-                                }}
-                              />
-                              <Typography
-                                sx={{
-                                  fontSize: "0.75rem",
-                                  color: INK_2,
-                                  fontWeight: 500,
-                                }}
-                              >
-                                {g.sex}
-                              </Typography>
-                            </Box>
-                            <Box display="flex" alignItems="baseline" gap={0.4}>
-                              <Typography
-                                sx={{
-                                  fontSize: "0.78rem",
-                                  fontWeight: 700,
-                                  color: INK,
-                                  fontVariantNumeric: "tabular-nums",
-                                }}
-                              >
-                                {g.count}
-                              </Typography>
-                              <Typography
-                                sx={{ fontSize: "0.66rem", color: INK_3 }}
-                              >
-                                {pct(g.count, totalG)}%
-                              </Typography>
-                            </Box>
-                          </Box>
-                          <Box
-                            sx={{
-                              height: 6,
-                              borderRadius: 4,
-                              backgroundColor: `${GENDER_COLORS[g.sex] ?? "#6b7280"}18`,
-                              overflow: "hidden",
-                            }}
-                          >
-                            <Box
-                              sx={{
-                                width: `${pct(g.count, totalG)}%`,
-                                height: "100%",
-                                backgroundColor:
-                                  GENDER_COLORS[g.sex] ?? "#6b7280",
-                                borderRadius: 4,
-                                transition:
-                                  "width 0.6s cubic-bezier(0.4,0,0.2,1)",
-                              }}
-                            />
-                          </Box>
-                        </Box>
-                      );
-                    })
-                  )}
-                </Box>
-
-                {/* Special Sectors + Civil Status */}
-                <Box sx={{ ...card, p: 2.5, flex: 1, minWidth: 0 }}>
-                  <SectionLabel>Special Sectors</SectionLabel>
-                  {loadS
-                    ? Array.from({ length: 3 }).map((_, i) => (
+                ))
+              ) : genders.length === 0 ? (
+                <Typography sx={{ fontSize: "0.8rem", color: INK_3 }}>
+                  No data.
+                </Typography>
+              ) : (
+                genders.map((g) => {
+                  const GIcon =
+                    g.sex === "Male"
+                      ? MaleIcon
+                      : g.sex === "Female"
+                        ? FemaleIcon
+                        : WcIcon;
+                  return (
+                    <Box key={g.sex} mb={1.5}>
                       <Box
-                        key={i}
                         display="flex"
                         justifyContent="space-between"
-                        py={1.1}
+                        alignItems="center"
+                        mb={0.5}
                       >
-                        <Skeleton width={120} height={15} />
-                        <Skeleton width={36} height={15} />
-                      </Box>
-                    ))
-                    : sectorRows.map(({ Icon, label, key, color }, i) => {
-                      const count = Number(sectors[key] ?? 0);
-                      const p = pct(count, totalR);
-                      return (
-                        <Box key={key}>
-                          <Box
-                            display="flex"
-                            justifyContent="space-between"
-                            alignItems="center"
-                            py={1.1}
-                          >
-                            <Box
-                              display="flex"
-                              alignItems="center"
-                              gap={0.75}
-                            >
-                              <Box
-                                sx={{
-                                  width: 26,
-                                  height: 26,
-                                  borderRadius: "6px",
-                                  backgroundColor: `${color}18`,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                }}
-                              >
-                                <Icon sx={{ fontSize: 14, color }} />
-                              </Box>
-                              <Typography
-                                sx={{
-                                  fontSize: "0.76rem",
-                                  color: INK_2,
-                                  fontWeight: 500,
-                                }}
-                              >
-                                {label}
-                              </Typography>
-                            </Box>
-                            <Box
-                              display="flex"
-                              alignItems="baseline"
-                              gap={0.5}
-                            >
-                              <Typography
-                                sx={{
-                                  fontSize: "1rem",
-                                  fontWeight: 700,
-                                  color: INK,
-                                  fontVariantNumeric: "tabular-nums",
-                                }}
-                              >
-                                {count}
-                              </Typography>
-                              <Typography
-                                sx={{ fontSize: "0.66rem", color: INK_3 }}
-                              >
-                                {p}%
-                              </Typography>
-                            </Box>
-                          </Box>
-                          {i < sectorRows.length - 1 && (
-                            <Divider sx={{ borderColor: BORDER }} />
-                          )}
-                        </Box>
-                      );
-                    })}
-
-                  <Divider sx={{ borderColor: BORDER, my: 1.5 }} />
-                  <SectionLabel sx={{ mb: 1 }}>Civil Status</SectionLabel>
-                  <Box display="flex" flexWrap="wrap" gap={0.6}>
-                    {loadS
-                      ? Array.from({ length: 4 }).map((_, i) => (
-                        <Skeleton
-                          key={i}
-                          width={72}
-                          height={24}
-                          sx={{ borderRadius: "5px" }}
-                        />
-                      ))
-                      : civil.map((c) => (
-                        <Box
-                          key={c.civil_status}
-                          sx={{
-                            px: 1,
-                            py: 0.35,
-                            border: `1px solid ${BORDER}`,
-                            borderRadius: "5px",
-                            backgroundColor: SURFACE,
-                            display: "flex",
-                            gap: 0.6,
-                            alignItems: "baseline",
-                          }}
-                        >
+                        <Box display="flex" alignItems="center" gap={0.6}>
+                          <GIcon
+                            sx={{
+                              fontSize: 14,
+                              color: GENDER_COLORS[g.sex] ?? INK_3,
+                            }}
+                          />
                           <Typography
                             sx={{
-                              fontSize: "0.7rem",
+                              fontSize: "0.75rem",
                               color: INK_2,
                               fontWeight: 500,
                             }}
                           >
-                            {c.civil_status}
+                            {g.sex}
                           </Typography>
+                        </Box>
+                        <Box display="flex" alignItems="baseline" gap={0.4}>
                           <Typography
                             sx={{
-                              fontSize: "0.7rem",
+                              fontSize: "0.78rem",
                               fontWeight: 700,
                               color: INK,
                               fontVariantNumeric: "tabular-nums",
                             }}
                           >
-                            {c.count}
+                            {g.count}
+                          </Typography>
+                          <Typography sx={{ fontSize: "0.66rem", color: INK_3 }}>
+                            {pct(g.count, totalG)}%
                           </Typography>
                         </Box>
-                      ))}
-                  </Box>
-                </Box>
-              </Box>
+                      </Box>
+                      <Box
+                        sx={{
+                          height: 6,
+                          borderRadius: 4,
+                          backgroundColor: `${GENDER_COLORS[g.sex] ?? "#6b7280"}18`,
+                          overflow: "hidden",
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: `${pct(g.count, totalG)}%`,
+                            height: "100%",
+                            backgroundColor: GENDER_COLORS[g.sex] ?? "#6b7280",
+                            borderRadius: 4,
+                            transition: "width 0.6s cubic-bezier(0.4,0,0.2,1)",
+                          }}
+                        />
+                      </Box>
+                    </Box>
+                  );
+                })
+              )}
+            </Box>
 
-              {/* Row 3 — Recently Added Records */}
-              <Box sx={{ ...card }}>
-                <Box
+            {/* Special Sectors + Civil Status */}
+            <Box sx={{ ...card, p: 2.5, flex: 1, minWidth: 0 }}>
+              <SectionLabel>Special Sectors</SectionLabel>
+              {loadS
+                ? Array.from({ length: 3 }).map((_, i) => (
+                  <Box
+                    key={i}
+                    display="flex"
+                    justifyContent="space-between"
+                    py={1.1}
+                  >
+                    <Skeleton width={120} height={15} />
+                    <Skeleton width={36} height={15} />
+                  </Box>
+                ))
+                : sectorRows.map(({ Icon, label, key, color }, i) => {
+                  const count = Number(sectors[key] ?? 0);
+                  const p = pct(count, totalR);
+                  return (
+                    <Box key={key}>
+                      <Box
+                        display="flex"
+                        justifyContent="space-between"
+                        alignItems="center"
+                        py={1.1}
+                      >
+                        <Box display="flex" alignItems="center" gap={0.75}>
+                          <Box
+                            sx={{
+                              width: 26,
+                              height: 26,
+                              borderRadius: "6px",
+                              backgroundColor: `${color}18`,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Icon sx={{ fontSize: 14, color }} />
+                          </Box>
+                          <Typography
+                            sx={{
+                              fontSize: "0.76rem",
+                              color: INK_2,
+                              fontWeight: 500,
+                            }}
+                          >
+                            {label}
+                          </Typography>
+                        </Box>
+                        <Box display="flex" alignItems="baseline" gap={0.5}>
+                          <Typography
+                            sx={{
+                              fontSize: "1rem",
+                              fontWeight: 700,
+                              color: INK,
+                              fontVariantNumeric: "tabular-nums",
+                            }}
+                          >
+                            {count}
+                          </Typography>
+                          <Typography sx={{ fontSize: "0.66rem", color: INK_3 }}>
+                            {p}%
+                          </Typography>
+                        </Box>
+                      </Box>
+                      {i < sectorRows.length - 1 && (
+                        <Divider sx={{ borderColor: BORDER }} />
+                      )}
+                    </Box>
+                  );
+                })}
+
+              <Divider sx={{ borderColor: BORDER, my: 1.5 }} />
+              <SectionLabel sx={{ mb: 1 }}>Civil Status</SectionLabel>
+              <Box display="flex" flexWrap="wrap" gap={0.6}>
+                {loadS
+                  ? Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton
+                      key={i}
+                      width={72}
+                      height={24}
+                      sx={{ borderRadius: "5px" }}
+                    />
+                  ))
+                  : civil.map((c) => (
+                    <Box
+                      key={c.civil_status}
+                      sx={{
+                        px: 1,
+                        py: 0.35,
+                        border: `1px solid ${BORDER}`,
+                        borderRadius: "5px",
+                        backgroundColor: SURFACE,
+                        display: "flex",
+                        gap: 0.6,
+                        alignItems: "baseline",
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: "0.7rem",
+                          color: INK_2,
+                          fontWeight: 500,
+                        }}
+                      >
+                        {c.civil_status}
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontSize: "0.7rem",
+                          fontWeight: 700,
+                          color: INK,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {c.count}
+                      </Typography>
+                    </Box>
+                  ))}
+              </Box>
+            </Box>
+          </Box>
+
+          {/* Row 3 — Recently Added Records (~2/3) beside Mission + Vision (~1/3) */}
+          <Box sx={{ display: "flex", gap: 2, alignItems: "stretch" }}>
+            {/* Recently Added Records */}
+            <Box sx={{ ...card, flex: 2, minWidth: 0 }}>
+              <Box
+                sx={{
+                  px: 2.5,
+                  py: 1.75,
+                  borderBottom: `1px solid ${BORDER}`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Typography
                   sx={{
-                    px: 2.5,
-                    py: 1.75,
-                    borderBottom: `1px solid ${BORDER}`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
+                    fontSize: "0.82rem",
+                    fontWeight: 700,
+                    color: INK,
+                    letterSpacing: "-0.01em",
                   }}
                 >
-                  <Typography
-                    sx={{
-                      fontSize: "0.82rem",
-                      fontWeight: 700,
-                      color: INK,
-                      letterSpacing: "-0.01em",
-                    }}
-                  >
-                    Recently Added Records
-                  </Typography>
-                  <Typography sx={{ fontSize: "0.68rem", color: INK_3 }}>
-                    Last 10
+                  Recently Added Records
+                </Typography>
+                <Typography sx={{ fontSize: "0.68rem", color: INK_3 }}>
+                  Last 10
+                </Typography>
+              </Box>
+
+              {loadS ? (
+                <Box px={2.5} py={2}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton
+                      key={i}
+                      height={36}
+                      sx={{ mb: 0.5, borderRadius: 1 }}
+                    />
+                  ))}
+                </Box>
+              ) : records.length === 0 ? (
+                <Box px={2.5} py={4} textAlign="center">
+                  <Typography sx={{ fontSize: "0.8rem", color: INK_3 }}>
+                    No records yet.
                   </Typography>
                 </Box>
-
-                {loadS ? (
-                  <Box px={2.5} py={2}>
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Skeleton
-                        key={i}
-                        height={36}
-                        sx={{ mb: 0.5, borderRadius: 1 }}
-                      />
-                    ))}
-                  </Box>
-                ) : records.length === 0 ? (
-                  <Box px={2.5} py={4} textAlign="center">
-                    <Typography sx={{ fontSize: "0.8rem", color: INK_3 }}>
-                      No records yet.
-                    </Typography>
-                  </Box>
-                ) : (
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow sx={{ backgroundColor: SURFACE }}>
-                        {["Name", "Type", "Added"].map((h) => (
+              ) : (
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: SURFACE }}>
+                      {["Name", "Type", "Added"].map((h) => (
+                        <TableCell
+                          key={h}
+                          sx={{
+                            fontSize: "0.63rem",
+                            fontWeight: 700,
+                            letterSpacing: "0.06em",
+                            textTransform: "uppercase",
+                            color: INK_3,
+                            borderBottom: `1px solid ${BORDER}`,
+                            py: 1,
+                            "&:first-of-type": { pl: 2.5 },
+                            "&:last-of-type": { pr: 2.5 },
+                          }}
+                        >
+                          {h}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {records.map((r, idx) => {
+                      const ts = RECORD_TYPE_STYLES[r.type] ?? {
+                        color: INK_3,
+                        bg: SURFACE,
+                        Icon: PeopleOutlineIcon,
+                      };
+                      const TIcon = ts.Icon;
+                      return (
+                        <TableRow
+                          key={`${r.type}-${r.id ?? idx}`}
+                          sx={{
+                            "&:last-child td": { border: 0 },
+                            "&:hover td": { backgroundColor: SURFACE },
+                            transition: "background 0.1s",
+                            cursor: "default",
+                          }}
+                        >
                           <TableCell
-                            key={h}
                             sx={{
-                              fontSize: "0.63rem",
-                              fontWeight: 700,
-                              letterSpacing: "0.06em",
-                              textTransform: "uppercase",
-                              color: INK_3,
-                              borderBottom: `1px solid ${BORDER}`,
-                              py: 1,
-                              "&:first-of-type": { pl: 2.5 },
-                              "&:last-of-type": { pr: 2.5 },
+                              pl: 2.5,
+                              py: 1.1,
+                              borderColor: BORDER,
+                              maxWidth: 220,
                             }}
                           >
-                            {h}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {records.map((r, idx) => {
-                        const ts = RECORD_TYPE_STYLES[r.type] ?? {
-                          color: INK_3,
-                          bg: SURFACE,
-                          Icon: PeopleOutlineIcon,
-                        };
-                        const TIcon = ts.Icon;
-                        return (
-                          <TableRow
-                            key={`${r.type}-${r.id ?? idx}`}
-                            sx={{
-                              "&:last-child td": { border: 0 },
-                              "&:hover td": { backgroundColor: SURFACE },
-                              transition: "background 0.1s",
-                              cursor: "default",
-                            }}
-                          >
-                            <TableCell
+                            <Typography
                               sx={{
-                                pl: 2.5,
-                                py: 1.1,
-                                borderColor: BORDER,
-                                maxWidth: 160,
+                                fontSize: "0.78rem",
+                                fontWeight: 600,
+                                color: INK,
                               }}
+                              noWrap
+                            >
+                              {r.name}
+                            </Typography>
+                          </TableCell>
+                          <TableCell sx={{ borderColor: BORDER, py: 1.1 }}>
+                            <Box
+                              sx={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 0.4,
+                                px: 0.75,
+                                py: 0.2,
+                                borderRadius: "5px",
+                                backgroundColor: ts.bg,
+                              }}
+                            >
+                              <TIcon sx={{ fontSize: 11, color: ts.color }} />
+                              <Typography
+                                sx={{
+                                  fontSize: "0.68rem",
+                                  fontWeight: 600,
+                                  color: ts.color,
+                                }}
+                              >
+                                {r.type}
+                              </Typography>
+                            </Box>
+                          </TableCell>
+                          <TableCell sx={{ pr: 2.5, borderColor: BORDER, py: 1.1 }}>
+                            <Tooltip
+                              title={dayjs(r.created_at).format("MMM D, YYYY h:mm A")}
+                              placement="left"
                             >
                               <Typography
                                 sx={{
-                                  fontSize: "0.78rem",
-                                  fontWeight: 600,
-                                  color: INK,
+                                  fontSize: "0.72rem",
+                                  color: INK_3,
+                                  cursor: "default",
                                 }}
                                 noWrap
                               >
-                                {r.name}
+                                {dayjs(r.created_at).fromNow()}
                               </Typography>
-                            </TableCell>
-                            <TableCell sx={{ borderColor: BORDER, py: 1.1 }}>
-                              <Box
-                                sx={{
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: 0.4,
-                                  px: 0.75,
-                                  py: 0.2,
-                                  borderRadius: "5px",
-                                  backgroundColor: ts.bg,
-                                }}
-                              >
-                                <TIcon sx={{ fontSize: 11, color: ts.color }} />
-                                <Typography
-                                  sx={{
-                                    fontSize: "0.68rem",
-                                    fontWeight: 600,
-                                    color: ts.color,
-                                  }}
-                                >
-                                  {r.type}
-                                </Typography>
-                              </Box>
-                            </TableCell>
-                            <TableCell
-                              sx={{ pr: 2.5, borderColor: BORDER, py: 1.1 }}
-                            >
-                              <Tooltip
-                                title={dayjs(r.created_at).format(
-                                  "MMM D, YYYY h:mm A",
-                                )}
-                                placement="left"
-                              >
-                                <Typography
-                                  sx={{
-                                    fontSize: "0.72rem",
-                                    color: INK_3,
-                                    cursor: "default",
-                                  }}
-                                  noWrap
-                                >
-                                  {dayjs(r.created_at).fromNow()}
-                                </Typography>
-                              </Tooltip>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                )}
-              </Box>
+                            </Tooltip>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
             </Box>
-            {/* end LEFT COLUMN */}
 
-            {/* ════════════════════════  RIGHT COLUMN  (≈42%)  ═══════════════════════ */}
+            {/* Mission + Vision, stacked */}
             <Box
               sx={{
-                flex: "0 0 calc(42% - 8px)",
+                flex: 1,
                 minWidth: 0,
                 display: "flex",
                 flexDirection: "column",
+                gap: 2,
               }}
             >
-              {/* Row 1 — Mission + Vision side by side */}
-              <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-                {/* Mission */}
-                <Box
-                  sx={{
-                    ...card,
-                    p: 2.5,
-                    flex: 1,
-                    minWidth: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 1.25,
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      fontSize: "1rem",
-                      fontWeight: 700,
-                      color: INK,
-                      textAlign: "center",
-                      letterSpacing: "-0.01em",
-                    }}
-                  >
-                    Mission
-                  </Typography>
-                  <Divider sx={{ borderColor: BORDER }} />
-                  <Typography
-                    sx={{
-                      fontSize: "0.75rem",
-                      color: INK_2,
-                      lineHeight: 1.75,
-                      textAlign: "justify",
-                    }}
-                  >
-                    To develop a vibrant community led by competent, dynamic,
-                    and committed leaders with family-oriented, caring, loving,
-                    healthy, secured, and empowered people living harmoniously
-                    and sustainably managing the social environment.
-                  </Typography>
-                </Box>
-
-                {/* Vision */}
-                <Box
-                  sx={{
-                    ...card,
-                    p: 2.5,
-                    flex: 1,
-                    minWidth: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 1.25,
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      fontSize: "1rem",
-                      fontWeight: 700,
-                      color: INK,
-                      textAlign: "center",
-                      letterSpacing: "-0.01em",
-                    }}
-                  >
-                    Vision
-                  </Typography>
-                  <Divider sx={{ borderColor: BORDER }} />
-                  <Typography
-                    sx={{
-                      fontSize: "0.75rem",
-                      color: INK_2,
-                      lineHeight: 1.75,
-                      textAlign: "justify",
-                    }}
-                  >
-                    To create a community of sustainable growth through the
-                    provision of effective and efficient services for local
-                    governance that will improve the quality of life of the
-                    people in the Barangay.
-                  </Typography>
-                </Box>
-              </Box>
-
-              {/* Row 2 — Recent Activity */}
               <Box
                 sx={{
                   ...card,
+                  p: 2.5,
+                  flex: 1,
                   display: "flex",
                   flexDirection: "column",
-                  height: 733,
+                  gap: 1.25,
                 }}
               >
-                <Box
+                <Typography
                   sx={{
-                    px: 2.5,
-                    py: 1.75,
-                    borderBottom: `1px solid ${BORDER}`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
+                    fontSize: "1rem",
+                    fontWeight: 700,
+                    color: INK,
+                    textAlign: "center",
+                    letterSpacing: "-0.01em",
                   }}
                 >
-                  <Typography
-                    sx={{
-                      fontSize: "0.82rem",
-                      fontWeight: 700,
-                      color: INK,
-                      letterSpacing: "-0.01em",
-                    }}
-                  >
-                    Recent Activity
-                  </Typography>
-                  <Box display="flex" gap={0.75}>
-                    {[
-                      { color: "#2563eb", label: "Resident" },
-                      { color: "#16a34a", label: "Household" },
-                      { color: "#7c3aed", label: "Account" },
-                      { color: "#0891b2", label: "Backup" },
-                    ].map(({ color, label }) => (
-                      <Tooltip key={label} title={label} placement="bottom">
-                        <Box
-                          sx={{
-                            width: 7,
-                            height: 7,
-                            borderRadius: "50%",
-                            backgroundColor: color,
-                            cursor: "default",
-                            mt: "2px",
-                          }}
-                        />
-                      </Tooltip>
-                    ))}
-                  </Box>
-                </Box>
+                  Mission
+                </Typography>
+                <Divider sx={{ borderColor: BORDER }} />
+                <Typography
+                  sx={{
+                    fontSize: "0.75rem",
+                    color: INK_2,
+                    lineHeight: 1.75,
+                    textAlign: "justify",
+                  }}
+                >
+                  To develop a vibrant community led by competent, dynamic,
+                  and committed leaders with family-oriented, caring, loving,
+                  healthy, secured, and empowered people living harmoniously
+                  and sustainably managing the social environment.
+                </Typography>
+              </Box>
 
-                {/* ↓ scrollable content area that fills available space */}
-                <Box
+              <Box
+                sx={{
+                  ...card,
+                  p: 2.5,
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 1.25,
+                }}
+              >
+                <Typography
                   sx={{
-                    px: 2,
-                    ...thinScroll,
-                    overflow: "auto",
-                    flex: 1,
-                    minHeight: 0,
+                    fontSize: "1rem",
+                    fontWeight: 700,
+                    color: INK,
+                    textAlign: "center",
+                    letterSpacing: "-0.01em",
                   }}
                 >
-                  {loadA ? (
-                    <Box py={1.5}>
-                      {Array.from({ length: 10 }).map((_, i) => (
-                        <Box
-                          key={i}
-                          display="flex"
-                          gap={1.25}
-                          py={1.25}
-                          alignItems="flex-start"
-                        >
-                          <Skeleton
-                            variant="circular"
-                            width={8}
-                            height={8}
-                            sx={{ mt: "7px", flexShrink: 0 }}
-                          />
-                          <Box flex={1}>
-                            <Skeleton height={12} sx={{ mb: 0.4 }} />
-                            <Skeleton height={10} width="55%" />
-                          </Box>
-                          <Skeleton
-                            width={46}
-                            height={10}
-                            sx={{ flexShrink: 0 }}
-                          />
-                        </Box>
-                      ))}
-                    </Box>
-                  ) : activity.length === 0 ? (
-                    <Box py={4} textAlign="center">
-                      <Typography sx={{ fontSize: "0.8rem", color: INK_3 }}>
-                        No recent activity.
-                      </Typography>
-                    </Box>
-                  ) : (
-                    <List disablePadding>
-                      {activity.map((item, i) => (
-                        <ActivityRow
-                          key={`${item.entity_type}-${item.action_type}-${i}`}
-                          item={item}
-                          last={i === activity.length - 1}
-                          onViewReport={setActivityReportView}
-                        />
-                      ))}
-                    </List>
-                  )}
-                </Box>
+                  Vision
+                </Typography>
+                <Divider sx={{ borderColor: BORDER }} />
+                <Typography
+                  sx={{
+                    fontSize: "0.75rem",
+                    color: INK_2,
+                    lineHeight: 1.75,
+                    textAlign: "justify",
+                  }}
+                >
+                  To create a community of sustainable growth through the
+                  provision of effective and efficient services for local
+                  governance that will improve the quality of life of the
+                  people in the Barangay.
+                </Typography>
               </Box>
             </Box>
-            {/* end RIGHT COLUMN */}
           </Box>
-          {/* end two-column flexbox */}
 
           <Box pb={3} />
         </Box>
@@ -1510,8 +1333,7 @@ const Dashboard = () => {
       />
 
       {/* Durable backup results — shown every time a backup finishes, success
-          or warning, so the verification outcome is never only visible for
-          a few seconds. Restore's equivalent renders on LoginPage after the
+          or warning. Restore's equivalent renders on LoginPage after the
           forced redirect — see postRestoreNotice in sessionStorage. */}
       <BackupRestoreResultModal
         open={!!backupResult}
@@ -1523,21 +1345,8 @@ const Dashboard = () => {
         requestedSummary={backupResult?.requestedSummary}
       />
 
-      {/* Re-opened from Recent Activity's "VIEW REPORT" link — same modal,
-          same report, just pulled from activity_logs.details instead of a
-          just-finished operation. This is what makes the report durable:
-          closing it here loses nothing since it was already persisted. */}
-      <BackupRestoreResultModal
-        open={!!activityReportView}
-        onClose={() => setActivityReportView(null)}
-        operation={activityReportView?.operation}
-        report={activityReportView?.report}
-        filename={activityReportView?.filename}
-      />
-
-      {/* Snackbar is now reserved for transient, non-verification issues
-          (e.g. a local disk-save failure) — the verification outcome itself
-          always goes through the modal above, not this. */}
+      {/* Snackbar is reserved for transient, non-verification issues
+          (e.g. a local disk-save failure). */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={7000}

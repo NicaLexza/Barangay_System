@@ -11,7 +11,7 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
 import ArchiveIcon from "@mui/icons-material/Archive";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ListAltIcon from "@mui/icons-material/ListAlt";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import ReAuthModal from "../../modals/ReAuthModal.jsx";
@@ -146,13 +146,6 @@ const EligibilityArchivedTable = () => {
       {/* Header */}
       <Box sx={{ mb: 3, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <IconButton
-            size="small"
-            onClick={() => navigate("/Eligibility")}
-            sx={{ color: "#002f59", mt: 0.25 }}
-          >
-            <ArrowBackIcon fontSize="small" />
-          </IconButton>
           <Box>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <ArchiveIcon sx={{ color: "#78716c", fontSize: 22 }} />
@@ -165,6 +158,28 @@ const EligibilityArchivedTable = () => {
             </Typography>
           </Box>
         </Box>
+
+        {/* Same slot as "View Archived" on the regular page (rightmost). */}
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<ListAltIcon fontSize="small" />}
+          onClick={() => navigate("/Eligibility")}
+          sx={{
+            textTransform: "none",
+            borderColor: "#78716c",
+            color: "#57534e",
+            fontWeight: 500,
+            backgroundColor: "#fff",
+            flexShrink: 0,
+            "&:hover": {
+              borderColor: "#57534e",
+              backgroundColor: "#f5f5f4",
+            },
+          }}
+        >
+          View Regular
+        </Button>
       </Box>
 
       {/* Content */}

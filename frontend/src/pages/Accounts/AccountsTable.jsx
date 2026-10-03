@@ -1,24 +1,25 @@
 // AccountsTable.jsx
 import { useState, useEffect } from 'react';
+import { uppercaseGridSx } from '../../Reusables/tableStyles.js';
 import { DataGrid } from '@mui/x-data-grid';
 import { Box, IconButton } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
 import KeyIcon from '@mui/icons-material/Key';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import EditAccountModal from '../../modals/EditAccountModal';
 import ResetPasswordModal from '../../modals/ResetPasswordModal';
 import AccountsToolbar from './AccountsToolbar';
-import DeleteConfirmModal from '../../modals/DeleteAccountModal';
 import InfoPopper from '../../Reusables/InfoPopper.jsx';
 import axios from 'axios';
 
+// NOTE: there is no delete action for accounts on purpose. Deleting a user
+// would strip the "performed by" identity from every audit-log row they
+// created. To retire an account, set its Status to Inactive via Edit.
 const UsersTable = () => {
   const [rows, setRows] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedRow, setSelectedRow] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
   const [infoAnchorEl, setInfoAnchorEl] = useState(null);
   const [searchValue, setSearchValue] = useState('');
@@ -84,14 +85,11 @@ const UsersTable = () => {
         const row = params.row;
         return (
           <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-            <IconButton size="small" color="primary" onClick={() => { setSelectedRow(row); setEditOpen(true); }}>
+            <IconButton size="small" color="primary" onClick={() => { setSelectedRow(row); setEditOpen(true); }} title="Edit">
               <EditIcon fontSize="small" />
             </IconButton>
             <IconButton size="small" color="warning" onClick={() => { setSelectedRow(row); setResetPasswordOpen(true); }} title="Reset Password">
               <KeyIcon fontSize="small" />
-            </IconButton>
-            <IconButton size="small" color="error" onClick={() => { setSelectedRow(row); setDeleteOpen(true); }}>
-              <DeleteIcon fontSize="small" />
             </IconButton>
             <IconButton size="small" onMouseEnter={(e) => handleInfoEnter(e, row)} onMouseLeave={handleInfoLeave}>
               <InfoOutlinedIcon fontSize="small" />
@@ -181,13 +179,13 @@ const UsersTable = () => {
         loading={loading}
         hideFooter
         showToolbar
-        sx={{ flex: 1, minHeight: 0 }}  // ✅
+        sx={{ flex: 1, minHeight: 0, ...uppercaseGridSx }}
         slots={{ toolbar: AccountsToolbar }}
         slotProps={{
           toolbar: {
             onAddSuccess: () => setRefreshKey((prev) => prev + 1),
             onApplyFilters: handleApplyFilters,
-            onSearchChange: (value) => setSearchValue(value),  // ✅
+            onSearchChange: (value) => setSearchValue(value),
           },
         }}
       />
@@ -204,19 +202,11 @@ const UsersTable = () => {
         ]}
       />
 
-      {/* Edit & Delete Modals (uncomment when ready) */}
       <EditAccountModal
         open={editOpen}
         onClose={() => { setEditOpen(false); setSelectedRow(null); }}
         userId={selectedRow?.id || selectedRow?.user_id}
         onSuccess={() => { setRefreshKey(prev => prev + 1); setEditOpen(false); }}
-      />
-
-      <DeleteConfirmModal
-        open={deleteOpen}
-        onClose={() => { setDeleteOpen(false); setSelectedRow(null); }}
-        onConfirm={() => setRefreshKey(prev => prev + 1)}
-        target={selectedRow}
       />
 
       <ResetPasswordModal

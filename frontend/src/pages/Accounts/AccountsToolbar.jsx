@@ -2,11 +2,15 @@
 import { useState } from 'react';
 import {
   Box, Button, TextField, IconButton, Popover,
-  Stack, Typography, FormControl, FormLabel,
-  RadioGroup, FormControlLabel, Radio, Divider,
+  Stack, Typography, Divider,
 } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import AddAccountModal from '../../modals/AddAccountModal';
+import {
+  FilterSection,
+  FilterToggle,
+  filterPopoverPaperSx,
+} from '../../Reusables/FilterControls.jsx';
 
 export default function AccountsToolbar({ onAddSuccess, onApplyFilters, onSearchChange }) {
   const [quickFilterValue, setQuickFilterValue] = useState('');
@@ -89,35 +93,35 @@ export default function AccountsToolbar({ onAddSuccess, onApplyFilters, onSearch
         </Box>
       </Box>
 
-      {/* Filter Popover */}
+      {/* Filter Popover — compact controls shared with Residents / Entries */}
       <Popover
         open={openFilter}
         anchorEl={anchorEl}
         onClose={handleFilterClose}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
         transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-        PaperProps={{ sx: { width: 260, p: 2, boxShadow: 3 } }}
+        PaperProps={{ sx: filterPopoverPaperSx }}
       >
-        <Typography variant="h6" gutterBottom>Quick Filters</Typography>
+        <Typography variant="subtitle1" fontWeight={700} color="#002f59" gutterBottom>
+          Quick Filters
+        </Typography>
 
-        <Stack spacing={2.5}>
-          <FormControl>
-            <FormLabel>Role</FormLabel>
-            <RadioGroup value={role} onChange={(e) => setRole(e.target.value)}>
-              <FormControlLabel value="All"   control={<Radio />} label="All" />
-              <FormControlLabel value="Admin" control={<Radio />} label="Admin" />
-              <FormControlLabel value="Staff" control={<Radio />} label="Staff" />
-            </RadioGroup>
-          </FormControl>
+        <Stack spacing={2}>
+          <FilterSection label="Role">
+            <FilterToggle
+              value={role}
+              onChange={setRole}
+              options={['All', 'Admin', 'Staff'].map((v) => ({ value: v, label: v }))}
+            />
+          </FilterSection>
 
-          <FormControl>
-            <FormLabel>Status</FormLabel>
-            <RadioGroup value={status} onChange={(e) => setStatus(e.target.value)}>
-              <FormControlLabel value="All"      control={<Radio />} label="All" />
-              <FormControlLabel value="Active"   control={<Radio />} label="Active" />
-              <FormControlLabel value="Inactive" control={<Radio />} label="Inactive" />
-            </RadioGroup>
-          </FormControl>
+          <FilterSection label="Status">
+            <FilterToggle
+              value={status}
+              onChange={setStatus}
+              options={['All', 'Active', 'Inactive'].map((v) => ({ value: v, label: v }))}
+            />
+          </FilterSection>
 
           <Divider />
 

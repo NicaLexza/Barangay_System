@@ -2,6 +2,7 @@
 const db = require("../config/db");
 const { logActivity } = require("../utils/activityLogger");
 const { sweepExpiredForms } = require("../utils/eligibilityAutoLock");
+const { verifyActionCredentials, requestDetails } = require("../utils/actionCredentials");
 
 const isValidISODate = (s) => {
   if (typeof s !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
@@ -17,16 +18,11 @@ const isValidISODate = (s) => {
  * shows up already Disabled in this response rather than stale-Enabled —
  * see utils/eligibilityAutoLock.js for the check-on-read rationale.
  *
- * Counts only cover entries with selection_status = 'Selected' — the
- * people/households actually receiving. Waitlisted / Not Selected entries
- * (once ranked selection exists) must not inflate the card totals.
+ * Counts only cover entries with selection_status = 'Selected'.
  */
 const getForms = (req, res) => {
   sweepExpiredForms((sweepErr) => {
     if (sweepErr) {
-      // Don't block the whole request on a sweep failure — worst case the
-      // list is momentarily stale for an expired form, which the next
-      // request will catch. Just log it and continue.
       console.error("[getForms] Auto-lock sweep failed, continuing anyway:", sweepErr.message);
     }
 
@@ -70,60 +66,108 @@ const getForms = (req, res) => {
 
 /**
  * PUT /api/eligibility-forms/:id/status
- * Toggles between Enabled and Disabled only (Archived is handled separately).
+ * Body: { status, username, password, end_date? }
+ *
+ * Toggles between Enabled and Disabled only. Requires credentials (see
+ * utils/actionCredentials.js — Staff submit any active Admin's, Admins
+ * submit their own).
+ *
+ * Enabling a form whose end_date has already passed REQUIRES a new end_date
+ * (>= today and >= start_date). Without it the auto-lock sweep would flip
+ * the form straight back to Disabled on the next list load. Enforced here,
+ * not just in the UI. "Passed" is decided by the database's CURDATE(), the
+ * same clock the sweep uses.
  */
-const updateFormStatus = (req, res) => {
+const updateFormStatus = async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body;
-  const performed_by = req.user.id;
+  const { status, end_date } = req.body;
 
   if (!["Enabled", "Disabled"].includes(status)) {
     return res.status(400).json({ message: "Invalid status value" });
   }
 
-  // Fetch form name first for logging
-  db.query("SELECT form_name FROM eligibility_forms WHERE form_id = ?", [id], (err, results) => {
+  let auth;
+  try {
+    auth = await verifyActionCredentials(req);
+  } catch (e) {
+    return res.status(e.status || 500).json({ message: e.message || "Server error" });
+  }
+
+  const fetchSql = `
+    SELECT
+      form_name,
+      status,
+      DATE_FORMAT(start_date, '%Y-%m-%d') AS start_date,
+      DATE_FORMAT(end_date, '%Y-%m-%d')   AS end_date,
+      (end_date IS NOT NULL AND end_date < CURDATE()) AS is_expired,
+      DATE_FORMAT(CURDATE(), '%Y-%m-%d')  AS today
+    FROM eligibility_forms
+    WHERE form_id = ?
+  `;
+
+  db.query(fetchSql, [id], (err, results) => {
     if (err) return res.status(500).json({ message: "Database error" });
     if (results.length === 0) return res.status(404).json({ message: "Form not found" });
 
-    const formName = results[0].form_name;
+    const form = results[0];
 
-    const sql = "UPDATE eligibility_forms SET status = ? WHERE form_id = ?";
-    db.query(sql, [status, id], (err, result) => {
-      if (err) return res.status(500).json({ message: "Database error", err });
+    if (form.status === "Archived") {
+      return res.status(400).json({ message: "Archived forms must be restored before their status can change." });
+    }
+
+    let newEndDate = null;
+    if (status === "Enabled" && form.is_expired) {
+      if (!isValidISODate(end_date)) {
+        return res.status(400).json({
+          code: "END_DATE_REQUIRED",
+          message: "This form's end date has passed. Choose a new end date to re-enable it.",
+        });
+      }
+      if (end_date < form.today) {
+        return res.status(400).json({ message: "The new end date cannot be in the past." });
+      }
+      if (form.start_date && end_date < form.start_date) {
+        return res.status(400).json({ message: "The new end date cannot be before the form's start date." });
+      }
+      newEndDate = end_date;
+    }
+
+    const sql = newEndDate
+      ? "UPDATE eligibility_forms SET status = ?, end_date = ? WHERE form_id = ? AND status != 'Archived'"
+      : "UPDATE eligibility_forms SET status = ? WHERE form_id = ? AND status != 'Archived'";
+    const params = newEndDate ? [status, newEndDate, id] : [status, id];
+
+    db.query(sql, params, (updateErr, result) => {
+      if (updateErr) return res.status(500).json({ message: "Database error", err: updateErr });
+      if (result.affectedRows === 0) return res.status(404).json({ message: "Form not found or archived." });
+
+      res.status(200).json({ message: `Form ${status.toLowerCase()} successfully` });
 
       logActivity({
         entity_type: "Eligibility Form",
         entity_id: id,
-        entity_name: formName,
+        entity_name: form.form_name,
         action_type: status.toLowerCase(),
-        performed_by
+        performed_by: auth.actingAdmin.user_id,
+        details: requestDetails(auth.requestedBy),
+        changes: newEndDate ? [{ field: "End Date", from: form.end_date || "", to: newEndDate }] : null,
       });
-
-      res.status(200).json({ message: `Form ${status.toLowerCase()} successfully` });
     });
   });
 };
 
 /**
  * PUT /api/eligibility-forms/:id/details
- * Body: { form_name, source_details, distribution_details, start_date, end_date }
+ * Body: { form_name, source_details, distribution_details, start_date, end_date, username, password }
  *
- * Edits the descriptive fields of a form. Deliberately does NOT allow
- * changing target_quantity, distribution_unit, or criteria/priority config:
- * those decided who is in the pool and how it was ranked, so changing them
- * after creation would make the saved entries and waitlist inconsistent with
- * the form's own record (and with the Selection Report).
- *
- * Archived forms are read-only and rejected. Editing dates does NOT change
- * status — a form that auto-locked must still be re-enabled manually.
- *
- * Any authenticated role (same level as the Enable/Disable toggle).
+ * Edits the descriptive fields of a form. Does NOT allow changing
+ * target_quantity, distribution_unit, or criteria/priority config.
+ * Archived forms are read-only. Editing dates does NOT change status.
+ * Requires credentials (see utils/actionCredentials.js).
  */
-const updateFormDetails = (req, res) => {
+const updateFormDetails = async (req, res) => {
   const { id } = req.params;
   const { form_name, source_details, distribution_details, start_date, end_date } = req.body;
-  const performed_by = req.user.id;
 
   if (typeof form_name !== "string" || !form_name.trim()) {
     return res.status(400).json({ message: "Form name is required." });
@@ -142,6 +186,13 @@ const updateFormDetails = (req, res) => {
   }
   if (end_date < start_date) {
     return res.status(400).json({ message: "End date cannot be before start date." });
+  }
+
+  let auth;
+  try {
+    auth = await verifyActionCredentials(req);
+  } catch (e) {
+    return res.status(e.status || 500).json({ message: e.message || "Server error" });
   }
 
   const fetchSql = `
@@ -213,7 +264,8 @@ const updateFormDetails = (req, res) => {
           entity_id: id,
           entity_name: next.form_name,
           action_type: "updated",
-          performed_by,
+          performed_by: auth.actingAdmin.user_id,
+          details: requestDetails(auth.requestedBy),
           changes,
         });
       }

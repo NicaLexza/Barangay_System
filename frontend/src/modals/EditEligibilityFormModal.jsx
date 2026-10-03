@@ -3,6 +3,9 @@
 // Edits a form's descriptive fields only. Target quantity, distribution
 // unit, and criteria are locked because they decided who is in the pool and
 // how it was ranked — see updateFormDetails in EligibilityFormController.js.
+//
+// Saving requires credentials (Admin: their own; Staff: any active Admin's),
+// collected by ActionAuthModal after the form passes local validation.
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -22,6 +25,7 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 import axios from "axios";
 import ModalLogoBadge from "../Reusables/ModalLogoBadge.jsx";
+import ActionAuthModal from "./ActionAuthModal.jsx";
 
 const EditEligibilityFormModal = ({ open, onClose, onSuccess, target }) => {
   const [details, setDetails] = useState({
@@ -31,7 +35,7 @@ const EditEligibilityFormModal = ({ open, onClose, onSuccess, target }) => {
   });
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
   const [error, setError] = useState("");
 
   // Re-seed from the selected form every time the dialog opens.
@@ -45,6 +49,7 @@ const EditEligibilityFormModal = ({ open, onClose, onSuccess, target }) => {
       setStartDate(target.start_date ? dayjs(target.start_date) : null);
       setEndDate(target.end_date ? dayjs(target.end_date) : null);
       setError("");
+      setAuthOpen(false);
     }
   }, [open, target]);
 
@@ -66,48 +71,55 @@ const EditEligibilityFormModal = ({ open, onClose, onSuccess, target }) => {
     return "";
   };
 
-  const handleSave = async () => {
+  // Mirrors the server's own comparison so nobody enters credentials just to
+  // be told nothing changed.
+  const hasChanges = () =>
+    details.form_name.trim() !== String(target?.form_name ?? "") ||
+    details.source_details.trim() !== String(target?.source_details ?? "") ||
+    details.distribution_details.trim() !== String(target?.distribution_details ?? "") ||
+    startDate.format("YYYY-MM-DD") !== String(target?.start_date ?? "") ||
+    endDate.format("YYYY-MM-DD") !== String(target?.end_date ?? "");
+
+  const handleSave = () => {
     const message = validate();
     if (message) {
       setError(message);
       return;
     }
-
-    setLoading(true);
-    setError("");
-
-    try {
-      const token = localStorage.getItem("token");
-      await axios.put(
-        `http://localhost:5000/api/eligibility-forms/${target.form_id}/details`,
-        {
-          form_name: details.form_name.trim(),
-          source_details: details.source_details.trim(),
-          distribution_details: details.distribution_details.trim(),
-          start_date: startDate.format("YYYY-MM-DD"),
-          end_date: endDate.format("YYYY-MM-DD"),
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      onSuccess?.();
-      onClose?.();
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to update the form. Please try again.");
-    } finally {
-      setLoading(false);
+    if (!hasChanges()) {
+      setError("No changes to save.");
+      return;
     }
+    setError("");
+    setAuthOpen(true);
   };
 
-  const handleClose = () => {
-    if (loading) return;
+  // Throws on failure so ActionAuthModal can display it / count 401s.
+  const submitWithCredentials = async ({ username, password }) => {
+    const token = localStorage.getItem("token");
+    await axios.put(
+      `http://localhost:5000/api/eligibility-forms/${target.form_id}/details`,
+      {
+        form_name: details.form_name.trim(),
+        source_details: details.source_details.trim(),
+        distribution_details: details.distribution_details.trim(),
+        start_date: startDate.format("YYYY-MM-DD"),
+        end_date: endDate.format("YYYY-MM-DD"),
+        username,
+        password,
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    setAuthOpen(false);
+    onSuccess?.();
     onClose?.();
   };
 
   const isDisabled = target?.status === "Disabled";
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ borderBottom: 1, borderColor: "#e0e0e0", pb: 1.5 }}>
         Edit Form Details
       </DialogTitle>
@@ -118,6 +130,7 @@ const EditEligibilityFormModal = ({ open, onClose, onSuccess, target }) => {
             Target quantity ({target?.target_quantity ?? "—"}), distribution unit (
             {target?.distribution_unit === "Household" ? "per household" : "per resident"}) and who
             qualifies can't be changed after creation, since they decided who is on this form.
+            Saving changes requires credentials.
           </Alert>
 
           <TextField
@@ -183,17 +196,25 @@ const EditEligibilityFormModal = ({ open, onClose, onSuccess, target }) => {
       <DialogActions sx={{ px: 3, pb: 3, justifyContent: "space-between", alignItems: "center" }}>
         <ModalLogoBadge />
         <Box sx={{ display: "flex", gap: 1 }}>
-          <Button onClick={handleClose} disabled={loading}>Cancel</Button>
+          <Button onClick={onClose}>Cancel</Button>
           <Button
             variant="contained"
             onClick={handleSave}
-            disabled={loading}
             sx={{ backgroundColor: "#002f59", "&:hover": { backgroundColor: "#001c38" } }}
           >
-            {loading ? "Saving..." : "Save Changes"}
+            Save Changes
           </Button>
         </Box>
       </DialogActions>
+
+      <ActionAuthModal
+        open={authOpen}
+        onClose={() => setAuthOpen(false)}
+        onSubmit={submitWithCredentials}
+        title="Confirm Edit"
+        description={`Enter credentials to save changes to "${target?.form_name ?? "this form"}".`}
+        confirmLabel="Save changes"
+      />
     </Dialog>
   );
 };

@@ -10,28 +10,43 @@ import dayjs from "dayjs";
 // Keyed by the raw action_type stored in activity_logs. Anything not
 // listed here falls back to a humanized version of the raw value (see
 // getActionMeta), so a new action type added later still renders sensibly.
+const GREEN = { color: "#16a34a", bg: "#f0fdf4" }; // create / positive
+const BLUE  = { color: "#2563eb", bg: "#eff6ff" }; // modify
+const RED   = { color: "#dc2626", bg: "#fef2f2" }; // destructive
+const AMBER = { color: "#b45309", bg: "#fffbeb" }; // reversal / hold
+const TEAL  = { color: "#0891b2", bg: "#ecfeff" }; // system
+
 const ACTION_META = {
-  added:                  { label: "Added",                 color: "#2563eb", bg: "#eff6ff" },
-  created:                { label: "Created",               color: "#2563eb", bg: "#eff6ff" },
-  member_added:           { label: "Member Added",          color: "#2563eb", bg: "#eff6ff" },
-  imported:               { label: "Imported",              color: "#4f46e5", bg: "#eef2ff" },
-  updated:                { label: "Updated",               color: "#0369a1", bg: "#e0f2fe" },
-  archived:               { label: "Archived",              color: "#78716c", bg: "#f5f5f4" },
-  restored:               { label: "Restored",              color: "#16a34a", bg: "#f0fdf4" },
-  deleted:                { label: "Deleted",               color: "#dc2626", bg: "#fef2f2" },
-  enabled:                { label: "Enabled",               color: "#16a34a", bg: "#f0fdf4" },
-  disabled:               { label: "Disabled",              color: "#64748b", bg: "#f1f5f9" },
-  head_transferred:       { label: "Head Transferred",      color: "#7c3aed", bg: "#f5f3ff" },
-  removed_from_household: { label: "Removed from Household", color: "#b45309", bg: "#fffbeb" },
-  marked_received:        { label: "Marked Received",       color: "#16a34a", bg: "#f0fdf4" },
-  reverted_to_pending:    { label: "Reverted to Pending",   color: "#b45309", bg: "#fffbeb" },
-  removed:                { label: "Removed",               color: "#dc2626", bg: "#fef2f2" },
-  promoted_from_waitlist: { label: "Promoted from Waitlist", color: "#7c3aed", bg: "#f5f3ff" },
-  override_removed:      { label: "Override Removed",      color: "#dc2626", bg: "#fef2f2" },
-  override_promoted:     { label: "Override Promoted",     color: "#7c3aed", bg: "#f5f3ff" },
-  backup_created:         { label: "Backup Created",        color: "#0891b2", bg: "#ecfeff" },
-  "Password Reset":       { label: "Password Reset",        color: "#b45309", bg: "#fffbeb" },
-  "Password Changed":     { label: "Password Changed",      color: "#7c3aed", bg: "#f5f3ff" },
+  // Green — create / positive
+  added:                  { label: "Added",                  ...GREEN },
+  created:                { label: "Created",                ...GREEN },
+  member_added:           { label: "Member Added",           ...GREEN },
+  imported:               { label: "Imported",               ...GREEN },
+  restored:               { label: "Restored",               ...GREEN },
+  enabled:                { label: "Enabled",                ...GREEN },
+  marked_received:        { label: "Marked Received",        ...GREEN },
+  promoted_from_waitlist: { label: "Promoted from Waitlist", ...GREEN },
+
+  // Blue — modify
+  updated:                { label: "Updated",                ...BLUE },
+  head_transferred:       { label: "Head Transferred",       ...BLUE },
+  "Password Changed":     { label: "Password Changed",       ...BLUE },
+  "Password Reset":       { label: "Password Reset",         ...BLUE },
+  override_promoted:      { label: "Override Promoted",      ...BLUE },
+
+  // Red — destructive
+  deleted:                { label: "Deleted",                ...RED },
+  removed:                { label: "Removed",                ...RED },
+  override_removed:       { label: "Override Removed",       ...RED },
+
+  // Amber — reversal / hold
+  archived:               { label: "Archived",               ...AMBER },
+  disabled:               { label: "Disabled",               ...AMBER },
+  reverted_to_pending:    { label: "Reverted to Pending",    ...AMBER },
+  removed_from_household: { label: "Removed from Household", ...AMBER },
+
+  // Teal — system
+  backup_created:         { label: "Backup Created",         ...TEAL },
 };
 
 const humanize = (raw) =>
@@ -72,13 +87,19 @@ const isPlainObject = (v) => v !== null && typeof v === "object" && !Array.isArr
 /**
  * Classifies what a log row has to show in its Details column / popup.
  *
- * Returns { type, data, summary }:
+ * Returns { type, data, summary, requestedBy? }:
  *   "report"  — Database backup/restore verification report (opens the
  *               existing BackupRestoreResultModal)
  *   "import"  — bulk resident import: { added: [...], updated: [...] }
  *   "changes" — single-record field diff: [{ field, from, to }]
+ *   "request" — an action a Staff member requested and an Admin authorized,
+ *               with no other detail to show (details = { requested_by })
  *   "text"    — free-text detail (e.g. head transfers)
  *   "none"    — nothing to show (column renders "—", no button)
+ *
+ * `requestedBy` (staff username) is attached to "changes" and "request"
+ * results when `details.requested_by` is present, so the popup can show who
+ * asked for the action.
  *
  * `summary` is the one-line teaser shown in the table cell so every row
  * stays the same height.
@@ -86,6 +107,11 @@ const isPlainObject = (v) => v !== null && typeof v === "object" && !Array.isArr
 export const getLogDetail = (log) => {
   const details = safeParse(log.details);
   const changes = safeParse(log.changes);
+
+  const requestedBy =
+    isPlainObject(details) && typeof details.requested_by === "string" && details.requested_by.trim()
+      ? details.requested_by.trim()
+      : null;
 
   if (
     log.entity_type === "Database" &&
@@ -114,11 +140,12 @@ export const getLogDetail = (log) => {
   // Array.isArray guard matters: older backup/restore rows stored an object
   // in `changes`, which must not be treated as a field diff.
   if (Array.isArray(changes) && changes.length > 0) {
-    return {
+    const result = {
       type: "changes",
       data: changes,
       summary: `Changed: ${changes.map((c) => c.field).join(", ")}`,
     };
+    return requestedBy ? { ...result, requestedBy } : result;
   }
 
   // Eligibility entry actions — remove-with-reason, auto-promotion,
@@ -149,6 +176,13 @@ export const getLogDetail = (log) => {
 
   if (typeof details === "string" && details.trim()) {
     return { type: "text", data: details.trim(), summary: details.trim() };
+  }
+
+  // Staff-requested action with nothing else to show (e.g. Enable, Disable,
+  // Archive). Without this branch the row would render "—" and the
+  // requester would be invisible.
+  if (requestedBy) {
+    return { type: "request", data: null, summary: `Requested by ${requestedBy}`, requestedBy };
   }
 
   return { type: "none", data: null, summary: "" };

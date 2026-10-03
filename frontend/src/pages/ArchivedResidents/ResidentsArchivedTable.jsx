@@ -1,5 +1,6 @@
 // ResidentsArchivedTable.jsx
 import { useState, useEffect } from 'react';
+import { uppercaseGridSx } from '../../Reusables/tableStyles.js';
 import { DataGrid } from '@mui/x-data-grid';
 import { Box, IconButton, Typography, Tooltip } from '@mui/material';
 import RestoreIcon from '@mui/icons-material/Restore';
@@ -56,6 +57,7 @@ const ResidentsArchivedTable = () => {
           birthdate: r.birthdate || '',
           sex: r.sex || '',
           civilStatus: r.civilStatus || '',
+          occupation: r.occupation || '',
           address: r.address || '',
           archived_at: r.archived_at,
           archived_by_name: r.archived_by_name,
@@ -106,6 +108,7 @@ const ResidentsArchivedTable = () => {
       row.fullName?.toLowerCase().includes(search) ||
       row.sex?.toLowerCase().includes(search) ||
       row.civilStatus?.toLowerCase().includes(search) ||
+      (row.occupation?.trim() ? row.occupation : 'Unemployed').toLowerCase().includes(search) ||
       row.address?.toLowerCase().includes(search)
     );
   });
@@ -116,6 +119,14 @@ const ResidentsArchivedTable = () => {
     { field: 'birthdate', headerName: 'Birthdate', width: 120 },
     { field: 'sex', headerName: 'Sex', width: 90 },
     { field: 'civilStatus', headerName: 'Civil Status', width: 130 },
+    {
+      // Display-only default, same as the active Residents table: a blank
+      // occupation SHOWS as "Unemployed" but is never stored that way.
+      field: 'occupation',
+      headerName: 'Occupation',
+      width: 160,
+      valueGetter: (value, row) => (row.occupation?.trim() ? row.occupation : 'Unemployed'),
+    },
     { field: 'address', headerName: 'Address', width: 180 },
     { field: 'archived_at', headerName: 'Archived At', width: 160 },
     { field: 'archived_by_name', headerName: 'Archived By', width: 150 },
@@ -172,7 +183,7 @@ const ResidentsArchivedTable = () => {
         loading={loading}
         hideFooter
         showToolbar
-        sx={{ flex: 1, minHeight: 0 }}
+        sx={{ flex: 1, minHeight: 0, ...uppercaseGridSx }}
         slots={{ toolbar: ResidentsArchivedToolbar }}
         slotProps={{
           toolbar: {

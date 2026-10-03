@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Box, TextField, IconButton, Typography } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { Box, Button, TextField, Typography } from '@mui/material';
 import ArchiveIcon from '@mui/icons-material/Archive';
+import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
 import { useNavigate } from 'react-router-dom';
 
 export default function ResidentsArchivedToolbar({ onSearchChange, archivedCount }) {
@@ -21,7 +21,7 @@ export default function ResidentsArchivedToolbar({ onSearchChange, archivedCount
         borderBottom: '1px solid rgba(0, 47, 89, 0.2)',
       }}
     >
-      {/* Top row — back navigation + title */}
+      {/* Top row — title only (navigation lives in the row below) */}
       <Box
         sx={{
           display: 'flex',
@@ -32,13 +32,6 @@ export default function ResidentsArchivedToolbar({ onSearchChange, archivedCount
           pb: 1,
         }}
       >
-        <IconButton
-          size="small"
-          onClick={() => navigate('/Residents')}
-          sx={{ color: '#002f59' }}
-        >
-          <ArrowBackIcon fontSize="small" />
-        </IconButton>
         <ArchiveIcon sx={{ color: '#78716c', fontSize: 22 }} />
         <Box>
           <Typography variant="h6" fontWeight="bold" color="#002f59" lineHeight={1.2}>
@@ -50,7 +43,8 @@ export default function ResidentsArchivedToolbar({ onSearchChange, archivedCount
         </Box>
       </Box>
 
-      {/* Bottom row — search */}
+      {/* Bottom row — search + View Active toggle (same right-end slot as
+          "View Archived" on the active Residents page) */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1 }}>
         <TextField
           variant="outlined"
@@ -64,6 +58,27 @@ export default function ResidentsArchivedToolbar({ onSearchChange, archivedCount
             '& .MuiOutlinedInput-root': { borderRadius: 1 },
           }}
         />
+
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<PeopleAltOutlinedIcon fontSize="small" />}
+          onClick={() => navigate('/Residents')}
+          sx={{
+            ml: 'auto',
+            textTransform: 'none',
+            borderColor: '#78716c',
+            color: '#57534e',
+            fontWeight: 500,
+            backgroundColor: '#fff',
+            '&:hover': {
+              borderColor: '#57534e',
+              backgroundColor: '#f5f5f4',
+            },
+          }}
+        >
+          View Active
+        </Button>
       </Box>
     </Box>
   );

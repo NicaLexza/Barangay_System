@@ -13,23 +13,22 @@ const { sweepExpiredForms } = require("../utils/eligibilityAutoLock");
  * Residents" under a date filter means "how many registered in this
  * period", not "how many existed as of this period's end".
  *
- * IMPORTANT: is_archived is intentionally NEVER filtered in this
- * controller, with or without a date range. Archiving only affects
- * eligibility-form qualification (a separate, not-yet-built feature) —
- * for reporting/statistics purposes every resident counts, archived or
- * not, since they're still a real historical record.
+ * ARCHIVED RESIDENTS: excluded by default. Pass includeArchived=true to
+ * count them too. The flag applies to every resident-based figure below —
+ * stat cards, breakdowns, and Recently Added Records — with or without a
+ * date range. (Recently Added Records still ignores the date range.)
  *
  * "+X this month" trend chips only make sense for the unfiltered all-time
- * view (they answer "how many were added this calendar month"), so they're
- * zeroed out whenever a date range is active — the filtered total already
- * represents "this period" on its own, and showing a separate "this month"
- * figure alongside an arbitrary custom range would be confusing.
+ * view, so they're zeroed out whenever a date range is active.
+ *
+ * (The old GET /recent-activity endpoint was removed along with the
+ * Dashboard's Recent Activity card — the Audit Logs page is the single
+ * place to review activity now.)
  */
 const getDashboardStats = (req, res) => {
   // Auto-lock sweep runs first so "active_forms" below reflects any form
   // that just crossed its end_date — see utils/eligibilityAutoLock.js.
-  // Sweep failures don't block the dashboard; worst case active_forms is
-  // momentarily stale until the next request.
+  // Sweep failures don't block the dashboard.
   sweepExpiredForms((sweepErr) => {
     if (sweepErr) {
       console.error("[getDashboardStats] Auto-lock sweep failed, continuing anyway:", sweepErr.message);
@@ -44,34 +43,36 @@ const runDashboardQueries = (req, res) => {
   const rangeStart = hasRange ? `${startDate} 00:00:00` : null;
   const rangeEnd   = hasRange ? `${endDate} 23:59:59`   : null;
 
-  const residentWhereClause = hasRange ? "WHERE created_at BETWEEN ? AND ?" : "";
-  const residentWhereParams = hasRange ? [rangeStart, rangeEnd] : [];
+  // Archived residents are EXCLUDED by default; ?includeArchived=true opts in.
+  // This flag affects every resident-based query below, including Recently
+  // Added Records. (Users/forms counts are unrelated to resident archiving.)
+  const includeArchived = req.query.includeArchived === "true";
+  const archivedAnd = includeArchived ? "" : " AND is_archived = 0";
+  const rangeAnd    = hasRange ? " AND created_at BETWEEN ? AND ?" : "";
+  const rangeParams = hasRange ? [rangeStart, rangeEnd] : [];
 
-  const countsSql = hasRange
-    ? `
-      SELECT
-        (SELECT COUNT(*) FROM residents WHERE created_at BETWEEN ? AND ?) AS total_residents,
-        0 AS residents_this_month,
-        (SELECT COUNT(*) FROM residents WHERE is_household_head = 1 AND created_at BETWEEN ? AND ?) AS total_households,
-        0 AS households_this_month,
-        (SELECT COUNT(*) FROM users WHERE status = 'Active')          AS active_users,
-        (SELECT COUNT(*) FROM eligibility_forms WHERE status = 'Enabled') AS active_forms,
-        (SELECT COUNT(*) FROM eligibility_forms)                          AS total_forms
-    `
-    : `
-      SELECT
-        (SELECT COUNT(*) FROM residents)  AS total_residents,
-        (SELECT COUNT(*) FROM residents
-          WHERE created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')) AS residents_this_month,
-        (SELECT COUNT(*) FROM residents WHERE is_household_head = 1) AS total_households,
-        (SELECT COUNT(*) FROM residents
-          WHERE is_household_head = 1
-          AND created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')) AS households_this_month,
-        (SELECT COUNT(*) FROM users WHERE status = 'Active')          AS active_users,
-        (SELECT COUNT(*) FROM eligibility_forms WHERE status = 'Enabled') AS active_forms,
-        (SELECT COUNT(*) FROM eligibility_forms)                          AS total_forms
-    `;
-  const countsParams = hasRange ? [rangeStart, rangeEnd, rangeStart, rangeEnd] : [];
+  const residentWhereClause = `WHERE 1=1${rangeAnd}${archivedAnd}`;
+  const residentWhereParams = rangeParams;
+
+  const countsSql = `
+    SELECT
+      (SELECT COUNT(*) FROM residents WHERE 1=1${rangeAnd}${archivedAnd}) AS total_residents,
+      ${hasRange
+        ? "0"
+        : `(SELECT COUNT(*) FROM residents
+            WHERE created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')${archivedAnd})`} AS residents_this_month,
+      (SELECT COUNT(*) FROM residents WHERE is_household_head = 1${rangeAnd}${archivedAnd}) AS total_households,
+      ${hasRange
+        ? "0"
+        : `(SELECT COUNT(*) FROM residents
+            WHERE is_household_head = 1
+            AND created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')${archivedAnd})`} AS households_this_month,
+      (SELECT COUNT(*) FROM users WHERE status = 'Active')              AS active_users,
+      (SELECT COUNT(*) FROM eligibility_forms WHERE status = 'Enabled') AS active_forms,
+      (SELECT COUNT(*) FROM eligibility_forms)                          AS total_forms
+  `;
+  // One range pair per subquery that uses rangeAnd (total_residents, total_households).
+  const countsParams = [...rangeParams, ...rangeParams];
 
   const queries = {
     counts: { sql: countsSql, params: countsParams },
@@ -115,7 +116,7 @@ const runDashboardQueries = (req, res) => {
 
     // Recently added residents — intentionally NEVER date-filtered, even
     // when a range is active elsewhere on the dashboard. Always shows the
-    // absolute latest 10 (households table removed).
+    // absolute latest 10 (respecting only the archived toggle).
     recentRecords: {
       sql: `
         SELECT
@@ -127,7 +128,7 @@ const runDashboardQueries = (req, res) => {
           resident_id AS id,
           created_at
         FROM residents
-        WHERE created_at IS NOT NULL
+        WHERE created_at IS NOT NULL${archivedAnd}
         ORDER BY created_at DESC
         LIMIT 10
       `,
@@ -170,36 +171,4 @@ const runDashboardQueries = (req, res) => {
   });
 };
 
-/**
- * GET /api/dashboard/recent-activity
- * Intentionally NEVER date-filtered — always shows the absolute latest
- * activity regardless of any Dashboard stats filter being applied.
- */
-const getRecentActivity = (req, res) => {
-  const sql = `
-    SELECT
-      al.log_id,
-      al.entity_type,
-      al.entity_id,
-      al.entity_name,
-      al.action_type,
-      al.performed_at  AS action_time,
-      al.changes,
-      al.details,
-      u.fullname       AS performed_by
-    FROM activity_logs al
-    LEFT JOIN users u ON al.performed_by = u.user_id
-    ORDER BY al.performed_at DESC
-    LIMIT 50
-  `;
-
-  db.query(sql, (err, results) => {
-    if (err) {
-      console.error("Dashboard activity error:", err);
-      return res.status(500).json({ message: "Database error", err });
-    }
-    res.status(200).json(results);
-  });
-};
-
-module.exports = { getDashboardStats, getRecentActivity };
+module.exports = { getDashboardStats };

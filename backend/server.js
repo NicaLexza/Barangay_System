@@ -12,7 +12,6 @@ const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const userAddRoutes = require("./routes/userAddRoutes");
 const userEditRoutes = require("./routes/userEditRoutes");
-const userDeleteRoutes = require("./routes/userDeleteRoutes");
 const userChangePassRoutes = require("./routes/userChangePassRoutes");
 
 const residentArchiveRoutes = require("./routes/residentArchiveRoutes");
@@ -41,8 +40,10 @@ const auditLogRoutes = require("./routes/auditLogRoutes");
 // use routes
 
 app.use("/api/auth", authRoutes);
+// NOTE: there is intentionally no user-delete route. Deleting an account
+// would null out performed_by on its audit-log rows (ON DELETE SET NULL),
+// destroying traceability. Accounts are retired via Status -> Inactive.
 app.use("/api/users", userEditRoutes);
-app.use("/api/users", userDeleteRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/users", userAddRoutes);
 app.use("/api/users", userChangePassRoutes);

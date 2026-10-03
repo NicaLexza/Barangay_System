@@ -14,17 +14,33 @@ import {
   FormGroup,
   Typography,
   Box,
-  RadioGroup,
-  Radio,
+  ToggleButton,
+  ToggleButtonGroup,
   Autocomplete,
   CircularProgress,
 } from "@mui/material";
 import axios from "axios";
+import HomeIcon from "@mui/icons-material/Home";
+import GroupAddIcon from "@mui/icons-material/GroupAdd";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 import ModalLogoBadge from "../Reusables/ModalLogoBadge.jsx";
+
+const toggleGroupSx = {
+  "& .MuiToggleButton-root": {
+    py: 1.25,
+    fontWeight: 600,
+    textTransform: "none",
+    "&.Mui-selected": {
+      backgroundColor: "#002f59",
+      color: "#fff",
+      "&:hover": { backgroundColor: "#001c38" },
+    },
+  },
+};
 
 const AddResidentModal = ({ open, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -53,7 +69,8 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  // { name, headName } of the resident just added — drives the success dialog.
+  const [addedInfo, setAddedInfo] = useState(null);
 
   // Fetch heads when switching to member mode
   React.useEffect(() => {
@@ -82,7 +99,6 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
 
   const handleSave = async () => {
     setError("");
-    setSuccess("");
 
     if (!formData.f_name || !formData.l_name || !formData.sex || !formData.birthdate || !formData.birthplace || !formData.civil_status) {
       setError("Please fill all required personal fields (marked with *)");
@@ -121,13 +137,22 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
         delete payload.head_resident_id;
       }
 
-      const res = await axios.post("http://localhost:5000/api/residents/add", payload, {
+      await axios.post("http://localhost:5000/api/residents/add", payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      setSuccess(res.data.message || "Resident added successfully!");
+      // Capture who was added BEFORE the form is cleared below.
+      const fullName = [formData.f_name, formData.m_name, formData.l_name, formData.suffix]
+        .map((v) => String(v || "").trim())
+        .filter(Boolean)
+        .join(" ");
+      const headName =
+        mode === "member"
+          ? heads.find((h) => h.resident_id === formData.head_resident_id)?.fullName ?? null
+          : null;
+      setAddedInfo({ name: fullName, headName });
 
       // Clear form
       setFormData({
@@ -158,7 +183,13 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
     }
   };
 
+  const handleSuccessClose = () => {
+    setAddedInfo(null);
+    onClose?.();
+  };
+
   return (
+    <>
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ borderBottom: 1, borderColor: "#e0e0e0", pb: 1 }}>
         Add New Resident
@@ -168,10 +199,29 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
         <Stack spacing={2.5}>
           <Box sx={{ mb: 1 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>Registration Type</Typography>
-            <RadioGroup row value={mode} onChange={(e) => setMode(e.target.value)}>
-              <FormControlLabel value="head" control={<Radio />} label="New Household (Head)" />
-              <FormControlLabel value="member" control={<Radio />} label="Add Household Member" />
-            </RadioGroup>
+            <ToggleButtonGroup
+              value={mode}
+              exclusive
+              fullWidth
+              onChange={(e, value) => {
+                if (value) setMode(value);
+              }}
+              sx={{ ...toggleGroupSx, mt: 1 }}
+            >
+              <ToggleButton value="head">
+                <HomeIcon sx={{ mr: 1 }} />
+                New Household (Head)
+              </ToggleButton>
+              <ToggleButton value="member">
+                <GroupAddIcon sx={{ mr: 1 }} />
+                Add Household Member
+              </ToggleButton>
+            </ToggleButtonGroup>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
+              {mode === "head"
+                ? "Registers a new household with its own address."
+                : "Added under an existing household head and shares their address."}
+            </Typography>
           </Box>
 
           {mode === "member" && (
@@ -359,7 +409,6 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
           </FormGroup>
  
           {error && <Typography color="error" mt={2}>{error}</Typography>}
-          {success && <Typography color="success.main" mt={2}>{success}</Typography>}
         </Stack>
       </DialogContent>
 
@@ -378,6 +427,47 @@ const AddResidentModal = ({ open, onClose, onSuccess }) => {
         </Box>
       </DialogActions>
     </Dialog>
+
+    {/* Success dialog — replaces the old inline "added successfully" text. */}
+    <Dialog
+      open={!!addedInfo}
+      onClose={handleSuccessClose}
+      maxWidth="xs"
+      fullWidth
+      PaperProps={{ sx: { borderRadius: 3, px: 2 } }}
+    >
+      <DialogContent sx={{ pt: 4 }}>
+        <Stack spacing={2} alignItems="center">
+          <Box
+            sx={{
+              width: 72, height: 72, borderRadius: "50%", bgcolor: "#e8f5e9",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <CheckCircleOutlineIcon sx={{ fontSize: 40, color: "#2e7d32" }} />
+          </Box>
+          <Typography variant="h6" fontWeight={600} textAlign="center">
+            Resident Added
+          </Typography>
+          <Typography variant="body2" color="text.secondary" align="center" sx={{ maxWidth: 300 }}>
+            <strong>{addedInfo?.name}</strong>{" "}
+            {addedInfo?.headName
+              ? `was added as a member of ${addedInfo.headName}'s household.`
+              : "was registered as a new household head."}
+          </Typography>
+        </Stack>
+      </DialogContent>
+      <DialogActions sx={{ justifyContent: "center", pb: 3 }}>
+        <Button
+          variant="contained"
+          onClick={handleSuccessClose}
+          sx={{ minWidth: 100, backgroundColor: "#002f59", "&:hover": { backgroundColor: "#001c38" } }}
+        >
+          Done
+        </Button>
+      </DialogActions>
+    </Dialog>
+    </>
   );
 };
 

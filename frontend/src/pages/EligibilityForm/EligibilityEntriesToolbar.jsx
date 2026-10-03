@@ -1,14 +1,18 @@
 import { useState } from 'react';
 import {
   Box, Button, TextField, IconButton, Popover, Stack,
-  Typography, FormControl, FormLabel, RadioGroup,
-  FormControlLabel, Radio, Divider, Tabs, Tab, Badge, Alert,
+  Typography, Divider, Tabs, Tab, Badge, Alert,
 } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PrintIcon from '@mui/icons-material/Print';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import { useNavigate } from 'react-router-dom';
+import {
+  FilterSection,
+  FilterToggle,
+  filterPopoverPaperSx,
+} from '../../Reusables/FilterControls.jsx';
 
 export default function EligibilityEntriesToolbar({
   onApplyFilters,
@@ -103,40 +107,40 @@ export default function EligibilityEntriesToolbar({
         >
           <Tab
             value="Selected"
-            sx={{ minHeight: 40, textTransform: 'none', fontWeight: 600 }}
+            sx={{ minHeight: 40, minWidth: 130, px: 2.5, textTransform: 'none', fontWeight: 600 }}
             label={
               <Badge
                 badgeContent={selectedCount}
                 color="primary"
-                sx={{ '& .MuiBadge-badge': { right: -14, backgroundColor: '#002f59' } }}
+                sx={{ '& .MuiBadge-badge': { right: 0, backgroundColor: '#002f59' } }}
               >
-                <Box sx={{ pr: 1 }}>Selected</Box>
+                <Box sx={{ pr: 3 }}>Selected</Box>
               </Badge>
             }
           />
           <Tab
             value="Waitlisted"
-            sx={{ minHeight: 40, textTransform: 'none', fontWeight: 600 }}
+            sx={{ minHeight: 40, minWidth: 130, px: 2.5, textTransform: 'none', fontWeight: 600 }}
             label={
               <Badge
                 badgeContent={waitlistCount}
                 color="default"
-                sx={{ '& .MuiBadge-badge': { right: -14, backgroundColor: '#78716c', color: '#fff' } }}
+                sx={{ '& .MuiBadge-badge': { right: 0, backgroundColor: '#78716c', color: '#fff' } }}
               >
-                <Box sx={{ pr: 1 }}>Waitlist</Box>
+                <Box sx={{ pr: 3 }}>Waitlist</Box>
               </Badge>
             }
           />
           <Tab
             value="Removed"
-            sx={{ minHeight: 40, textTransform: 'none', fontWeight: 600 }}
+            sx={{ minHeight: 40, minWidth: 130, px: 2.5, textTransform: 'none', fontWeight: 600 }}
             label={
               <Badge
                 badgeContent={removedCount}
                 color="error"
-                sx={{ '& .MuiBadge-badge': { right: -14, backgroundColor: '#dc2626', color: '#fff' } }}
+                sx={{ '& .MuiBadge-badge': { right: 0, backgroundColor: '#dc2626', color: '#fff' } }}
               >
-                <Box sx={{ pr: 1 }}>Removed</Box>
+                <Box sx={{ pr: 3 }}>Removed</Box>
               </Badge>
             }
           />
@@ -231,31 +235,27 @@ export default function EligibilityEntriesToolbar({
         )}
       </Box>
 
-      {/* Filter Panel */}
+      {/* Filter Panel — compact controls shared with Residents / Accounts */}
       <Popover
         open={openFilter}
         anchorEl={anchorEl}
         onClose={handleFilterClose}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
         transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-        PaperProps={{ sx: { width: 280, p: 2, boxShadow: 3 } }}
+        PaperProps={{ sx: filterPopoverPaperSx }}
       >
-        <Typography variant="h6" gutterBottom>
+        <Typography variant="subtitle1" fontWeight={700} color="#002f59" gutterBottom>
           Quick Filters
         </Typography>
 
-        <Stack spacing={2.5}>
-          <FormControl>
-            <FormLabel>Status</FormLabel>
-            <RadioGroup
+        <Stack spacing={2}>
+          <FilterSection label="Status">
+            <FilterToggle
               value={rewardedStatus}
-              onChange={(e) => setRewardedStatus(e.target.value)}
-            >
-              <FormControlLabel value="All"      control={<Radio />} label="All" />
-              <FormControlLabel value="Received" control={<Radio />} label="Received" />
-              <FormControlLabel value="Pending"  control={<Radio />} label="Pending" />
-            </RadioGroup>
-          </FormControl>
+              onChange={setRewardedStatus}
+              options={['All', 'Received', 'Pending'].map((v) => ({ value: v, label: v }))}
+            />
+          </FilterSection>
 
           <Divider />
 

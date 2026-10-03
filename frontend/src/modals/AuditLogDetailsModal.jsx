@@ -139,7 +139,7 @@ const ImportBody = ({ added, updated }) => (
  * Details popup for audit log rows. Backup/restore rows do NOT use this —
  * they keep opening BackupRestoreResultModal exactly as before. This
  * handles everything else that has extra detail: field diffs, bulk
- * import breakdowns, and free-text details.
+ * import breakdowns, free-text details, and staff-requested actions.
  *
  * Props:
  *   open    — boolean
@@ -164,8 +164,11 @@ const AuditLogDetailsModal = ({ open, onClose, log }) => {
       />,
     ],
     ["Performed by", log.performed_by || "System"],
-    ["Date & time", formatLogTime(log.action_time)],
   ];
+  // Present when a Staff member asked for the action and an Admin authorized
+  // it with their credentials (performed_by is then the authorizing Admin).
+  if (detail.requestedBy) metaRows.push(["Requested by", detail.requestedBy]);
+  metaRows.push(["Date & time", formatLogTime(log.action_time)]);
 
   return (
     <Dialog
@@ -204,6 +207,22 @@ const AuditLogDetailsModal = ({ open, onClose, log }) => {
         </Box>
 
         <Divider sx={{ mb: 2 }} />
+
+        {detail.type === "request" && (
+          <Box
+            sx={{
+              p: 1.5,
+              backgroundColor: SURFACE,
+              border: `1px solid ${BORDER}`,
+              borderRadius: "6px",
+            }}
+          >
+            <Typography sx={{ fontSize: "0.82rem", color: INK_2, lineHeight: 1.6 }}>
+              Requested by {detail.requestedBy} and authorized with the credentials of{" "}
+              {log.performed_by || "an administrator"}.
+            </Typography>
+          </Box>
+        )}
 
         {detail.type === "changes" && (
           <>
